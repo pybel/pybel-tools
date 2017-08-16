@@ -33,7 +33,6 @@ INSTALL_REQUIRES = [
     'ipython',
     'scipy',
     'numpy',
-    'obonet',
     'artifactory',
     'jinja2',
     'ols_client',
@@ -41,6 +40,9 @@ INSTALL_REQUIRES = [
 EXTRAS_REQUIRE = {
     'speed': [
         'python-Levenshtein',  # Activates c-based speed improvements for fuzzywuzzy
+    ],
+    'annotators': [
+        'obonet', # Allows GO node annotator to run
     ]
 }
 TESTS_REQUIRE = []

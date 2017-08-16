@@ -32,7 +32,7 @@ class GOAnnotator(NodeAnnotator):
             'GOMFID',
         ])
 
-        warnings.warn("deprecated. Use bio2bel_hgnc.GOAnnotator instead", DeprecationWarning)
+        warnings.warn("deprecated. Use bio2bel_go.GOAnnotator instead", DeprecationWarning)
 
         #: A dictionary of {str go term/id: str description}
         self.descriptions = {}
