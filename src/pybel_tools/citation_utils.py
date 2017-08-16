@@ -112,7 +112,7 @@ def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=Fa
                     CITATION_NAME: result[pmid][CITATION_NAME],
                     CITATION_REFERENCE: pmid,
                     CITATION_DATE: datetime.strptime(result[pmid][CITATION_DATE], '%Y-%m-%d'),
-                },
+                }
             )
 
             manager.session.add(c)
