@@ -1,0 +1,11 @@
+[run]
+branch = True
+source = pybel-tools
+
+[paths]
+source =
+    src/pybel_tools
+    .tox/*/lib/python*/site-packages/pybel_tools
+
+[report]
+show_missing = True
