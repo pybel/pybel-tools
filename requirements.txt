@@ -1,0 +1,15 @@
+sqlalchemy
+requests
+networkx
+pybel
+click
+pygments
+pandas
+fuzzywuzzy
+ipython
+scipy
+numpy
+obonet
+artifactory
+jinja2
+ols_client
