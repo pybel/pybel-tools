@@ -18,7 +18,6 @@ CLASSIFIERS = [
     'License :: OSI Approved :: Apache Software License',
     'Operating System :: OS Independent',
     'Programming Language :: Python',
-    'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3.6',
     'Topic :: Scientific/Engineering :: Bio-Informatics'
 ]
@@ -33,15 +32,15 @@ INSTALL_REQUIRES = [
     'ipython',
     'scipy',
     'numpy',
-    'obonet',
     'artifactory',
     'jinja2',
     'ols_client',
+    'obonet',
 ]
 EXTRAS_REQUIRE = {
     'speed': [
         'python-Levenshtein',  # Activates c-based speed improvements for fuzzywuzzy
-    ]
+    ],
 }
 TESTS_REQUIRE = []
 ENTRY_POINTS = {

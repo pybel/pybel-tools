@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 from pybel.constants import HAS_PRODUCT, HAS_REACTANT, HAS_VARIANT, HAS_COMPONENT, TRANSCRIBED_TO, TRANSLATED_TO
 
 IS_PRODUCT_OF = 'isProductOf'
