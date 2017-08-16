@@ -3,10 +3,9 @@
 """Utilities for loading and exporting BEL graphs"""
 
 import logging
-
 import os
-import requests
 
+import requests
 from pybel import from_path, to_pickle, from_pickle
 from pybel import to_database
 from pybel import to_json
@@ -15,8 +14,9 @@ from pybel.io.line_utils import build_metadata_parser
 from pybel.manager.cache import build_manager
 from pybel.struct import union
 from pybel.utils import get_version as get_pybel_version
+
 from .constants import DEFAULT_SERVICE_URL
-from .integration import HGNCAnnotator, GOAnnotator
+from .integration import HGNCAnnotator
 from .mutation import opening_on_central_dogma
 from .mutation.metadata import fix_pubmed_citations
 from .selection import get_subgraph_by_annotation_value
@@ -106,6 +106,7 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, store_part
     :param bool version_in_path: Add the current pybel version to the pathname
     :param kwargs: Parameters to pass to :func:`pybel.from_path`
     """
+    from .integration.description.go_annotator import GOAnnotator
     metadata_parser = build_metadata_parser(connection)
     hgnc_annotator = HGNCAnnotator(preload=enrich_genes)
     go_annotator = GOAnnotator(preload=enrich_go)
