@@ -12,3 +12,4 @@ numpy
 artifactory
 jinja2
 ols_client
+obonet

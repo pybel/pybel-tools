@@ -18,7 +18,6 @@ CLASSIFIERS = [
     'License :: OSI Approved :: Apache Software License',
     'Operating System :: OS Independent',
     'Programming Language :: Python',
-    'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3.6',
     'Topic :: Scientific/Engineering :: Bio-Informatics'
 ]
@@ -36,14 +35,12 @@ INSTALL_REQUIRES = [
     'artifactory',
     'jinja2',
     'ols_client',
+    'obonet',
 ]
 EXTRAS_REQUIRE = {
     'speed': [
         'python-Levenshtein',  # Activates c-based speed improvements for fuzzywuzzy
     ],
-    'annotators': [
-        'obonet', # Allows GO node annotator to run
-    ]
 }
 TESTS_REQUIRE = []
 ENTRY_POINTS = {
