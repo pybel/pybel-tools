@@ -45,6 +45,13 @@ def multidict_set(it):
     return dict(result)
 
 
+def pairwise(iterable):
+    """ Iterate over pairs in list s -> (s0,s1), (s1,s2), (s2, s3), ..."""
+    a, b = itt.tee(iterable)
+    next(b, None)
+    return zip(a, b)
+
+
 def graph_edge_data_iter(graph):
     """Iterates over the edge data dictionaries
 
