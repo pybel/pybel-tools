@@ -36,6 +36,7 @@ gene_c = GENE, HGNC, 'c'
 rna_d = RNA, HGNC, 'd'
 protein_e = PROTEIN, HGNC, 'e'
 gene_f = GENE, HGNC, 'f'
+protein_g = PROTEIN, HGNC, 'g'
 
 
 def make_graph_1():
@@ -155,6 +156,10 @@ def make_graph_3():
 
     graph.add_edge(gene_f, gene_c, attr_dict={
         RELATION: INCREASES,
+    })
+
+    graph.add_edge(gene_c, protein_g, attr_dict={
+        RELATION: ASSOCIATION,
     })
 
     return graph

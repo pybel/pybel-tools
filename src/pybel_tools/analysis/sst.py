@@ -100,7 +100,9 @@ def get_path_effect(graph, path, relationship_dict):
 
         causal_effect.append(relationship_dict[relation])
 
-    return reduce(lambda x, y: x * y, causal_effect)
+    final_effect = reduce(lambda x, y: x * y, causal_effect)
+
+    return Effect.activation if final_effect == 1 else Effect.inhibition
 
 
 def run_cna(graph, root, targets, relationship_dict=None):
