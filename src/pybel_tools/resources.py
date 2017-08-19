@@ -108,6 +108,15 @@ def get_annotation_history(module_name):
     return _get_path_helper(module_name, get_arty_annotation_module)
 
 
+def get_knowledge_history(module_name):
+    """Gets the Artifactory path for a knowledge module
+
+    :param str module_name: The name of the knowledge module
+    :rtype: artifactory.ArtifactoryPath
+    """
+    return _get_path_helper(module_name, get_arty_knowledge_module)
+
+
 def _get_latest_arty_helper(module_name, getter):
     """Helps get the latest path for a given BEL module by paremetrizing the getter"""
     path = _get_path_helper(module_name, getter)

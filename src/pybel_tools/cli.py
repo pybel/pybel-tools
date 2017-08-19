@@ -24,7 +24,6 @@ import sys
 from getpass import getuser
 
 import click
-
 from pybel import from_pickle, to_database, from_lines, from_url
 from pybel.constants import (
     PYBEL_CONNECTION,
@@ -35,13 +34,20 @@ from pybel.constants import (
 from pybel.manager.cache import build_manager
 from pybel.utils import get_version as pybel_version
 from pybel.utils import parse_bel_resource
+
 from pybel_tools.resources import upload_directory_to_arty
 from .constants import GENE_FAMILIES, NAMED_COMPLEXES, DEFAULT_SERVICE_URL
-from .definition_utils import write_namespace, export_namespaces, hash_names, get_bel_resource_hash
+from .definition_utils import (
+    write_namespace,
+    export_namespaces,
+    hash_names,
+    get_bel_resource_hash,
+    get_bel_knowledge_hash,
+)
 from .document_utils import write_boilerplate
 from .ioutils import convert_directory, upload_recursive, to_pybel_web, convert_paths
 from .mutation.metadata import fix_pubmed_citations
-from .resources import get_namespace_history, get_annotation_history
+from .resources import get_namespace_history, get_annotation_history, get_knowledge_history
 from .utils import enable_cool_mode
 
 log = logging.getLogger(__name__)
@@ -324,6 +330,15 @@ def semhash(file):
 @main.group()
 def document():
     """BEL document utilities"""
+
+
+@document.command()
+@click.argument('name')
+def history(name):
+    """Outputs the hashes for the BEL scripts' versions"""
+    for path in get_knowledge_history(name):
+        h = get_bel_knowledge_hash(path.as_posix())
+        click.echo('{}\t{}'.format(path, h))
 
 
 @document.command()
