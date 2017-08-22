@@ -16,7 +16,6 @@ import jinja2
 import networkx as nx
 import pandas as pd
 from pkg_resources import get_distribution
-
 from pybel.constants import (
     ANNOTATIONS,
     CITATION_TYPE,
@@ -27,6 +26,8 @@ from pybel.constants import (
     CITATION_COMMENTS,
     RELATION,
 )
+
+log = logging.getLogger(__name__)
 
 CENTRALITY_SAMPLES = 200
 
@@ -453,6 +454,7 @@ def build_template_renderer(file):
 
 
 def enable_cool_mode():
+    log.info('enabled cool mode')
     logging.getLogger('pybel.parser').setLevel(50)
 
 
