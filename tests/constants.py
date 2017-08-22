@@ -36,6 +36,7 @@ gene_c = GENE, HGNC, 'c'
 rna_d = RNA, HGNC, 'd'
 protein_e = PROTEIN, HGNC, 'e'
 gene_f = GENE, HGNC, 'f'
+protein_g = PROTEIN, HGNC, 'g'
 
 
 def make_graph_1():
@@ -125,8 +126,47 @@ def make_graph_2():
     return graph2
 
 
+
+def make_graph_3():
+    graph = BELGraph(**{
+        GRAPH_METADATA: {
+            METADATA_VERSION: '1.0.0',
+            METADATA_NAME: 'network_test',
+            METADATA_DESCRIPTION: 'network for sst testing',
+            METADATA_AUTHORS: 'Fraunhofer SCAI',
+            METADATA_CONTACT: 'test@scai.fraunhofer.de',
+        }
+    })
+
+    graph.add_edge(protein_a, protein_b, attr_dict={
+        RELATION: INCREASES,
+    })
+
+    graph.add_edge(protein_b, gene_c, attr_dict={
+        RELATION: DECREASES,
+    })
+
+    graph.add_edge(rna_d, gene_f, attr_dict={
+        RELATION: DECREASES,
+    })
+
+    graph.add_edge(protein_e, gene_f, attr_dict={
+        RELATION: INCREASES,
+    })
+
+    graph.add_edge(gene_f, gene_c, attr_dict={
+        RELATION: INCREASES,
+    })
+
+    graph.add_edge(gene_c, protein_g, attr_dict={
+        RELATION: ASSOCIATION,
+    })
+
+    return graph
+
 class ExampleNetworkMixin(unittest.TestCase):
     def setUp(self):
         super(ExampleNetworkMixin, self).setUp()
         self.network1 = make_graph_1()
         self.network2 = make_graph_2()
+        self.network3 = make_graph_3()

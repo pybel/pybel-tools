@@ -16,7 +16,6 @@ import jinja2
 import networkx as nx
 import pandas as pd
 from pkg_resources import get_distribution
-
 from pybel.constants import (
     ANNOTATIONS,
     CITATION_TYPE,
@@ -27,6 +26,8 @@ from pybel.constants import (
     CITATION_COMMENTS,
     RELATION,
 )
+
+log = logging.getLogger(__name__)
 
 CENTRALITY_SAMPLES = 200
 
@@ -43,6 +44,13 @@ def multidict_set(it):
     for k, v in it:
         result[k].add(v)
     return dict(result)
+
+
+def pairwise(iterable):
+    """ Iterate over pairs in list s -> (s0,s1), (s1,s2), (s2, s3), ..."""
+    a, b = itt.tee(iterable)
+    next(b, None)
+    return zip(a, b)
 
 
 def graph_edge_data_iter(graph):
@@ -446,6 +454,7 @@ def build_template_renderer(file):
 
 
 def enable_cool_mode():
+    log.info('enabled cool mode')
     logging.getLogger('pybel.parser').setLevel(50)
 
 

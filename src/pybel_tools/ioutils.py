@@ -10,7 +10,6 @@ from pybel import from_path, to_pickle, from_pickle
 from pybel import to_database
 from pybel import to_json
 from pybel.io.io_exceptions import ImportVersionWarning
-from pybel.io.line_utils import build_metadata_parser
 from pybel.manager.cache import build_manager
 from pybel.struct import union
 from pybel.utils import get_version as get_pybel_version
@@ -45,10 +44,10 @@ def load_paths(paths, connection=None):
     :return: A BEL graph comprised of the union of all BEL graphs produced by each BEL script
     :rtype: pybel.BELGraph
     """
-    metadata_parser = build_metadata_parser(connection)
+    manager = build_manager(connection)
 
     return union(
-        from_path(path, manager=metadata_parser)
+        from_path(path, manager=manager)
         for path in paths
     )
 
@@ -107,7 +106,7 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, store_part
     :param kwargs: Parameters to pass to :func:`pybel.from_path`
     """
     from .integration.description.go_annotator import GOAnnotator
-    metadata_parser = build_metadata_parser(connection)
+    manager = build_manager(connection)
     hgnc_annotator = HGNCAnnotator(preload=enrich_genes)
     go_annotator = GOAnnotator(preload=enrich_go)
 
@@ -117,7 +116,7 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, store_part
         log.info('Parsing path: %s', path)
 
         try:
-            network = from_path(path, manager=metadata_parser.manager, **kwargs)
+            network = from_path(path, manager=manager, **kwargs)
         except Exception as e:
             log.exception('Problem parsing %s', path)
             failures.append((path, e))
@@ -136,7 +135,7 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, store_part
             go_annotator.annotate(network)
 
         if upload or store_parts:
-            to_database(network, connection=metadata_parser.manager, store_parts=store_parts)
+            to_database(network, connection=manager, store_parts=store_parts)
 
         if pickle:
             name = path[:-4]  # [:-4] gets rid of .bel at the end of the file name

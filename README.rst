@@ -9,7 +9,7 @@ with support from the `IMI <https://www.imi.europa.eu/>`_ projects: `AETIONOMY <
 
 Installation |pypi_version| |python_versions| |pypi_license|
 ------------------------------------------------------------
-PyBEL Tools can be installed easily from `PyPI <https://pypi.python.org/pypi/pybel_tools>`_ with the following code in
+PyBEL Tools can be installed easily from PyPI_ with the following code in
 your favorite terminal:
 
 .. code-block:: sh
@@ -32,8 +32,11 @@ Links
 - Documented on `Read the Docs <https://pybel-tools.readthedocs.io/>`_
 - Versioned on `GitHub <https://github.com/pybel/pybel-tools>`_
 - Tested on `Travis CI <https://travis-ci.org/pybel/pybel-tools>`_
-- Distributed by `PyPI <https://pypi.python.org/pypi/pybel-tools>`_
+- Distributed by PyPI_
 - Chat on `Gitter <https://gitter.im/pybel/Lobby>`_
+
+
+.. _PyPI: https://pypi.python.org/pypi/pybel_tools
 
 .. |develop_build| image:: https://travis-ci.org/pybel/pybel-tools.svg?branch=develop
     :target: https://travis-ci.org/pybel/pybel-tools

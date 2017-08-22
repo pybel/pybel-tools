@@ -14,7 +14,9 @@ import time
 from collections import Iterable
 
 from pybel.constants import NAMESPACE_DOMAIN_TYPES, belns_encodings, METADATA_AUTHORS, METADATA_CONTACT, METADATA_NAME
-from pybel.utils import get_bel_resource, parse_bel_resource
+from pybel.io.line_utils import split_file_to_annotations_and_definitions
+from pybel.utils import get_bel_resource, parse_bel_resource, is_url, download
+
 from .summary.error_summary import get_incorrect_names_by_namespace, get_undefined_namespace_names
 from .summary.node_summary import get_names_by_namespace
 from .utils import get_iso_8601_date
@@ -632,3 +634,23 @@ def get_bel_resource_hash(location, hash_function=None):
         resource['Values'],
         hash_function=hash_function
     )
+
+
+def get_bel_knowledge_hash(location):
+    """Hashes the statements section of a BEL document"""
+    if is_url(location):
+        res = download(location)
+        lines = list(line.decode('utf-8', errors='ignore').strip() for line in res.iter_lines())
+    else:
+        with open(os.path.expanduser(location)) as f:
+            lines = list(f)
+
+    _, _, statements = split_file_to_annotations_and_definitions(lines)
+
+    statements = [
+        s
+        for i, s in statements
+        if s.strip()
+    ]
+
+    return hashlib.md5(json.dumps(statements).encode('utf-8')).hexdigest()

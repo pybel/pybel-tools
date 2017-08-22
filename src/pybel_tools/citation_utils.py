@@ -7,7 +7,6 @@ from collections import defaultdict
 from datetime import datetime
 
 import requests
-
 from pybel.constants import *
 from pybel.manager import build_manager
 from pybel.manager.models import Citation
@@ -116,7 +115,8 @@ def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=Fa
             )
 
             manager.session.add(c)
-            manager.session.commit()
+
+        manager.session.commit()  # commit in groups
 
         # Don't want to hit that rate limit
         time.sleep(sleep_time)
@@ -127,15 +127,18 @@ def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=Fa
 
 
 class PubMedAnnotator:
-    def __init__(self):
+    """Wraps functionality for rewriting BEL scripts"""
+
+    def __init__(self, manager=None, group_size=200):
         self.cache = {}
         self.parser = set_tag + set_citation
+        self.group_size = group_size
+        self.manager = manager
 
     def get_citations(self, pubmed_identifiers):
         """
 
         :param iter[str] pubmed_identifiers:
-        :rtype: iter[
         """
 
         result = {}
@@ -148,7 +151,7 @@ class PubMedAnnotator:
             else:
                 to_query.append(pmid)
 
-        tr = get_citations_by_pmids(to_query)
+        tr = get_citations_by_pmids(to_query, manager=self.manager, group_size=self.group_size)
 
         logging.warning('len tr: %s', len(tr))
 
@@ -158,13 +161,12 @@ class PubMedAnnotator:
 
         return result
 
-    def rewrite(self, lines, group_size=200):
+    def rewrite(self, lines):
         """Rewrites a BEL document
 
-        Uses a clever stack so only the last 200 pubmeds are ever in the memory and all the lines in between
+        Uses a clever stack so only the last 200 PubMed identifiers are ever in the memory and all the lines in between
 
         :param iter[str] lines: An iterable over the lines of a BEL file
-        :param int group_size: The number of PubMed identifiers to query at a time
         :return: An iterable of the new lines of a BEL file
         :rtype: iter[str]
         """
@@ -184,7 +186,7 @@ class PubMedAnnotator:
                     pmids.add(pmid)
                     stack.append(pmid)
 
-                    if len(pmids) == group_size:
+                    if len(pmids) == self.group_size:
                         yield from self.help_iterate(stack, pmids)
             except:
                 stack.append(line)

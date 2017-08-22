@@ -81,15 +81,40 @@ def get_arty_auth():
 
 
 def _get_path_helper(module_name, getter):
+    """Helps get the Artifactory path for a certain module
+
+    :param str module_name: The name of the module
+    :param types.FunctionType getter: The function that gets the modules from the Artifactory repository
+    :rtype: artifactory.ArtifactoryPath
+    """
     return ArtifactoryPath(getter(module_name))
 
 
 def get_namespace_history(module_name):
+    """Gets the Artifactory path for a namespace module
+
+    :param str module_name: The name of the namespace module
+    :rtype: artifactory.ArtifactoryPath
+    """
     return _get_path_helper(module_name, get_arty_namespace_module)
 
 
 def get_annotation_history(module_name):
+    """Gets the Artifactory path for an annotation module
+
+    :param str module_name: The name of the annotation module
+    :rtype: artifactory.ArtifactoryPath
+    """
     return _get_path_helper(module_name, get_arty_annotation_module)
+
+
+def get_knowledge_history(module_name):
+    """Gets the Artifactory path for a knowledge module
+
+    :param str module_name: The name of the knowledge module
+    :rtype: artifactory.ArtifactoryPath
+    """
+    return _get_path_helper(module_name, get_arty_knowledge_module)
 
 
 def _get_latest_arty_helper(module_name, getter):
