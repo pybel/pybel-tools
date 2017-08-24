@@ -126,7 +126,7 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, store_part
             opening_on_central_dogma(network)
 
         if enrich_citations:
-            fix_pubmed_citations(network)
+            fix_pubmed_citations(network, manager=manager)
 
         if enrich_genes and hgnc_annotator.download_successful:
             hgnc_annotator.annotate(network)

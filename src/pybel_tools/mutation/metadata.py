@@ -98,7 +98,7 @@ def add_canonical_names(graph, replace=False):
 
 
 @pipeline.in_place_mutator
-def fix_pubmed_citations(graph, stringify_authors=False):
+def fix_pubmed_citations(graph, stringify_authors=False, manager=None):
     """Overwrites all PubMed citations with values from NCBI's eUtils lookup service.
 
     Sets authors as list, so probably a good idea to run :func:`pybel_tools.mutation.serialize_authors` before
@@ -115,7 +115,7 @@ def fix_pubmed_citations(graph, stringify_authors=False):
         return set()
 
     pmids = get_pubmed_identifiers(graph)
-    pmid_data, errors = get_citations_by_pmids(pmids, return_errors=True)
+    pmid_data, errors = get_citations_by_pmids(pmids, return_errors=True, manager=manager)
 
     for u, v, k, d in filter_edges(graph, edge_has_pubmed_citation):
         pmid = d[CITATION][CITATION_REFERENCE].strip()
