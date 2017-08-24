@@ -433,7 +433,7 @@ class DatabaseService(NetworkCacheExtension, QueryService):
         if eager:
             log.debug('enriching citations')
             t = time.time()
-            fix_pubmed_citations(graph)
+            fix_pubmed_citations(graph, manager=self.manager)
             log.debug('done enriching citations in %.2f seconds', time.time() - t)
 
         authors = get_authors(graph)
@@ -671,6 +671,7 @@ class DatabaseService(NetworkCacheExtension, QueryService):
         :param str keyword: Search for authors whose names have this as a substring
         :rtype: list[str]
         """
+        # TODO switch to doing database lookup
         return get_authors_by_keyword(keyword, authors=self.universe_authors)
 
     def get_cname_by_id(self, node_id):
