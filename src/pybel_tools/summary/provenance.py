@@ -9,6 +9,7 @@ from datetime import datetime
 
 from pybel.constants import *
 from pybel.struct.filters import filter_edges
+
 from ..constants import PUBMED
 from ..filters import build_pmid_inclusion_filter, build_edge_data_filter
 from ..utils import graph_edge_data_iter, count_defaultdict, check_has_annotation, count_dict_values
@@ -120,6 +121,10 @@ def count_pmids(graph):
     return Counter(iterate_pubmed_identifiers(graph))
 
 
+def get_citation_pair(data):
+    return data[CITATION][CITATION_TYPE], data[CITATION][CITATION_REFERENCE].strip()
+
+
 def count_unique_citations(graph):
     """Returns the number of unique citations
 
@@ -128,7 +133,7 @@ def count_unique_citations(graph):
     :rtype: int
     """
     return len({
-        (data[CITATION][CITATION_TYPE], data[CITATION][CITATION_REFERENCE])
+        get_citation_pair(data)
         for data in graph_edge_data_iter(graph)
         if CITATION in data
     })
@@ -146,12 +151,11 @@ def count_citations(graph, **annotations):
 
     annotation_dict_filter = build_edge_data_filter(annotations)
 
-    for u, v, k, d in filter_edges(graph, annotation_dict_filter):
+    for u, v, _, d in filter_edges(graph, annotation_dict_filter):
         if CITATION not in d:
             continue
 
-        c = d[CITATION]
-        citations[u, v].add((c[CITATION_TYPE], c[CITATION_REFERENCE].strip()))
+        citations[u, v].add(get_citation_pair(d))
 
     counter = Counter(itt.chain.from_iterable(citations.values()))
     return counter
@@ -176,6 +180,16 @@ def count_citations_by_annotation(graph, annotation='Subgraph'):
     return {k: Counter(itt.chain.from_iterable(v.values())) for k, v in citations.items()}
 
 
+def check_authors_in_data(data):
+    return CITATION not in data or CITATION_AUTHORS not in data[CITATION]
+
+
+def raise_for_unparsed_authors(data):
+    authors = data[CITATION][CITATION_AUTHORS]
+    if isinstance(authors, str):
+        raise ValueError('Graph should be converted with pbt.mutation.parse_authors first: {}'.format(authors))
+
+
 def count_authors(graph):
     """Counts the contributions of each author to the given graph
 
@@ -185,10 +199,9 @@ def count_authors(graph):
     """
     authors = []
     for data in graph_edge_data_iter(graph):
-        if CITATION not in data or CITATION_AUTHORS not in data[CITATION]:
+        if check_authors_in_data(data):
             continue
-        if isinstance(data[CITATION][CITATION_AUTHORS], str):
-            raise ValueError('Graph should be converted with pbt.mutation.parse_authors first')
+        raise_for_unparsed_authors(data)
         for author in data[CITATION][CITATION_AUTHORS]:
             authors.append(author)
 
@@ -204,10 +217,9 @@ def count_author_publications(graph):
     """
     authors = defaultdict(list)
     for data in graph_edge_data_iter(graph):
-        if CITATION not in data or CITATION_AUTHORS not in data[CITATION]:
+        if check_authors_in_data(data):
             continue
-        if isinstance(data[CITATION][CITATION_AUTHORS], str):
-            raise ValueError('Graph should be converted with pbt.mutation.parse_authors first')
+        raise_for_unparsed_authors(data)
         for author in data[CITATION][CITATION_AUTHORS]:
             authors[author].append(data[CITATION][CITATION_REFERENCE].strip())
 
@@ -224,10 +236,9 @@ def get_authors(graph):
     """
     authors = set()
     for data in graph_edge_data_iter(graph):
-        if CITATION not in data or CITATION_AUTHORS not in data[CITATION]:
+        if check_authors_in_data(data):
             continue
-        if isinstance(data[CITATION][CITATION_AUTHORS], str):
-            raise ValueError('Graph should be converted with ``pbt.mutation.parse_authors`` first')
+        raise_for_unparsed_authors(data)
         for author in data[CITATION][CITATION_AUTHORS]:
             authors.add(author)
     return authors
