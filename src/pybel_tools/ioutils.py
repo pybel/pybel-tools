@@ -40,7 +40,7 @@ def load_paths(paths, connection=None):
 
     :param iter[str] paths: An iterable over paths to BEL scripts
     :param str connection: A custom database connection string
-    :type connection: None or str or pybel.manager.cache.CacheManager or pybel.parser.parse_metadata.MetadataParser
+    :type connection: None or str or pybel.manager.cache.CacheManager
     :return: A BEL graph comprised of the union of all BEL graphs produced by each BEL script
     :rtype: pybel.BELGraph
     """
@@ -57,7 +57,7 @@ def load_directory(directory, connection=None):
 
     :param str directory: A path to a directory
     :param str connection: A custom database connection string
-    :type connection: None or str or pybel.manager.cache.CacheManager or pybel.parser.parse_metadata.MetadataParser
+    :type connection: None or str or pybel.manager.cache.CacheManager
     :return: A BEL graph comprised of the union of all BEL graphs produced by each BEL script
     :rtype: pybel.BELGraph
     """
@@ -93,7 +93,7 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, store_part
 
     :param iter[str] paths: The paths to convert
     :param connection: The connection
-    :type connection: None or str or pybel.manager.cache.CacheManager or pybel.parser.parse_metadata.MetadataParser
+    :type connection: None or str or pybel.manager.cache.CacheManager
     :param bool upload: Should the networks be uploaded to the cache?
     :param bool pickle: Should the networks be saved as pickles?
     :param bool store_parts: Should the networks be uploaded to the edge store?
@@ -160,7 +160,7 @@ def convert_directory(directory, connection=None, upload=False, pickle=False, st
 
     :param str directory: The directory to look through
     :param connection: The connection
-    :type connection: None or str or pybel.manager.cache.CacheManager or pybel.parser.parse_metadata.MetadataParser
+    :type connection: None or str or pybel.manager.cache.CacheManager
     :param bool upload: Should the networks be uploaded to the cache?
     :param bool pickle: Should the networks be saved as pickles?
     :param bool store_parts: Should the networks be uploaded to the edge store?
