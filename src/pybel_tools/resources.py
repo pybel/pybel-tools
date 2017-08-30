@@ -326,10 +326,12 @@ default_annotations = {
 }
 
 
-def upload_directory_to_arty(directory):
+def deploy_directory(directory, auth=None):
     """Uploads all stuff from a directory to artifactory
 
     :param str directory: the path to a directory
+    :param tuple[str] auth: A pair of (str username, str password) to give to the auth keyword of the constructor of
+                            :class:`artifactory.ArtifactoryPath`. Defaults to the result of :func:`get_arty_auth`.
     """
     for file in os.listdir(directory):
         full_path = os.path.join(directory, file)
@@ -337,12 +339,12 @@ def upload_directory_to_arty(directory):
         if file.endswith('.belanno'):
             name = file[:-8]
             log.info('Uploading annotation %s', full_path)
-            deploy_annotation(full_path, name)
+            deploy_annotation(full_path, name, auth=auth)
         elif file.endswith('.belns'):
             name = file[:-6]
             log.info('Uploading namespace %s', full_path)
-            deploy_namespace(full_path, name)
+            deploy_namespace(full_path, name, auth=auth)
         elif file.endswith('.bel'):
             name = file[:-4]
             log.info('Uploading knowledge %s', full_path)
-            deploy_knowledge(full_path, name)
+            deploy_knowledge(full_path, name, auth=auth)
