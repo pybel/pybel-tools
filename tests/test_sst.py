@@ -35,7 +35,7 @@ class SstTest(ExampleNetworkMixin):
 
         self.assertEqual(0, failed_results[0][2].value)  # E -> G
 
-    def test_causalr_rank_hypothesis(self):
+    def test_causalr_rank_hypothesis_1(self):
         test_network = self.network4  # Defined in test.constants.TestNetworks
 
         observed_regulation_test = {
@@ -66,3 +66,29 @@ class SstTest(ExampleNetworkMixin):
         self.assertEqual(abs(downregulated_hypothesis['incorrect']), abs(upregulated_hypothesis['correct']))
         self.assertEqual(abs(downregulated_hypothesis['correct']), abs(upregulated_hypothesis['incorrect']))
         self.assertEqual(abs(downregulated_hypothesis['ambiguous']), abs(upregulated_hypothesis['ambiguous']))
+
+    def test_causalr_rank_hypothesis_2(self):
+        test_network = self.network4  # Defined in test.constants.TestNetworks
+
+        observed_regulation_test = {
+            (PROTEIN, HGNC, 'a'): 0,
+            (PROTEIN, HGNC, 'b'): 1,
+            (GENE, HGNC, 'c'): 1,
+            (RNA, HGNC, 'd'): 1,
+            (PROTEIN, HGNC, 'e'): 1,
+            (GENE, HGNC, 'f'): -1,
+            (PROTEIN, HGNC, 'g'): -1,
+            (PROTEIN, HGNC, 'h'): -1,
+            (PROTEIN, HGNC, 'i'): -1
+        }
+
+        upregulated_hypothesis, downregulated_hypothesis = rank_causalr_hypothesis(
+            graph=test_network,
+            node_to_regulation=observed_regulation_test,
+            regulator_node=(PROTEIN, HGNC, 'b')
+        )
+
+        self.assertEqual(5, downregulated_hypothesis['score'])  # 5
+        self.assertEqual(6, downregulated_hypothesis['correct'])  # 6
+        self.assertEqual(1, downregulated_hypothesis['incorrect'])  # 1 (GENE, HGNC, 'f')
+        self.assertEqual(0, downregulated_hypothesis['ambiguous'])  # 0
