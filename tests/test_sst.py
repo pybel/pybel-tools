@@ -47,7 +47,8 @@ class SstTest(ExampleNetworkMixin):
             (GENE, HGNC, 'f'): 1,
             (PROTEIN, HGNC, 'g'): 1,
             (PROTEIN, HGNC, 'h'): 1,
-            (PROTEIN, HGNC, 'i'): 1
+            (PROTEIN, HGNC, 'i'): 1,
+            (PROTEIN, HGNC, 'j'): 1
         }
 
         upregulated_hypothesis, downregulated_hypothesis = rank_causalr_hypothesis(
@@ -59,7 +60,7 @@ class SstTest(ExampleNetworkMixin):
         self.assertEqual(6, upregulated_hypothesis['score'])  # 6
         self.assertEqual(7, upregulated_hypothesis['correct'])  # 7
         self.assertEqual(1, upregulated_hypothesis['incorrect'])  # 1 (GENE, HGNC, 'f')
-        self.assertEqual(0, upregulated_hypothesis['ambiguous'])  # 0
+        self.assertEqual(1, upregulated_hypothesis['ambiguous'])  # 1
 
         # Checking for scoring symmetry
         self.assertEqual(abs(downregulated_hypothesis['score']), abs(upregulated_hypothesis['score']))
@@ -79,7 +80,8 @@ class SstTest(ExampleNetworkMixin):
             (GENE, HGNC, 'f'): -1,
             (PROTEIN, HGNC, 'g'): -1,
             (PROTEIN, HGNC, 'h'): -1,
-            (PROTEIN, HGNC, 'i'): -1
+            (PROTEIN, HGNC, 'i'): -1,
+            (PROTEIN, HGNC, 'j'): 1
         }
 
         upregulated_hypothesis, downregulated_hypothesis = rank_causalr_hypothesis(
@@ -91,4 +93,4 @@ class SstTest(ExampleNetworkMixin):
         self.assertEqual(5, downregulated_hypothesis['score'])  # 5
         self.assertEqual(6, downregulated_hypothesis['correct'])  # 6
         self.assertEqual(1, downregulated_hypothesis['incorrect'])  # 1 (GENE, HGNC, 'f')
-        self.assertEqual(0, downregulated_hypothesis['ambiguous'])  # 0
+        self.assertEqual(1, downregulated_hypothesis['ambiguous'])  # 0
