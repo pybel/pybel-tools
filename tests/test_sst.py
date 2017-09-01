@@ -57,16 +57,10 @@ class SstTest(ExampleNetworkMixin):
             regulator_node=(PROTEIN, HGNC, 'a')
         )
 
-        self.assertEqual(6, upregulated_hypothesis['score'])  # 6
-        self.assertEqual(7, upregulated_hypothesis['correct'])  # 7
+        self.assertEqual(5, upregulated_hypothesis['score'])
+        self.assertEqual(6, upregulated_hypothesis['correct'])
         self.assertEqual(1, upregulated_hypothesis['incorrect'])  # 1 (GENE, HGNC, 'f')
-        self.assertEqual(1, upregulated_hypothesis['ambiguous'])  # 1
-
-        # Checking for scoring symmetry
-        self.assertEqual(abs(downregulated_hypothesis['score']), abs(upregulated_hypothesis['score']))
-        self.assertEqual(abs(downregulated_hypothesis['incorrect']), abs(upregulated_hypothesis['correct']))
-        self.assertEqual(abs(downregulated_hypothesis['correct']), abs(upregulated_hypothesis['incorrect']))
-        self.assertEqual(abs(downregulated_hypothesis['ambiguous']), abs(upregulated_hypothesis['ambiguous']))
+        self.assertEqual(1, upregulated_hypothesis['ambiguous'])  # 1 (GENE, HGNC, 'h')
 
     def test_causalr_rank_hypothesis_2(self):
         test_network = self.network4  # Defined in test.constants.TestNetworks
@@ -90,7 +84,13 @@ class SstTest(ExampleNetworkMixin):
             regulator_node=(PROTEIN, HGNC, 'b')
         )
 
-        self.assertEqual(5, downregulated_hypothesis['score'])  # 5
-        self.assertEqual(6, downregulated_hypothesis['correct'])  # 6
-        self.assertEqual(1, downregulated_hypothesis['incorrect'])  # 1 (GENE, HGNC, 'f')
-        self.assertEqual(1, downregulated_hypothesis['ambiguous'])  # 0
+        self.assertEqual(4, downregulated_hypothesis['score'])
+        self.assertEqual(5, downregulated_hypothesis['correct'])
+        self.assertEqual(1, downregulated_hypothesis['incorrect'])
+        self.assertEqual(1, downregulated_hypothesis['ambiguous'])  # 1 (GENE, HGNC, 'h')
+
+        # Checking for scoring symmetry
+        self.assertEqual(abs(downregulated_hypothesis['score']), abs(upregulated_hypothesis['score']))
+        self.assertEqual(abs(downregulated_hypothesis['incorrect']), abs(upregulated_hypothesis['correct']))
+        self.assertEqual(abs(downregulated_hypothesis['correct']), abs(upregulated_hypothesis['incorrect']))
+        self.assertEqual(abs(downregulated_hypothesis['ambiguous']), abs(upregulated_hypothesis['ambiguous']))

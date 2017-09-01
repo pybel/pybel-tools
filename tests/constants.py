@@ -183,7 +183,10 @@ def make_graph_4():
             B -| E
             B -| F
             B -> G
+
             B -> H
+            B -| H
+
             B -> I
             B -- J
 
@@ -221,6 +224,10 @@ def make_graph_4():
 
     graph.add_edge(protein_b, protein_g, attr_dict={
         RELATION: INCREASES,
+    })
+
+    graph.add_edge(protein_b, protein_h, attr_dict={
+        RELATION: DECREASES,
     })
 
     graph.add_edge(protein_b, protein_h, attr_dict={

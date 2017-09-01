@@ -14,6 +14,7 @@ import networkx as nx
 from pybel.constants import *
 
 from ..utils import pairwise
+from ..summary.edge_summary import pair_has_contradiction
 
 causal_effect_dict = {
     INCREASES: 1,
@@ -74,6 +75,7 @@ class Effect(enum.Enum):
     inhibition = -1
     no_effect = 0
     activation = 1
+    ambiguous = None
 
 
 def get_path_effect(graph, path, relationship_dict):
@@ -89,12 +91,16 @@ def get_path_effect(graph, path, relationship_dict):
 
     for predecessor, successor in pairwise(path):
 
+        if pair_has_contradiction(graph, predecessor, successor):
+            return Effect.ambiguous
+
         edges = graph.get_edge_data(predecessor, successor)
 
         edge_key, edge_relation, _ = rank_edges(edges)
 
         relation = graph[predecessor][successor][edge_key][RELATION]
 
+        # Returns Effect.no_effect if there is a non causal edge in path
         if relation not in relationship_dict or relationship_dict[relation] == 0:
             return Effect.no_effect
 
@@ -121,9 +127,27 @@ def run_cna(graph, root, targets, relationship_dict=None):
 
     for target in targets:
         try:
-            path = nx.shortest_path(graph, source=root, target=target)
+            shortest_paths = nx.all_shortest_paths(graph, source=root, target=target)
 
-            causal_effects.append((root, target, get_path_effect(graph, path, relationship_dict)))
+            effects_in_path = set()
+
+            for shortest_path in shortest_paths:
+                effects_in_path.add(get_path_effect(graph, shortest_path, relationship_dict))
+
+            if len(effects_in_path) == 1:
+                causal_effects.append((root, target, next(iter(effects_in_path))))  # Append the only predicted effect
+
+            elif Effect.activation in effects_in_path and Effect.inhibition in effects_in_path:
+                causal_effects.append((root, target, Effect.ambiguous))
+
+            elif Effect.activation in effects_in_path and Effect.inhibition not in effects_in_path:
+                causal_effects.append((root, target, Effect.activation))
+
+            elif Effect.inhibition in effects_in_path and Effect.activation not in effects_in_path:
+                causal_effects.append((root, target, Effect.inhibition))
+
+            else:
+                log.warning('Exception in set: {}.'.format(effects_in_path))
 
         except nx.NetworkXNoPath:
             log.warning('No shortest path between: {} and {}.'.format(root, target))
@@ -201,12 +225,16 @@ def rank_causalr_hypothesis(graph, node_to_regulation, regulator_node):
 
         if (predicted_regulation is Effect.inhibition or predicted_regulation is Effect.activation) and (
                     predicted_regulation.value == node_to_regulation[target_node]):
+
             upregulation_hypothesis['correct'] += 1
             downregulation_hypothesis['incorrect'] += 1
 
-        elif predicted_regulation is Effect.no_effect:
+        elif predicted_regulation is Effect.ambiguous:
             upregulation_hypothesis['ambiguous'] += 1
             downregulation_hypothesis['ambiguous'] += 1
+
+        elif predicted_regulation is Effect.no_effect:
+            continue
 
         else:
             downregulation_hypothesis['correct'] += 1
