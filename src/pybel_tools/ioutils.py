@@ -8,7 +8,7 @@ import os
 import requests
 from pybel import from_path, to_pickle, from_pickle
 from pybel import to_database
-from pybel import to_json
+import pybel
 from pybel.io.io_exceptions import ImportVersionWarning
 from pybel.manager.cache import build_manager
 from pybel.struct import union
@@ -27,6 +27,7 @@ __all__ = [
     'subgraphs_to_pickles',
     'convert_paths',
     'convert_directory',
+    'to_pybel_web',
 ]
 
 log = logging.getLogger(__name__)
@@ -250,4 +251,5 @@ def to_pybel_web(network, service=None):
     service = DEFAULT_SERVICE_URL if service is None else service
     url = service + '/api/receive'
     headers = {'content-type': 'application/json'}
-    return requests.post(url, json=to_json(network), headers=headers)
+    return requests.post(url, json=pybel.to_json(network), headers=headers)
+
