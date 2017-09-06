@@ -35,7 +35,7 @@ from pybel.manager.cache import build_manager
 from pybel.utils import get_version as pybel_version
 from pybel.utils import parse_bel_resource
 
-from pybel_tools.resources import upload_directory_to_arty
+from pybel_tools.resources import deploy_directory
 from .constants import GENE_FAMILIES, NAMED_COMPLEXES, DEFAULT_SERVICE_URL
 from .definition_utils import (
     write_namespace,
@@ -383,7 +383,7 @@ def serialize_namespaces(namespaces, connection, path, directory):
 def upload_resources(directory, debug):
     """Uploads the resources in a directory to arty"""
     set_debug_param(debug)
-    upload_directory_to_arty(directory)
+    deploy_directory(directory)
 
 
 if __name__ == '__main__':

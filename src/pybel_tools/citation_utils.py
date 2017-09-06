@@ -46,19 +46,29 @@ def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=Fa
     unresolved_pmids = []
 
     for pmid in pmids:
-        c = manager.session.query(Citation).filter(Citation.type == 'PubMed', Citation.reference == pmid).one_or_none()
+        citation = manager.session.query(Citation).filter(Citation.type == CITATION_TYPE_PUBMED,
+                                                          Citation.reference == pmid).one_or_none()
 
-        if c is None:
+        if citation is None:
             unresolved_pmids.append(pmid)
             continue
 
         result[pmid] = {
-            CITATION_AUTHORS: '|'.join(c.authors),
+            CITATION_AUTHORS: [author.name for author in citation.authors],
             CITATION_TYPE: CITATION_TYPE_PUBMED,
             CITATION_REFERENCE: pmid,
-            CITATION_DATE: c.date,
-            CITATION_NAME: c.name
+            CITATION_NAME: citation.name,
         }
+
+        if citation.date:
+            result[pmid][CITATION_DATE] = citation.date.strftime('%Y-%m-%d')
+
+    log.info('Used %d citations from cache', len(pmids) - len(unresolved_pmids))
+
+    if not unresolved_pmids:
+        return (result, set()) if return_errors else result
+
+    log.info('Looking up %d citations in PubMed', len(unresolved_pmids))
 
     errors = set()
     t = time.time()
@@ -101,27 +111,33 @@ def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=Fa
                 'firstauthor': p['sortfirstauthor'],
             })
 
-            c = Citation(
+            citation_kwargs = {
+                CITATION_TYPE: CITATION_TYPE_PUBMED,
+                CITATION_NAME: result[pmid][CITATION_NAME],
+                CITATION_REFERENCE: pmid,
+            }
+
+            if CITATION_DATE not in result[pmid]:
+                log.warning('No date for PMID:%s', pmid)
+            else:
+                citation_kwargs[CITATION_DATE] = datetime.strptime(result[pmid][CITATION_DATE], '%Y-%m-%d')
+
+            citation = Citation(
                 authors=[
                     manager.get_or_create_author(author)
                     for author in result[pmid][CITATION_AUTHORS]
                 ],
-                **{
-                    CITATION_TYPE: CITATION_TYPE_PUBMED,
-                    CITATION_NAME: result[pmid][CITATION_NAME],
-                    CITATION_REFERENCE: pmid,
-                    CITATION_DATE: datetime.strptime(result[pmid][CITATION_DATE], '%Y-%m-%d'),
-                }
+                **citation_kwargs
             )
 
-            manager.session.add(c)
+            manager.session.add(citation)
 
         manager.session.commit()  # commit in groups
 
         # Don't want to hit that rate limit
         time.sleep(sleep_time)
 
-    log.info('retrieved PubMed identifiers in %.02f seconds', time.time() - t)
+    log.info('retrieved %d PubMed identifiers in %.02f seconds', len(unresolved_pmids), time.time() - t)
 
     return (result, errors) if return_errors else result
 

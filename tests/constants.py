@@ -37,6 +37,9 @@ rna_d = RNA, HGNC, 'd'
 protein_e = PROTEIN, HGNC, 'e'
 gene_f = GENE, HGNC, 'f'
 protein_g = PROTEIN, HGNC, 'g'
+protein_h = PROTEIN, HGNC, 'h'
+protein_i = PROTEIN, HGNC, 'i'
+protein_j = PROTEIN, HGNC, 'j'
 
 
 def make_graph_1():
@@ -126,8 +129,15 @@ def make_graph_2():
     return graph2
 
 
-
 def make_graph_3():
+    """
+    A -> B -| C
+    D -| F -> C
+    C -| F
+    C -- G
+
+    """
+
     graph = BELGraph(**{
         GRAPH_METADATA: {
             METADATA_VERSION: '1.0.0',
@@ -164,9 +174,81 @@ def make_graph_3():
 
     return graph
 
+
+def make_graph_4():
+    """
+    A -> B
+            B -| C
+            B -| D
+            B -| E
+            B -| F
+            B -> G
+
+            B -> H
+            B -| H
+
+            B -> I
+            B -- J
+
+    """
+
+    graph = BELGraph(**{
+        GRAPH_METADATA: {
+            METADATA_VERSION: '1.0.0',
+            METADATA_NAME: 'network_test',
+            METADATA_DESCRIPTION: 'network for sst testing',
+            METADATA_AUTHORS: 'Fraunhofer SCAI',
+            METADATA_CONTACT: 'test@scai.fraunhofer.de',
+        }
+    })
+
+    graph.add_edge(protein_a, protein_b, attr_dict={
+        RELATION: INCREASES,
+    })
+
+    graph.add_edge(protein_b, gene_c, attr_dict={
+        RELATION: DECREASES,
+    })
+
+    graph.add_edge(protein_b, rna_d, attr_dict={
+        RELATION: DECREASES,
+    })
+
+    graph.add_edge(protein_b, protein_e, attr_dict={
+        RELATION: DECREASES,
+    })
+
+    graph.add_edge(protein_b, gene_f, attr_dict={
+        RELATION: DECREASES,
+    })
+
+    graph.add_edge(protein_b, protein_g, attr_dict={
+        RELATION: INCREASES,
+    })
+
+    graph.add_edge(protein_b, protein_h, attr_dict={
+        RELATION: DECREASES,
+    })
+
+    graph.add_edge(protein_b, protein_h, attr_dict={
+        RELATION: INCREASES,
+    })
+
+    graph.add_edge(protein_b, protein_i, attr_dict={
+        RELATION: INCREASES,
+    })
+
+    graph.add_edge(protein_b, protein_j, attr_dict={
+        RELATION: ASSOCIATION,
+    })
+
+    return graph
+
+
 class ExampleNetworkMixin(unittest.TestCase):
     def setUp(self):
         super(ExampleNetworkMixin, self).setUp()
         self.network1 = make_graph_1()
         self.network2 = make_graph_2()
         self.network3 = make_graph_3()
+        self.network4 = make_graph_4()

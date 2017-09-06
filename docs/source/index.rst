@@ -61,7 +61,9 @@ Links
    :caption: Other Utilities
    :name: utilities
 
+   ioutils
    documentutils
+   resourceutils
    utilities
    lexer
 

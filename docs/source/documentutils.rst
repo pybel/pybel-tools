@@ -12,9 +12,3 @@ Creating Knowledge Documents
 
 .. automodule:: pybel_tools.document_utils
     :members:
-
-Deployment to Artifactory
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. automodule:: pybel_tools.resources
-    :members:

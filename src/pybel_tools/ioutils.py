@@ -8,7 +8,7 @@ import os
 import requests
 from pybel import from_path, to_pickle, from_pickle
 from pybel import to_database
-from pybel import to_json
+import pybel
 from pybel.io.io_exceptions import ImportVersionWarning
 from pybel.manager.cache import build_manager
 from pybel.struct import union
@@ -27,6 +27,7 @@ __all__ = [
     'subgraphs_to_pickles',
     'convert_paths',
     'convert_directory',
+    'to_pybel_web',
 ]
 
 log = logging.getLogger(__name__)
@@ -40,7 +41,7 @@ def load_paths(paths, connection=None):
 
     :param iter[str] paths: An iterable over paths to BEL scripts
     :param str connection: A custom database connection string
-    :type connection: None or str or pybel.manager.cache.CacheManager or pybel.parser.parse_metadata.MetadataParser
+    :type connection: None or str or pybel.manager.cache.CacheManager
     :return: A BEL graph comprised of the union of all BEL graphs produced by each BEL script
     :rtype: pybel.BELGraph
     """
@@ -57,7 +58,7 @@ def load_directory(directory, connection=None):
 
     :param str directory: A path to a directory
     :param str connection: A custom database connection string
-    :type connection: None or str or pybel.manager.cache.CacheManager or pybel.parser.parse_metadata.MetadataParser
+    :type connection: None or str or pybel.manager.cache.CacheManager
     :return: A BEL graph comprised of the union of all BEL graphs produced by each BEL script
     :rtype: pybel.BELGraph
     """
@@ -93,7 +94,7 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, store_part
 
     :param iter[str] paths: The paths to convert
     :param connection: The connection
-    :type connection: None or str or pybel.manager.cache.CacheManager or pybel.parser.parse_metadata.MetadataParser
+    :type connection: None or str or pybel.manager.cache.CacheManager
     :param bool upload: Should the networks be uploaded to the cache?
     :param bool pickle: Should the networks be saved as pickles?
     :param bool store_parts: Should the networks be uploaded to the edge store?
@@ -126,7 +127,7 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, store_part
             opening_on_central_dogma(network)
 
         if enrich_citations:
-            fix_pubmed_citations(network)
+            fix_pubmed_citations(network, manager=manager)
 
         if enrich_genes and hgnc_annotator.download_successful:
             hgnc_annotator.annotate(network)
@@ -160,7 +161,7 @@ def convert_directory(directory, connection=None, upload=False, pickle=False, st
 
     :param str directory: The directory to look through
     :param connection: The connection
-    :type connection: None or str or pybel.manager.cache.CacheManager or pybel.parser.parse_metadata.MetadataParser
+    :type connection: None or str or pybel.manager.cache.CacheManager
     :param bool upload: Should the networks be uploaded to the cache?
     :param bool pickle: Should the networks be saved as pickles?
     :param bool store_parts: Should the networks be uploaded to the edge store?
@@ -250,4 +251,5 @@ def to_pybel_web(network, service=None):
     service = DEFAULT_SERVICE_URL if service is None else service
     url = service + '/api/receive'
     headers = {'content-type': 'application/json'}
-    return requests.post(url, json=to_json(network), headers=headers)
+    return requests.post(url, json=pybel.to_json(network), headers=headers)
+
