@@ -57,6 +57,8 @@ def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=Fa
 
         result[pmid] = citation.to_json()
 
+    manager.session.commit()
+
     log.info('Used %d citations from cache', len(pmids) - len(unresolved_pmids))
 
     if not unresolved_pmids:
@@ -96,8 +98,11 @@ def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=Fa
             if 'authors' in p:
                 result[pmid][CITATION_AUTHORS] = [author['name'] for author in p['authors']]
 
-                for author in result[pmid][CITATION_AUTHORS]:
-                    citation.authors.append(manager.get_or_create_author(author))
+                if not citation.authors:
+                    citation.authors = [
+                        manager.get_or_create_author(author)
+                        for author in result[pmid][CITATION_AUTHORS]
+                    ]
 
             publication_date = p['pubdate']
 
@@ -112,7 +117,8 @@ def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=Fa
             else:
                 log.info('Date with strange format: %s', p['pubdate'])
 
-            citation.date = datetime.strptime(result[pmid][CITATION_DATE], '%Y-%m-%d')
+            if CITATION_DATE in result[pmid]:
+                citation.date = datetime.strptime(result[pmid][CITATION_DATE], '%Y-%m-%d')
 
         manager.session.commit()  # commit in groups
 
