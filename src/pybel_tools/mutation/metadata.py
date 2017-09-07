@@ -111,7 +111,7 @@ def enrich_pubmed_citations(graph, stringify_authors=False, manager=None):
                     or ``None`` for default connection
     :type manager: None or str or CacheManager
     :return: A set of PMIDs for which the eUtils service crashed
-    :rtype: set
+    :rtype: set[str]
     """
     if 'PYBEL_ENRICHED_CITATIONS' in graph.graph:
         log.warning('citations have already been enriched in %s', graph)
