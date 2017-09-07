@@ -4,12 +4,12 @@
 
 import itertools as itt
 import logging
-from collections import defaultdict, Counter
 from datetime import datetime
+
+from collections import defaultdict, Counter
 
 from pybel.constants import *
 from pybel.struct.filters import filter_edges
-
 from ..constants import PUBMED
 from ..filters import build_pmid_inclusion_filter, build_edge_data_filter
 from ..utils import graph_edge_data_iter, count_defaultdict, check_has_annotation, count_dict_values
@@ -234,14 +234,21 @@ def get_authors(graph):
     :return: A set of author names
     :rtype: set[str]
     """
-    authors = set()
+    result = set()
+
     for data in graph_edge_data_iter(graph):
         if check_authors_in_data(data):
             continue
-        raise_for_unparsed_authors(data)
-        for author in data[CITATION][CITATION_AUTHORS]:
-            authors.add(author)
-    return authors
+
+        authors = data[CITATION][CITATION_AUTHORS]
+
+        result.update(
+            authors.strip().split('|')
+            if isinstance(authors, str)
+            else authors
+        )
+
+    return result
 
 
 def count_unique_authors(graph):
@@ -328,7 +335,7 @@ def count_citation_years(graph):
     :return: A Counter of {int year: int frequency}
     :rtype: collections.Counter
     """
-    result = defaultdict(int)
+    result = defaultdict(set)
 
     for data in graph_edge_data_iter(graph):
         if CITATION not in data or CITATION_DATE not in data[CITATION]:
@@ -336,11 +343,11 @@ def count_citation_years(graph):
 
         try:
             dt = _ensure_datetime(data[CITATION][CITATION_DATE])
-            result[dt.year] += 1
+            result[dt.year].add((data[CITATION][CITATION_TYPE], data[CITATION][CITATION_REFERENCE]))
         except:
             continue
 
-    return Counter(result)
+    return count_dict_values(result)
 
 
 def _ensure_datetime(s):
