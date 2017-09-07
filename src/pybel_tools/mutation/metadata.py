@@ -20,7 +20,7 @@ __all__ = [
     'parse_authors',
     'serialize_authors',
     'add_canonical_names',
-    'fix_pubmed_citations',
+    'enrich_pubmed_citations',
     'relabel_graph_with_int_identifiers',
 ]
 
@@ -98,7 +98,7 @@ def add_canonical_names(graph, replace=False):
 
 
 @pipeline.in_place_mutator
-def fix_pubmed_citations(graph, stringify_authors=False, manager=None):
+def enrich_pubmed_citations(graph, stringify_authors=False, manager=None):
     """Overwrites all PubMed citations with values from NCBI's eUtils lookup service.
 
     Sets authors as list, so probably a good idea to run :func:`pybel_tools.mutation.serialize_authors` before
@@ -107,6 +107,9 @@ def fix_pubmed_citations(graph, stringify_authors=False, manager=None):
     :param pybel.BELGraph graph: A BEL graph
     :param bool stringify_authors: Converts all author lists to author strings using
                                   :func:`pybel_tools.mutation.serialize_authors`. Defaults to ``False``.
+    :param manager: An RFC-1738 database connection string, a pre-built :class:`pybel.manager.cache.CacheManager`,
+                    or ``None`` for default connection
+    :type manager: None or str or CacheManager
     :return: A set of PMIDs for which the eUtils service crashed
     :rtype: set
     """

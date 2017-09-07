@@ -23,7 +23,7 @@ from .mutation.inference import infer_central_dogma
 from .mutation.metadata import (
     parse_authors,
     add_canonical_names,
-    fix_pubmed_citations,
+    enrich_pubmed_citations,
     relabel_graph_with_int_identifiers,
 )
 from .summary.edge_summary import (
@@ -433,7 +433,7 @@ class DatabaseService(NetworkCacheExtension, QueryService):
         if eager:
             log.debug('enriching citations')
             t = time.time()
-            fix_pubmed_citations(graph, manager=self.manager)
+            enrich_pubmed_citations(graph, manager=self.manager)
             log.debug('done enriching citations in %.2f seconds', time.time() - t)
 
         authors = get_authors(graph)
