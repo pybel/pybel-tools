@@ -179,7 +179,10 @@ class QueryService(DatabaseServiceBase):
 
         if network_id:
             network = self.manager.get_network_by_id(network_id)
-            result = [citation.data for citation in network.citations[offset_start:offset_end]]
+            result = [
+                citation.to_json()
+                for citation in network.citations[offset_start:offset_end]
+            ]
 
         if author:
             result = self.manager.get_citation(author=author, as_dict_list=True)
@@ -211,11 +214,7 @@ class QueryService(DatabaseServiceBase):
             network = self.manager.get_network_by_id(network_id)
 
             result = {
-                'network': {
-                    'id': network.id,
-                    'name': network.name,
-                    'version': network.version
-                },
+                'network': network.to_json(),
                 'offset': {
                     'start': offset_start,
                     'end': offset_end
