@@ -83,17 +83,23 @@ def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=Fa
 
             result[pmid] = {
                 'title': p['title'],
-                'lastauthor': p['lastauthor'],
+                'last': p['lastauthor'],
                 CITATION_NAME: p['fulljournalname'],
                 'volume': p['volume'],
                 'issue': p['issue'],
                 'pages': p['pages'],
-                'firstauthor': p['sortfirstauthor'],
+                'first': p['sortfirstauthor'],
             }
 
             citation = unresolved_pmids[pmid]
 
-            citation.name = result[pmid].get(CITATION_NAME)
+            citation.name = result[pmid][CITATION_NAME]
+            citation.title = result[pmid]['title']
+            citation.volume = result[pmid]['volume']
+            citation.issue = result[pmid]['issue']
+            citation.pages = result[pmid]['pages']
+            citation.first = result[pmid]['first']
+            citation.last = result[pmid]['last']
 
             if 'authors' in p:
                 result[pmid][CITATION_AUTHORS] = [author['name'] for author in p['authors']]
