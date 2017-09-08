@@ -246,7 +246,10 @@ def get_all_relations(graph, u, v):
     :param tuple v: The target BEL node
     :rtype: set[str]
     """
-    return {d[RELATION] for d in graph.edge[u][v].values()}
+    return {
+        data[RELATION]
+        for data in graph.edge[u][v].values()
+    }
 
 
 def pair_is_consistent(graph, u, v):

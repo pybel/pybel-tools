@@ -354,7 +354,7 @@ def collapse_consistent_edges(graph):
 
     :param pybel.BELGraph graph: A BEL Graph
     """
-    for u, v in graph:
+    for u, v in graph.edges_iter():
         relation = pair_is_consistent(graph, u, v)
 
         if not relation:
