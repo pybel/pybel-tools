@@ -21,7 +21,7 @@ __all__ = [
     'serialize_authors',
     'add_canonical_names',
     'enrich_pubmed_citations',
-    'relabel_graph_with_int_identifiers',
+    'add_identifiers',
 ]
 
 log = logging.getLogger(__name__)
@@ -168,14 +168,14 @@ def update_context(universe, graph):
             log.warning('annotation: %s missing from universe', annotation)
 
 
-def relabel_graph_with_int_identifiers(graph):
-    """Adds integer stable node and edge identifiers to the graph, in-place using the PyBEL
-    node and edge hashes, then converting from hexadecimal str to decimal int.
+def add_identifiers(graph):
+    """Adds stable node and edge identifiers to the graph, in-place using the PyBEL
+    node and edge hashes as a hexadecimal str.
 
     :param pybel.BELGraph graph: A BEL Graph
     """
     for node, data in graph.nodes_iter(data=True):
-        graph.node[node][ID] = hash_str_to_int(hash_node(node))
+        graph.node[node][ID] = hash_node(node)
 
     for u, v, k, d in graph.edges_iter(keys=True, data=True):
-        graph.edge[u][v][k][ID] = hash_str_to_int(hash_edge(u, v, k, d))
+        graph.edge[u][v][k][ID] = hash_edge(u, v, k, d)

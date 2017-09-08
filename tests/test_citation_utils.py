@@ -45,7 +45,7 @@ class TestCitations(ManagerMixin):
 
     def test_enrich_overwrite(self):
         citation = self.manager.get_or_create_citation(type=CITATION_TYPE_PUBMED, reference=self.pmid)
-        self.manager.commit()
+        self.manager.session.commit()
         self.assertIsNone(citation.date)
         self.assertIsNone(citation.name)
 

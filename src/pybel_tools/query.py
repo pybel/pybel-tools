@@ -3,7 +3,6 @@
 import json
 import logging
 
-from pybel.manager import CacheManager
 from pybel.struct import union
 from pybel.utils import list2tuple
 from .pipeline import Pipeline
@@ -67,22 +66,18 @@ class Query:
         """
         log.debug('query universe consists of networks: %s', self.network_ids)
 
-        if isinstance(manager, CacheManager):
-            query_universe = union(
-                network.as_bel()
-                for network in manager.get_networks_by_ids(self.network_ids)
-            )
-        else:  # assume database service
-            query_universe = manager.get_network_by_ids(self.network_ids)
+        query_universe = manager.get_graph_by_ids(self.network_ids)
 
-        log.debug('query universe has %d nodes/%d edges', query_universe.number_of_nodes(),
-                  query_universe.number_of_edges())
+        log.debug(
+            'query universe has %d nodes/%d edges',
+            query_universe.number_of_nodes(),
+            query_universe.number_of_edges()
+        )
 
         # parse seeding stuff
 
         if not self.seeds:
             graph = query_universe
-
         else:
             subgraphs = []
             for seed in self.seeds:
@@ -92,6 +87,7 @@ class Query:
                     seed_data=seed['data']
                 )
 
+                # TODO streamline this logging... maybe put in get_subgraph function
                 log.info(
                     'Subgraph coming from %s (seed type) %s (data) contains %d nodes and %d edges',
                     seed['data'],

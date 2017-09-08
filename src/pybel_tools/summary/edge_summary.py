@@ -3,6 +3,7 @@
 """This module contains functions that provide summaries of the edges in a graph"""
 
 import itertools as itt
+
 from collections import Counter, defaultdict
 
 from pybel.constants import (
@@ -24,6 +25,7 @@ __all__ = [
     'count_annotations',
     'get_annotations',
     'get_annotation_values_by_annotation',
+    'get_annotations_containing_keyword',
     'count_annotation_values',
     'get_annotation_values',
     'count_annotation_values_filtered',
@@ -156,6 +158,24 @@ def get_annotation_values_by_annotation(graph):
     :rtype: dict[str, set[str]]
     """
     return get_value_sets(_get_annotation_values_by_annotation_helper(graph))
+
+
+def get_annotations_containing_keyword(graph, keyword):
+    """Gets annotation/value pairs for values for whom the search string is a substring
+
+    :param pybel.BELGraph graph: A BEL graph
+    :param str keyword: Search for annotations whose values have this as a substring
+    :rtype: list[dict[str,str]
+    """
+    return [
+        {
+            'annotation': annotation,
+            'value': value
+        }
+        for annotation, values in get_annotation_values_by_annotation(graph).items()
+        for value in values
+        if keyword.lower() in value.lower()
+    ]
 
 
 def count_annotation_values(graph, annotation):
