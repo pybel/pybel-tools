@@ -40,7 +40,7 @@ class Query:
     def add_seed_induction(self, data):
         """Adds a seed induction method
 
-        :param list[tuple] data: A list of BEL node tuples
+        :param list[tuple] data: A list of PyBEL node tuples
         """
         self.add_seed(SEED_TYPE_INDUCTION, data)
 
@@ -114,7 +114,10 @@ class Query:
         :rtype: list[dict]
         """
         return [
-            {'type': seed['type'], 'data': seed['data']}
+            {
+                'type': seed['type'],
+                'data': seed['data']
+            }
             for seed in self.seeds
         ]
 
