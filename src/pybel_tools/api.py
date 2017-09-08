@@ -335,14 +335,6 @@ class DatabaseService(QueryService):
             self.id_bel[node_id] = bel
             self.bel_id[bel] = node_id
 
-        for u, v, k, data in graph.edges_iter(keys=True, data=True):
-            edge_tuple = edge_to_tuple(u, v, k, data)
-
-            edge_id = data[ID]
-
-            self.edge_tuple_eid[edge_tuple] = edge_id
-            self.eid_edge[edge_id] = u, v, data
-
     def _relabel_notes_to_identifiers_helper(self, graph):
         if 'PYBEL_RELABELED' in graph.graph:
             log.warning('%s has already been relabeled', graph.name)
@@ -515,18 +507,18 @@ class DatabaseService(QueryService):
         """
         return self.node_nid[node]
 
-    def get_node_hashes(self, nodes):
+    def get_node_hashes(self, node_tuples):
         """Converts a list of BEL nodes to their node identifiers
 
-        :param list[tuple] nodes: A list of PyBEL node tuples
+        :param list[tuple] node_tuples: A list of PyBEL node tuples
         :rtype: list
         """
         return [
             self.get_node_hash(node)
-            for node in nodes
+            for node in node_tuples
         ]
 
-    def get_node_by_hash(self, node_hash):
+    def get_node_tuple_by_hash(self, node_hash):
         """Returns the node tuple based on the node id
 
         :param node_hash: The node's identifier
@@ -542,7 +534,7 @@ class DatabaseService(QueryService):
         :rtype: list[tuple]
         """
         return [
-            self.get_node_by_hash(node_hash)
+            self.get_node_tuple_by_hash(node_hash)
             for node_hash in node_hashes
         ]
 
@@ -592,7 +584,7 @@ class DatabaseService(QueryService):
         :param node_hash: A BEL node identifier
         :rtype: str
         """
-        node = self.get_node_by_hash(node_hash)
+        node = self.get_node_tuple_by_hash(node_hash)
         return self.get_cname(node)
 
     def get_cname(self, node):
