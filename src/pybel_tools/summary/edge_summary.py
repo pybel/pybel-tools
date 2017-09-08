@@ -255,11 +255,15 @@ def pair_is_consistent(graph, u, v):
     :param pybel.BELGraph graph: A BEL graph
     :param tuple u: The source BEL node
     :param tuple v: The target BEL node
-    :return: Do the edges between these nodes all have the same relation?
-    :rtype: bool
+    :return: If the edges aren't consistent, return false, otherwise return the relation type
+    :rtype: bool or str
     """
     relations = get_all_relations(graph, u, v)
-    return 1 == len(relations)
+
+    if 1 != len(relations):
+        return False
+
+    return list(relations)[0]
 
 
 def relation_set_has_contradictions(relations):
