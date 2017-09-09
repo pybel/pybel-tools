@@ -103,10 +103,10 @@ def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=Fa
 
             if 'authors' in p:
                 result[pmid][CITATION_AUTHORS] = [author['name'] for author in p['authors']]
-                citation.authors = [
-                    manager.get_or_create_author(author)
-                    for author in result[pmid][CITATION_AUTHORS]
-                ]
+                for author in result[pmid][CITATION_AUTHORS]:
+                    author_model = manager.get_or_create_author(author)
+                    if author_model not in citation.authors:
+                        citation.authors.append(author_model)
 
             publication_date = p['pubdate']
 

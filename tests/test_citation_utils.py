@@ -43,6 +43,19 @@ class TestCitations(ManagerMixin):
         stored_citations = self.manager.session.query(Citation).all()
         self.assertEqual(1, len(stored_citations))
 
+    def test_enrich_list(self):
+        pmids = [
+            '25818332',
+            '27003210',
+            '26438529',
+            '26649137',
+        ]
+
+        get_citations_by_pmids(pmids, manager=self.manager)
+
+        citation = self.manager.get_or_create_citation(type=CITATION_TYPE_PUBMED, reference='25818332')
+        self.assertIsNotNone(citation)
+
     def test_enrich_overwrite(self):
         citation = self.manager.get_or_create_citation(type=CITATION_TYPE_PUBMED, reference=self.pmid)
         self.manager.session.commit()
