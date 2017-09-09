@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import logging
+
 from collections import defaultdict
 
 from pybel.constants import *
 from .deletion import prune_central_dogma
 from .inference import infer_central_dogma
 from .. import pipeline
-from ..summary.edge_summary import get_consistent_edges
+from ..summary.edge_summary import pair_is_consistent
 from ..utils import all_edges_iter
 
 __all__ = [
@@ -38,7 +39,6 @@ def collapse_pair(graph, survivor, synonym):
     :param pybel.BELGraph graph: A BEL graph
     :param tuple survivor: The BEL node to collapse all edges on the synonym to
     :param tuple synonym: The BEL node to collapse into the surviving node
-    :return: 
     """
     for successor in graph.successors_iter(synonym):
         if successor == survivor:
@@ -115,7 +115,7 @@ def build_central_dogma_collapse_gene_dict(graph):
     """Builds a dictionary to direct the collapsing on the central dogma
 
     :param pybel.BELGraph graph: A BEL graph
-    :return: A dictionary of {node: set of nodes}
+    :return: A dictionary of {node: set of PyBEL node tuples}
     :rtype: dict[tuple,set[tuple]]
     """
     collapse_dict = defaultdict(set)
@@ -354,8 +354,12 @@ def collapse_consistent_edges(graph):
 
     :param pybel.BELGraph graph: A BEL Graph
     """
-    for u, v in get_consistent_edges(graph):
-        rel = [d[RELATION] for d in graph.edge[u][v].values()][0]
+    for u, v in graph.edges():
+        relation = pair_is_consistent(graph, u, v)
+
+        if not relation:
+            continue
+
         edges = list(all_edges_iter(graph, u, v))
         graph.remove_edges_from(edges)
-        graph.add_edge(u, v, attr_dict={RELATION: rel})
+        graph.add_edge(u, v, attr_dict={RELATION: relation})

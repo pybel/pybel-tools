@@ -16,14 +16,15 @@ Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 
 from __future__ import print_function
 
-import hashlib
 import json
 import logging
-import os
 import sys
 from getpass import getuser
 
 import click
+import hashlib
+import os
+
 from pybel import from_pickle, to_database, from_lines, from_url
 from pybel.constants import (
     PYBEL_CONNECTION,
@@ -34,7 +35,6 @@ from pybel.constants import (
 from pybel.manager.cache import build_manager
 from pybel.utils import get_version as pybel_version
 from pybel.utils import parse_bel_resource
-
 from pybel_tools.resources import deploy_directory
 from .constants import GENE_FAMILIES, NAMED_COMPLEXES, DEFAULT_SERVICE_URL
 from .definition_utils import (
@@ -46,7 +46,7 @@ from .definition_utils import (
 )
 from .document_utils import write_boilerplate
 from .ioutils import convert_directory, upload_recursive, to_pybel_web, convert_paths
-from .mutation.metadata import fix_pubmed_citations
+from .mutation.metadata import enrich_pubmed_citations
 from .resources import get_namespace_history, get_annotation_history, get_knowledge_history
 from .utils import enable_cool_mode
 
@@ -98,7 +98,7 @@ def small_corpus(manager, enrich_authors, use_edge_store, debug):
     set_debug_param(debug)
     graph = from_url(SMALL_CORPUS_URL, manager=manager, citation_clearing=False, allow_nested=True)
     if enrich_authors:
-        fix_pubmed_citations(graph)
+        enrich_pubmed_citations(graph, manager=manager)
     manager.insert_graph(graph, store_parts=use_edge_store)
 
 
@@ -112,7 +112,7 @@ def large_corpus(manager, enrich_authors, use_edge_store, debug):
     set_debug_param(debug)
     graph = from_url(LARGE_CORPUS_URL, manager=manager, citation_clearing=False, allow_nested=True)
     if enrich_authors:
-        fix_pubmed_citations(graph)
+        enrich_pubmed_citations(graph, manager=manager)
     manager.insert_graph(graph, store_parts=use_edge_store)
 
 
@@ -126,7 +126,7 @@ def gene_families(manager, enrich_authors, use_edge_store, debug):
     set_debug_param(debug)
     graph = from_url(GENE_FAMILIES, manager=manager)
     if enrich_authors:
-        fix_pubmed_citations(graph)
+        enrich_pubmed_citations(graph, manager=manager)
     manager.insert_graph(graph, store_parts=use_edge_store)
 
 
@@ -140,7 +140,7 @@ def named_complexes(manager, enrich_authors, use_edge_store, debug):
     set_debug_param(debug)
     graph = from_url(NAMED_COMPLEXES, manager=manager)
     if enrich_authors:
-        fix_pubmed_citations(graph)
+        enrich_pubmed_citations(graph, manager=manager)
     manager.insert_graph(graph, store_parts=use_edge_store)
 
 

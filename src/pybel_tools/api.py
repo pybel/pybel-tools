@@ -6,16 +6,16 @@ This module contains all of the services necessary through the PyBEL API Definit
 
 import logging
 import time
-from collections import Counter, defaultdict
-from functools import lru_cache
 
 import networkx as nx
-from sqlalchemy import exists, func
+from collections import Counter, defaultdict
+from functools import lru_cache
+from sqlalchemy import func
 
 from pybel import BELGraph
-from pybel.canonicalize import decanonicalize_node, calculate_canonical_name
+from pybel.canonicalize import node_to_bel, calculate_canonical_name
 from pybel.constants import ID
-from pybel.manager.models import Network, Annotation, Namespace
+from pybel.manager.models import Network, Annotation
 from pybel.struct import left_full_join, union
 from pybel.utils import edge_to_tuple
 from .constants import CNAME
@@ -23,13 +23,13 @@ from .mutation.inference import infer_central_dogma
 from .mutation.metadata import (
     parse_authors,
     add_canonical_names,
-    fix_pubmed_citations,
-    relabel_graph_with_int_identifiers,
+    enrich_pubmed_citations,
+    add_identifiers,
 )
 from .summary.edge_summary import (
     count_pathologies,
     get_tree_annotations,
-    get_annotation_values_by_annotation
+    get_annotations_containing_keyword
 )
 from .summary.provenance import (
     get_authors,
@@ -52,75 +52,36 @@ class DatabaseServiceBase:
         self.manager = manager
 
 
-class NetworkCacheExtension(DatabaseServiceBase):
-    def get_network_ids(self):
-        """Gets all network ids
-
-        :rtype: list[int]
-        """
-        return [
-            network_id
-            for network_id, in self.manager.session.query(Network.id).all()
-        ]
-
-    def list_recent_network_ids(self):
-        """Gets the network identifiers of the most recent version of each network
-
-        :rtype: list[int]
-        """
-        return [
-            network.id
-            for network in self.list_recent_networks()
-        ]
-
-    def list_recent_networks(self):
-        """Lists the most recently uploaded version of each network
-
-        :rtype: list[Network]
-        """
-        return self.manager.session.query(Network).group_by(Network.name).having(func.max(Network.created)).order_by(
-            Network.created.desc()).all()
-
-    def has_name_version(self, name, version):
-        """Checks if the name/version combination is already in the database
-
-        :rtype: bool
-        """
-        return self.manager.session.query(exists().where(Network.name == name, Network.version == version)).scalar()
-
-
 class QueryService(DatabaseServiceBase):
     def query_namespaces(self, network_id=None, offset_start=0, offset_end=500, name_list=False, keyword=None):
         """Provides a list of namespaces filtered by the given parameters.
 
-        :param network_id: Primary identifier of the network in the PyBEL database. This can be obtained with the
-                           get_networks function.
-        :type network_id: int
-        :param offset_start: The starting point of the offset (position in database)
-        :type offset_start: int
-        :param offset_end: The end point of the offset (position in database)
-        :type offset_end: int
-        :param name_list: Flag that identifies if a list of all names in a namespace should be created.
-        :type name_list: bool
-        :param keyword: The keyword used to identify a specific namespace. This is only used if name_list is True.
-        :type keyword: str
-
+        :param int network_id: Primary identifier of the network in the PyBEL database.
+        :param int offset_start: The starting point of the offset (position in database)
+        :param int offset_end: The end point of the offset (position in database)
+        :param bool name_list: Flag that identifies if a list of all names in a namespace should be created.
+        :param str keyword: The keyword used to identify a specific namespace. This is only used if name_list is True.
         :return: List of dictionaries that describe all namespaces.
         """
         result = []
 
         if network_id:
             network = self.manager.get_network_by_id(network_id)
-            result = [namespace.data for namespace in network.namespaces[offset_start:offset_end]]
+            result = [
+                namespace.to_json()
+                for namespace in network.namespaces[offset_start:offset_end]
+            ]
 
         if name_list and keyword:
-            keyword_url_dict = {definition.keyword: definition.url for definition in
-                                self.manager.session.query(Namespace).all()}
+            keyword_url_dict = {
+                namespace.keyword: namespace.url
+                for namespace in self.manager.list_namespaces()
+            }
             namespace_url = keyword_url_dict[keyword]
             self.manager.ensure_namespace(url=namespace_url)
 
-            definition = self.manager.session.query(Namespace).filter_by(url=namespace_url).one_or_none()
-            namespace_data = definition.data
+            definition = self.manager.get_namespace_by_url(namespace_url)
+            namespace_data = definition.to_json()
 
             result = {
                 'namespace_definition': namespace_data,
@@ -128,7 +89,10 @@ class QueryService(DatabaseServiceBase):
             }
 
         if not result:
-            result = [definition.data for definition in self.manager.session.query(Namespace).all()]
+            result = [
+                definition.to_json()
+                for definition in self.manager.list_namespaces()
+            ]
 
         return result
 
@@ -154,7 +118,8 @@ class QueryService(DatabaseServiceBase):
                 keyword_url_dict = dict(self.manager.session.query(Annotation.keyword, Annotation.url).all())
                 url = keyword_url_dict[keyword]
                 self.manager.ensure_annotation(url=url)
-                annotation_data = self.manager.session.query(Annotation).filter_by(url=url).one_or_none().data
+                annotation = self.manager.session.query(Annotation).filter_by(url=url).one_or_none()
+                annotation_data = annotation.to_json()
 
                 result = {
                     'annotation_definition': annotation_data,
@@ -162,7 +127,10 @@ class QueryService(DatabaseServiceBase):
                 }
 
         if len(result) == 0:
-            result = [definition.data for definition in self.manager.session.query(Annotation).all()]
+            result = [
+                definition.to_json()
+                for definition in self.manager.session.query(Annotation).all()
+            ]
 
         return result
 
@@ -179,13 +147,42 @@ class QueryService(DatabaseServiceBase):
 
         if network_id:
             network = self.manager.get_network_by_id(network_id)
-            result = [citation.data for citation in network.citations[offset_start:offset_end]]
+            result = [
+                citation.to_json()
+                for citation in network.citations[offset_start:offset_end]
+            ]
 
         if author:
-            result = self.manager.get_citation(author=author, as_dict_list=True)
+            result = self.manager.query_citations(author=author, as_dict_list=True)
 
         if len(result) == 0:
-            result = self.manager.get_citation(as_dict_list=True)
+            result = self.manager.query_citations(as_dict_list=True)
+
+        return result
+
+    def get_edges_by_network_id(self, network_id, offset_start=0, offset_end=500):
+        network = self.manager.get_network_by_id(network_id)
+
+        if offset_start > 0:
+            offset_start -= 1
+
+        if offset_start == offset_end:
+            offset_end += 1
+
+        edges = [
+            edge.to_json(include_id=True)
+            for edge in network.edges[offset_start:offset_end]
+        ]
+
+        result = {
+            'network': network.to_json(include_id=True),
+            'edges': edges,
+            'number_of_edges': len(edges),
+            'offset': {
+                'start': offset_start,
+                'end': offset_end
+            }
+        }
 
         return result
 
@@ -208,40 +205,28 @@ class QueryService(DatabaseServiceBase):
         :rtype: list[]
         """
         if network_id:
-            network = self.manager.get_network_by_id(network_id)
-
-            result = {
-                'network': {
-                    'id': network.id,
-                    'name': network.name,
-                    'version': network.version
-                },
-                'offset': {
-                    'start': offset_start,
-                    'end': offset_end
-                }
-            }
-            if offset_start > 0:
-                offset_start -= 1
-            if offset_start == offset_end:
-                offset_end += 1
-
-            result['edges'] = [edge.data_min for edge in network.edges[offset_start:offset_end]]
-            result['number_of_edges'] = len(result['edges'])
-            return result
+            return self.get_edges_by_network_id(network_id, offset_start, offset_end)
 
         if author and citation is None and pmid is None:
-            citation = self.manager.get_citation(author=author)
-
+            citation = self.manager.query_citations(author=author)
         elif pmid:
             citation = str(pmid)
 
-        edges = self.manager.get_edge(bel=statement, source=source, target=target,
-                                      relation=relation, citation=citation, annotation=annotations)
+        edges = self.manager.query_edges(
+            bel=statement,
+            source=source,
+            target=target,
+            relation=relation,
+            citation=citation,
+            annotation=annotations
+        )
 
         result = {
             'number_of_edges': len(edges),
-            'edges': [edge.data_min for edge in edges],
+            'edges': [
+                edge.to_json(include_id=True)
+                for edge in edges
+            ],
         }
 
         return result
@@ -269,17 +254,17 @@ class QueryService(DatabaseServiceBase):
         :rtype:
         """
         if node_id:
-            result = self.manager.get_node(node_id=node_id)
+            result = self.manager.query_nodes(node_id=node_id)
         elif network_id:
             network = self.manager.get_network_by_id(network_id)
             result = [node.data for node in network.nodes[offset_start:offset_end]]
         else:
-            result = self.manager.get_node(bel=bel, namespace=namespace, name=name, as_dict_list=True)
+            result = self.manager.query_nodes(bel=bel, namespace=namespace, name=name, as_dict_list=True)
 
         return result
 
 
-class DatabaseService(NetworkCacheExtension, QueryService):
+class DatabaseService(QueryService):
     """The dictionary service contains functions that implement the PyBEL API with a in-memory backend using
     dictionaries.
     """
@@ -326,12 +311,12 @@ class DatabaseService(NetworkCacheExtension, QueryService):
     def clear(self):
         self.__init__(self.manager)
 
-    def update_indexes(self, graph):
+    def _update_indexes(self, graph):
         """Updates identifiers for nodes based on addition order
 
         :param pybel.BELGraph graph: A BEL Graph
         """
-        relabel_graph_with_int_identifiers(graph)  # adds stable identifiers to nodes and edges
+        add_identifiers(graph)  # adds stable identifiers to nodes and edges
 
         for node, data in graph.nodes_iter(data=True):
             if isinstance(node, int):
@@ -346,17 +331,9 @@ class DatabaseService(NetworkCacheExtension, QueryService):
             self.node_nid[node] = node_id
             self.nid_node[node_id] = node
 
-            bel = decanonicalize_node(graph, node)
+            bel = node_to_bel(graph, node)
             self.id_bel[node_id] = bel
             self.bel_id[bel] = node_id
-
-        for u, v, k, data in graph.edges_iter(keys=True, data=True):
-            edge_tuple = edge_to_tuple(u, v, k, data)
-
-            edge_id = data[ID]
-
-            self.edge_tuple_eid[edge_tuple] = edge_id
-            self.eid_edge[edge_id] = u, v, data
 
     def _relabel_notes_to_identifiers_helper(self, graph):
         if 'PYBEL_RELABELED' in graph.graph:
@@ -391,7 +368,7 @@ class DatabaseService(NetworkCacheExtension, QueryService):
             log.info('tried re-adding graph [%s]', network_id)
             return self.networks[network_id]
 
-        network = self.manager.session.query(Network).get(network_id)
+        network = self.manager.get_network_by_id(network_id)
 
         try:
             log.debug('getting bytes from [%s]', network.id)
@@ -419,10 +396,7 @@ class DatabaseService(NetworkCacheExtension, QueryService):
         add_canonical_names(graph)
 
         log.debug('updating graph node/edge indexes')
-        self.update_indexes(graph)
-
-        # log.debug('relabeling nodes by index')
-        # self.relabel_nodes_to_identifiers(graph)
+        self._update_indexes(graph)
 
         log.debug('calculating node degrees')
         self.node_degrees[network_id] = Counter(graph.degree())
@@ -433,7 +407,7 @@ class DatabaseService(NetworkCacheExtension, QueryService):
         if eager:
             log.debug('enriching citations')
             t = time.time()
-            fix_pubmed_citations(graph, manager=self.manager)
+            enrich_pubmed_citations(graph, manager=self.manager)
             log.debug('done enriching citations in %.2f seconds', time.time() - t)
 
         authors = get_authors(graph)
@@ -483,7 +457,7 @@ class DatabaseService(NetworkCacheExtension, QueryService):
 
     # Graph selection functions
 
-    def get_network_by_id(self, network_id=None):
+    def get_graph_by_id(self, network_id=None):
         """Gets a network by its ID or super network if identifier is not specified
 
         :param int network_id: The internal ID of the network to get
@@ -491,113 +465,77 @@ class DatabaseService(NetworkCacheExtension, QueryService):
         :rtype: pybel.BELGraph
         """
         if network_id is None:
-            log.debug('got universe (%s nodes, %s edges)', self.universe.number_of_nodes(),
-                      self.universe.number_of_edges())
+            log.debug(
+                'got universe (%s nodes, %s edges)',
+                self.universe.number_of_nodes(),
+                self.universe.number_of_edges()
+            )
             return self.universe
 
-        if isinstance(network_id, str):
-            network_id = int(network_id)
+        if network_id not in self.networks:
+            log.debug('caching network [%s]', network_id)
+            self._add_network(network_id)
 
-        if isinstance(network_id, int):
-            if network_id not in self.networks:
-                log.debug('getting bytes from [%s]', network_id)
-                self._add_network(network_id)
+        return self.networks[network_id]
 
-            result = self.networks[network_id]
-            log.debug('got network [%s] (%s nodes, %s edges)', result, result.number_of_nodes(),
-                      result.number_of_edges())
-            return result
-
-        raise TypeError(network_id)
-
-    def get_networks_by_ids(self, network_ids):
+    def get_graphs_by_ids(self, network_ids):
         """Gets a list of networks given the ids
 
         :param list[int] network_ids: A list of network identifiers
         :rtype: list[pybel.BELGraph]
         """
         return [
-            self.get_network_by_id(network_id)
+            self.get_graph_by_id(network_id)
             for network_id in network_ids
         ]
 
-    def get_network_by_ids(self, network_ids):
+    def get_graph_by_ids(self, network_ids):
         """Gets a networks by a list of database identifiers
 
         :param list[int] network_ids: A list of network identifiers
         :rtype: pybel.BELGraph
         """
         if len(network_ids) == 1:
-            return self.get_network_by_id(network_ids[0])
+            return self.get_graph_by_id(network_ids[0])
 
-        return union(self.get_networks_by_ids(network_ids))
+        return union(self.get_graphs_by_ids(network_ids))
 
-    def get_network_by_name(self, network_name):
-        """Gets a network by its name
+    def get_node_hash(self, node):
+        """Gets the hashes of the PyBEL node tuple
 
-        :param str network_name: name of the network
-        :rtype: pybel.BELGraph
-        """
-
-        query = self.manager.session.query(Network).filter(Network.name == network_name).group_by(
-            Network.name).having(func.max(Network.created)).all()
-
-        if not query:
-            return self.universe
-
-        return self.get_network_by_id(query[0].id)
-
-    def get_networks_by_name(self, network_names):
-        """Gets a list of networks by its name
-
-        :param list[int] network_names: A list of network names
-        :rtype: list[pybel.BELGraph]
-        """
-        network_ids = [
-            network.id
-            for network_name in network_names
-            for network in self.manager.session.query(Network).filter_by(name=network_name)
-        ]
-
-        return self.get_networks_by_ids(network_ids)
-
-    def get_node_id(self, node):
-        """Gets the integer identifier of a BEL node
-
-        :param tuple node: A BEL Node
-        :rtype: int
+        :param tuple node: A PyBEL node tuple
         """
         return self.node_nid[node]
 
-    def get_node_ids(self, nodes):
+    def get_node_hashes(self, node_tuples):
         """Converts a list of BEL nodes to their node identifiers
 
-        :param list[tuple] nodes: A list of BEL nodes
-        :rtype: list[tuple]
+        :param list[tuple] node_tuples: A list of PyBEL node tuples
+        :rtype: list
         """
         return [
-            self.get_node_id(node)
-            for node in nodes
+            self.get_node_hash(node)
+            for node in node_tuples
         ]
 
-    def get_node_by_id(self, node_id):
+    def get_node_tuple_by_hash(self, node_hash):
         """Returns the node tuple based on the node id
 
-        :param node_id: The node's identifier
-        :return: the node tuple
+        :param node_hash: The node's identifier
+        :return: A PyBEL node tuple
         :rtype: tuple
         """
-        return self.nid_node[node_id]
+        return self.nid_node.get(node_hash)
 
-    def get_nodes_by_ids(self, node_ids):
+    def get_nodes_by_hashes(self, node_hashes):
         """Gets a list of node tuples from a list of ids
 
-        :param list node_ids: A list of node identifiers
+        :param list node_hashes: A list of node identifiers
         :rtype: list[tuple]
         """
         return [
-            self.get_node_by_id(node_id)
-            for node_id in node_ids
+            self.get_node_tuple_by_hash(node_hash)
+            for node_hash in node_hashes
         ]
 
     def paths_tuples_to_ids(self, paths):
@@ -607,43 +545,9 @@ class DatabaseService(NetworkCacheExtension, QueryService):
         :rtype: list[list[tuple]]: list of lists (ids)
         """
         return [
-            self.get_node_ids(path)
+            self.get_node_hashes(path)
             for path in paths
         ]
-
-    def get_edge_id(self, u, v, k, d):
-        edge_tuple = edge_to_tuple(u, v, k, d)
-        return self.edge_tuple_eid[edge_tuple]
-
-    def get_edge_by_id(self, edge_id):
-        """Gets an edge based on its identifier
-
-        :param int edge_id: The identifier of an edge
-        :return: The edge tuple (u,v,d)
-        :rtype: tuple
-        """
-        return self.eid_edge[edge_id]
-
-    def get_edges(self, u, v, both_ways=True):
-        """Gets the data dictionaries of all edges between the given nodes
-
-        :rtype: list[dict]
-        """
-        if u not in self.universe:
-            raise ValueError("Network store doesn't have node: {}".format(u))
-
-        if v not in self.universe:
-            raise ValueError("Network store doesn't have node: {}".format(v))
-
-        if v not in self.universe.edge[u]:
-            raise ValueError('No edges between {} and {}'.format(u, v))
-
-        result = list(self.universe.edge[u][v].values())
-
-        if both_ways and v in self.universe.edge and u in self.universe.edge[v]:
-            result.extend(self.universe.edge[v][u].values())
-
-        return result
 
     def get_nodes_containing_keyword(self, keyword):
         """Gets a list with all cnames that contain a certain keyword adding to the duplicates their function
@@ -674,13 +578,13 @@ class DatabaseService(NetworkCacheExtension, QueryService):
         # TODO switch to doing database lookup
         return get_authors_by_keyword(keyword, authors=self.universe_authors)
 
-    def get_cname_by_id(self, node_id):
+    def get_cname_by_node_hash(self, node_hash):
         """Gets the canonical name of a node
 
-        :param node_id: A BEL node identifier
+        :param node_hash: A BEL node identifier
         :rtype: str
         """
-        node = self.get_node_by_id(node_id)
+        node = self.get_node_tuple_by_hash(node_hash)
         return self.get_cname(node)
 
     def get_cname(self, node):
@@ -704,7 +608,7 @@ class DatabaseService(NetworkCacheExtension, QueryService):
         """
         if network_id not in self.node_degrees:
             log.info('lazy loading degrees for [%s]', network_id)
-            graph = self.get_network_by_id(network_id)
+            graph = self.get_graph_by_id(network_id)
             self.node_degrees[network_id] = Counter(graph.degree())
 
         return {
@@ -720,7 +624,8 @@ class DatabaseService(NetworkCacheExtension, QueryService):
         :param int count: The number of most frequently mentioned pathologies to get
         :rtype: dict[str,int]
         """
-        graph = self.get_network_by_id(network_id)
+        network = self.manager.get_network_by_id(network_id)
+        graph = network.as_bel()
         cm = count_pathologies(graph)
 
         return {
@@ -748,16 +653,16 @@ class DatabaseService(NetworkCacheExtension, QueryService):
         t = time.time()
 
         other_network_ids = {
-            other_network_id
-            for other_network_id in self.list_recent_network_ids()
-            if other_network_id not in self.overlap_cache[network_id]
+            other_network.id
+            for other_network in self.manager.list_recent_networks()
+            if other_network.id not in self.overlap_cache[network_id]
         }
 
         if not other_network_ids:
             return Counter(self.overlap_cache[network_id])
 
-        network = self.get_network_by_id(network_id)
-        nodes = set(network.nodes_iter())
+        graph = self.get_graph_by_id(network_id)
+        nodes = set(graph.nodes_iter())
 
         for other_network_id in other_network_ids:
             if other_network_id == network_id:
@@ -766,7 +671,7 @@ class DatabaseService(NetworkCacheExtension, QueryService):
             if other_network_id in self.overlap_cache[network_id]:
                 continue
 
-            other_network = self.get_network_by_id(other_network_id)
+            other_network = self.get_graph_by_id(other_network_id)
             other_network_nodes = set(other_network.nodes_iter())
 
             overlap = min_tanimoto_set_similarity(nodes, other_network_nodes)
@@ -774,7 +679,7 @@ class DatabaseService(NetworkCacheExtension, QueryService):
             self.overlap_cache[network_id][other_network_id] = overlap
             self.overlap_cache[other_network_id][network_id] = overlap
 
-        log.debug('Cached node overlaps for %s in %.2f seconds', network, time.time() - t)
+        log.debug('Cached node overlaps for %s in %.2f seconds', graph, time.time() - t)
 
         return Counter(self.overlap_cache[network_id])
 
@@ -782,14 +687,9 @@ class DatabaseService(NetworkCacheExtension, QueryService):
         """Gets annotation/value pairs for values for whom the search string is a substring
 
         :param str keyword: Search for annotations whose values have this as a substring
-        :rtype: list[tuple]
+        :rtype: list[dict[str,str]
         """
-        return [
-            {'annotation': annotation, 'value': value}
-            for annotation, values in get_annotation_values_by_annotation(self.universe).items()
-            for value in values
-            if keyword.lower() in value.lower()
-        ]
+        return get_annotations_containing_keyword(self.universe, keyword)
 
     def forget_network(self, network_id):
         """Removes all cached data from the given network id"""

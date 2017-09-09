@@ -17,7 +17,7 @@ from pybel.utils import get_version as get_pybel_version
 from .constants import DEFAULT_SERVICE_URL
 from .integration import HGNCAnnotator
 from .mutation import opening_on_central_dogma
-from .mutation.metadata import fix_pubmed_citations
+from .mutation.metadata import enrich_pubmed_citations
 from .selection import get_subgraph_by_annotation_value
 from .summary import get_annotation_values
 
@@ -127,7 +127,7 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, store_part
             opening_on_central_dogma(network)
 
         if enrich_citations:
-            fix_pubmed_citations(network, manager=manager)
+            enrich_pubmed_citations(network, manager=manager)
 
         if enrich_genes and hgnc_annotator.download_successful:
             hgnc_annotator.annotate(network)

@@ -125,17 +125,34 @@ def _get_latest_arty_helper(module_name, getter):
 
 
 def get_latest_arty_namespace(module_name):
-    """Gets the latest path for this BEL namespace module"""
+    """Gets the latest path for this BEL namespace module. For historical reasons, some of these are not the same
+    as the keyword. For example, the module name for HGNC is ``hgnc-human-genes`` due to the Selventa nomenclature.
+    See https://arty.scai.fraunhofer.de/artifactory/bel/namespace/ for the entire manifest of available namespaces.
+
+    :param str module_name: The BEL namespace module name
+    :return: The URL of the latest version of this namespace
+    :rtype: str
+    """
     return _get_latest_arty_helper(module_name, get_arty_namespace_module)
 
 
 def get_latest_arty_annotation(module_name):
-    """Gets the latest path for this BEL annotation module"""
+    """Gets the latest path for this BEL annotation module
+
+    :param str module_name: The BEL annotation module name
+    :return: The URL of the latest version of this annotation
+    :rtype: str
+    """
     return _get_latest_arty_helper(module_name, get_arty_annotation_module)
 
 
 def get_latest_arty_knowledge(module_name):
-    """Gets the latest path for this BEL annotation module"""
+    """Gets the latest path for this BEL annotation module
+
+    :param str module_name: The BEL knowledge module name
+    :return: The URL of the latest version of this knowledge document
+    :rtype: str
+    """
     return _get_latest_arty_helper(module_name, get_arty_knowledge_module)
 
 

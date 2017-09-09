@@ -138,9 +138,7 @@ class QueryTest(ExampleNetworkMixin, ManagerMixin):
         test_network_2 = self.manager.insert_graph(test_network_2, store_parts=False)
         test_network_1 = self.manager.insert_graph(test_network_1, store_parts=False)  # Latest updated network
 
-        api = DatabaseService(self.manager, autocache=True)
-
-        network = api.get_network_by_name('network_test')
+        network = self.manager.get_most_recent_network_by_name('network_test')
 
         self.assertEqual('1.1.0', network.version)
         self.assertEqual(test_network_1.version, network.version)

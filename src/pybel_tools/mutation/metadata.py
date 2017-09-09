@@ -20,8 +20,8 @@ __all__ = [
     'parse_authors',
     'serialize_authors',
     'add_canonical_names',
-    'fix_pubmed_citations',
-    'relabel_graph_with_int_identifiers',
+    'enrich_pubmed_citations',
+    'add_identifiers',
 ]
 
 log = logging.getLogger(__name__)
@@ -98,7 +98,7 @@ def add_canonical_names(graph, replace=False):
 
 
 @pipeline.in_place_mutator
-def fix_pubmed_citations(graph, stringify_authors=False, manager=None):
+def enrich_pubmed_citations(graph, stringify_authors=False, manager=None):
     """Overwrites all PubMed citations with values from NCBI's eUtils lookup service.
 
     Sets authors as list, so probably a good idea to run :func:`pybel_tools.mutation.serialize_authors` before
@@ -107,8 +107,11 @@ def fix_pubmed_citations(graph, stringify_authors=False, manager=None):
     :param pybel.BELGraph graph: A BEL graph
     :param bool stringify_authors: Converts all author lists to author strings using
                                   :func:`pybel_tools.mutation.serialize_authors`. Defaults to ``False``.
+    :param manager: An RFC-1738 database connection string, a pre-built :class:`pybel.manager.cache.CacheManager`,
+                    or ``None`` for default connection
+    :type manager: None or str or CacheManager
     :return: A set of PMIDs for which the eUtils service crashed
-    :rtype: set
+    :rtype: set[str]
     """
     if 'PYBEL_ENRICHED_CITATIONS' in graph.graph:
         log.warning('citations have already been enriched in %s', graph)
@@ -165,14 +168,14 @@ def update_context(universe, graph):
             log.warning('annotation: %s missing from universe', annotation)
 
 
-def relabel_graph_with_int_identifiers(graph):
-    """Adds integer stable node and edge identifiers to the graph, in-place using the PyBEL
-    node and edge hashes, then converting from hexadecimal str to decimal int.
+def add_identifiers(graph):
+    """Adds stable node and edge identifiers to the graph, in-place using the PyBEL
+    node and edge hashes as a hexadecimal str.
 
     :param pybel.BELGraph graph: A BEL Graph
     """
     for node, data in graph.nodes_iter(data=True):
-        graph.node[node][ID] = hash_str_to_int(hash_node(node))
+        graph.node[node][ID] = hash_node(node)
 
     for u, v, k, d in graph.edges_iter(keys=True, data=True):
-        graph.edge[u][v][k][ID] = hash_str_to_int(hash_edge(u, v, k, d))
+        graph.edge[u][v][k][ID] = hash_edge(u, v, k, d)

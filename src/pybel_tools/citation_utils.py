@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import re
 import time
-from collections import defaultdict
 from datetime import datetime
 
+import re
 import requests
+
 from pybel.constants import *
 from pybel.manager import build_manager
-from pybel.manager.models import Citation
 from pybel.parser.parse_control import set_citation, set_tag
+from pybel_tools.utils import grouper
 
 __all__ = (
     'get_citations_by_pmids',
@@ -33,35 +33,31 @@ def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=Fa
     :param int group_size: The number of PubMed identifiers to query at a time
     :param int sleep_time: Number of seconds to sleep between queries
     :param bool return_errors: Should a set of erroneous PubMed identifiers be returned?
+    :param manager: An RFC-1738 database connection string, a pre-built :class:`pybel.manager.cache.CacheManager`,
+                    or ``None`` for default connection
+    :type manager: None or str or CacheManager
     :return: A dictionary of {pmid: pmid data dictionary} or a pair of this dictionary and a set ot erroneous
             pmids if return_errors is :data:`True`
     :rtype: dict[str,dict]
     """
-    pmids = [str(pmid).strip() for pmid in sorted(pmids)]
+    pmids = {str(pmid).strip() for pmid in pmids}
     log.info('querying %d PubMed identifiers', len(pmids))
-    result = defaultdict(dict)
 
     manager = build_manager(manager)
 
-    unresolved_pmids = []
+    result = {}
+    unresolved_pmids = {}
 
     for pmid in pmids:
-        citation = manager.session.query(Citation).filter(Citation.type == CITATION_TYPE_PUBMED,
-                                                          Citation.reference == pmid).one_or_none()
+        citation = manager.get_or_create_citation(type=CITATION_TYPE_PUBMED, reference=pmid)
 
-        if citation is None:
-            unresolved_pmids.append(pmid)
+        if not citation.date or not citation.name or not citation.authors:
+            unresolved_pmids[pmid] = citation
             continue
 
-        result[pmid] = {
-            CITATION_AUTHORS: [author.name for author in citation.authors],
-            CITATION_TYPE: CITATION_TYPE_PUBMED,
-            CITATION_REFERENCE: pmid,
-            CITATION_NAME: citation.name,
-        }
+        result[pmid] = citation.to_json()
 
-        if citation.date:
-            result[pmid][CITATION_DATE] = citation.date.strftime('%Y-%m-%d')
+    manager.session.commit()
 
     log.info('Used %d citations from cache', len(pmids) - len(unresolved_pmids))
 
@@ -73,64 +69,60 @@ def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=Fa
     errors = set()
     t = time.time()
 
-    for pmidList in [','.join(unresolved_pmids[i:i + group_size]) for i in range(0, len(unresolved_pmids), group_size)]:
-        url = EUTILS_URL_FMT.format(pmidList)
+    for pmid_list in grouper(group_size, unresolved_pmids):
+        url = EUTILS_URL_FMT.format(','.join(pmid for pmid in pmid_list if pmid))
         response = requests.get(url).json()
 
-        pmid_result = response['result']
-
-        for pmid in pmid_result['uids']:
-            p = pmid_result[pmid]
+        for pmid in response['result']['uids']:
+            p = response['result'][pmid]
 
             if 'error' in p:
                 log.warning("Error downloading PubMed identifier: %s", pmid)
                 errors.add(pmid)
                 continue
 
-            if 'authors' in p:
-                result[pmid][CITATION_AUTHORS] = [author['name'] for author in p['authors']]
-
-            if re1.search(p['pubdate']):
-                result[pmid][CITATION_DATE] = datetime.strptime(p['pubdate'], '%Y %b %d').strftime('%Y-%m-%d')
-            elif re2.search(p['pubdate']):
-                result[pmid][CITATION_DATE] = datetime.strptime(p['pubdate'], '%Y %b').strftime('%Y-%m-01')
-            elif re3.search(p['pubdate']):
-                result[pmid][CITATION_DATE] = p['pubdate'] + "-01-01"
-            elif re4.search(p['pubdate']):
-                result[pmid][CITATION_DATE] = datetime.strptime(p['pubdate'][:-4], '%Y %b').strftime('%Y-%m-01')
-            else:
-                log.info('Date with strange format: %s', p['pubdate'])
-
-            result[pmid].update({
+            result[pmid] = {
                 'title': p['title'],
-                'lastauthor': p['lastauthor'],
+                'last': p['lastauthor'],
                 CITATION_NAME: p['fulljournalname'],
                 'volume': p['volume'],
                 'issue': p['issue'],
                 'pages': p['pages'],
-                'firstauthor': p['sortfirstauthor'],
-            })
-
-            citation_kwargs = {
-                CITATION_TYPE: CITATION_TYPE_PUBMED,
-                CITATION_NAME: result[pmid][CITATION_NAME],
-                CITATION_REFERENCE: pmid,
+                'first': p['sortfirstauthor'],
             }
 
-            if CITATION_DATE not in result[pmid]:
-                log.warning('No date for PMID:%s', pmid)
+            citation = unresolved_pmids[pmid]
+
+            citation.name = result[pmid][CITATION_NAME]
+            citation.title = result[pmid]['title']
+            citation.volume = result[pmid]['volume']
+            citation.issue = result[pmid]['issue']
+            citation.pages = result[pmid]['pages']
+            citation.first = result[pmid]['first']
+            citation.last = result[pmid]['last']
+
+            if 'authors' in p:
+                result[pmid][CITATION_AUTHORS] = [author['name'] for author in p['authors']]
+                for author in result[pmid][CITATION_AUTHORS]:
+                    author_model = manager.get_or_create_author(author)
+                    if author_model not in citation.authors:
+                        citation.authors.append(author_model)
+
+            publication_date = p['pubdate']
+
+            if re1.search(publication_date):
+                result[pmid][CITATION_DATE] = datetime.strptime(p['pubdate'], '%Y %b %d').strftime('%Y-%m-%d')
+            elif re2.search(publication_date):
+                result[pmid][CITATION_DATE] = datetime.strptime(p['pubdate'], '%Y %b').strftime('%Y-%m-01')
+            elif re3.search(publication_date):
+                result[pmid][CITATION_DATE] = p['pubdate'] + "-01-01"
+            elif re4.search(publication_date):
+                result[pmid][CITATION_DATE] = datetime.strptime(p['pubdate'][:-4], '%Y %b').strftime('%Y-%m-01')
             else:
-                citation_kwargs[CITATION_DATE] = datetime.strptime(result[pmid][CITATION_DATE], '%Y-%m-%d')
+                log.info('Date with strange format: %s', p['pubdate'])
 
-            citation = Citation(
-                authors=[
-                    manager.get_or_create_author(author)
-                    for author in result[pmid][CITATION_AUTHORS]
-                ],
-                **citation_kwargs
-            )
-
-            manager.session.add(citation)
+            if CITATION_DATE in result[pmid]:
+                citation.date = datetime.strptime(result[pmid][CITATION_DATE], '%Y-%m-%d')
 
         manager.session.commit()  # commit in groups
 
