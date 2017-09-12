@@ -107,9 +107,9 @@ def enrich_pubmed_citations(graph, stringify_authors=False, manager=None):
     :param pybel.BELGraph graph: A BEL graph
     :param bool stringify_authors: Converts all author lists to author strings using
                                   :func:`pybel_tools.mutation.serialize_authors`. Defaults to ``False``.
-    :param manager: An RFC-1738 database connection string, a pre-built :class:`pybel.manager.cache.CacheManager`,
+    :param manager: An RFC-1738 database connection string, a pre-built :class:`pybel.manager.Manager`,
                     or ``None`` for default connection
-    :type manager: None or str or CacheManager
+    :type manager: None or str or Manager
     :return: A set of PMIDs for which the eUtils service crashed
     :rtype: set[str]
     """

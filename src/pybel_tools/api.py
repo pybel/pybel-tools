@@ -47,7 +47,7 @@ log = logging.getLogger(__name__)
 class DatabaseServiceBase:
     def __init__(self, manager):
         """
-        :param pybel.manager.cache.CacheManager manager: A cache manager
+        :param pybel.manager.Manager manager: A cache manager
         """
         self.manager = manager
 
@@ -271,7 +271,7 @@ class DatabaseService(QueryService):
 
     def __init__(self, manager, autocache=False):
         """
-        :param pybel.manager.cache.CacheManager manager: A cache manager
+        :param pybel.manager.Manager manager: A cache manager
         """
         super(DatabaseService, self).__init__(manager)
 

@@ -3,17 +3,16 @@
 """Utilities for loading and exporting BEL graphs"""
 
 import logging
-import os
 
+import os
 import requests
-from pybel import from_path, to_pickle, from_pickle
-from pybel import to_database
+
 import pybel
+from pybel import from_path, to_pickle, from_pickle, to_database
 from pybel.io.io_exceptions import ImportVersionWarning
-from pybel.manager.cache import build_manager
+from pybel.manager import Manager
 from pybel.struct import union
 from pybel.utils import get_version as get_pybel_version
-
 from .constants import DEFAULT_SERVICE_URL
 from .integration import HGNCAnnotator
 from .mutation import opening_on_central_dogma
@@ -41,11 +40,11 @@ def load_paths(paths, connection=None):
 
     :param iter[str] paths: An iterable over paths to BEL scripts
     :param str connection: A custom database connection string
-    :type connection: None or str or pybel.manager.cache.CacheManager
+    :type connection: None or str or pybel.manager.Manager
     :return: A BEL graph comprised of the union of all BEL graphs produced by each BEL script
     :rtype: pybel.BELGraph
     """
-    manager = build_manager(connection)
+    manager = Manager.ensure(connection)
 
     return union(
         from_path(path, manager=manager)
@@ -58,7 +57,7 @@ def load_directory(directory, connection=None):
 
     :param str directory: A path to a directory
     :param str connection: A custom database connection string
-    :type connection: None or str or pybel.manager.cache.CacheManager
+    :type connection: None or str or pybel.manager.Manager
     :return: A BEL graph comprised of the union of all BEL graphs produced by each BEL script
     :rtype: pybel.BELGraph
     """
@@ -94,7 +93,7 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, store_part
 
     :param iter[str] paths: The paths to convert
     :param connection: The connection
-    :type connection: None or str or pybel.manager.cache.CacheManager
+    :type connection: None or str or pybel.manager.Manager
     :param bool upload: Should the networks be uploaded to the cache?
     :param bool pickle: Should the networks be saved as pickles?
     :param bool store_parts: Should the networks be uploaded to the edge store?
@@ -161,7 +160,7 @@ def convert_directory(directory, connection=None, upload=False, pickle=False, st
 
     :param str directory: The directory to look through
     :param connection: The connection
-    :type connection: None or str or pybel.manager.cache.CacheManager
+    :type connection: None or str or pybel.manager.Manage.
     :param bool upload: Should the networks be uploaded to the cache?
     :param bool pickle: Should the networks be saved as pickles?
     :param bool store_parts: Should the networks be uploaded to the edge store?
@@ -200,11 +199,11 @@ def upload_recursive(directory, connection=None, store_parts=False, exclude_dire
     
     :param str directory: the directory to traverse
     :param connection: A connection string or manager
-    :type connection: None or str or pybel.manage.CacheManager
+    :type connection: None or str or pybel.manage.Manager
     :param bool store_parts: Should the edge store be used?
     :param str exclude_directory_pattern: Any directory names to exclude
     """
-    manager = build_manager(connection)
+    manager = Manager.ensure(connection)
     paths = list(get_paths_recursive(
         directory,
         extension='.gpickle',
@@ -252,4 +251,3 @@ def to_pybel_web(network, service=None):
     url = service + '/api/receive'
     headers = {'content-type': 'application/json'}
     return requests.post(url, json=pybel.to_json(network), headers=headers)
-

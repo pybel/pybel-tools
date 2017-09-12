@@ -8,8 +8,8 @@ import re
 import requests
 
 from pybel.constants import *
-from pybel.manager import build_manager
-from pybel.parser.parse_control import set_citation, set_tag
+from pybel.manager import Manager
+from pybel.parser.parse_control import set_citation_stub, set_tag
 from pybel_tools.utils import grouper
 
 __all__ = (
@@ -33,9 +33,9 @@ def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=Fa
     :param int group_size: The number of PubMed identifiers to query at a time
     :param int sleep_time: Number of seconds to sleep between queries
     :param bool return_errors: Should a set of erroneous PubMed identifiers be returned?
-    :param manager: An RFC-1738 database connection string, a pre-built :class:`pybel.manager.cache.CacheManager`,
+    :param manager: An RFC-1738 database connection string, a pre-built :class:`pybel.manager.Manager`,
                     or ``None`` for default connection
-    :type manager: None or str or CacheManager
+    :type manager: None or str or Manager
     :return: A dictionary of {pmid: pmid data dictionary} or a pair of this dictionary and a set ot erroneous
             pmids if return_errors is :data:`True`
     :rtype: dict[str,dict]
@@ -43,7 +43,7 @@ def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=Fa
     pmids = {str(pmid).strip() for pmid in pmids}
     log.info('querying %d PubMed identifiers', len(pmids))
 
-    manager = build_manager(manager)
+    manager = Manager.ensure(manager)
 
     result = {}
     unresolved_pmids = {}
@@ -139,7 +139,7 @@ class PubMedAnnotator:
 
     def __init__(self, manager=None, group_size=200):
         self.cache = {}
-        self.parser = set_tag + set_citation
+        self.parser = set_tag + set_citation_stub
         self.group_size = group_size
         self.manager = manager
 

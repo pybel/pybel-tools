@@ -1,7 +1,7 @@
 sqlalchemy
 requests
 networkx
-pybel>=0.8.0
+pybel>=0.8.1
 click
 pygments
 pandas

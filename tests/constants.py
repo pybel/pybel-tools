@@ -6,7 +6,7 @@ import unittest
 
 from pybel import BELGraph
 from pybel.constants import *
-from pybel.manager import CacheManager
+from pybel.manager import Manager
 
 HGNC = 'HGNC'
 
@@ -23,7 +23,7 @@ class ManagerMixin(unittest.TestCase):
         self.db_fd, self.db_file = tempfile.mkstemp()
 
         self.connection = 'sqlite:///' + self.db_file
-        self.manager = CacheManager(connection=self.connection)
+        self.manager = Manager(connection=self.connection)
 
     def tearDown(self):
         os.close(self.db_fd)

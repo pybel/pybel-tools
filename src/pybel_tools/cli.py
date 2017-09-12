@@ -32,7 +32,7 @@ from pybel.constants import (
     LARGE_CORPUS_URL,
     get_cache_connection
 )
-from pybel.manager.cache import build_manager
+from pybel.manager import Manager
 from pybel.utils import get_version as pybel_version
 from pybel.utils import parse_bel_resource
 from pybel_tools.resources import deploy_directory
@@ -85,7 +85,7 @@ def main():
 @click.pass_context
 def ensure(ctx, connection):
     """Utilities for ensuring data"""
-    ctx.obj = build_manager(connection)
+    ctx.obj = Manager(connection=connection)
 
 
 @ensure.command()
@@ -152,9 +152,9 @@ def io(ctx, connection, config):
     """Upload and conversion utilities"""
     if config:
         file = json.load(config)
-        ctx.obj = build_manager(file.get(PYBEL_CONNECTION, get_cache_connection()))
+        ctx.obj = Manager(connection=file.get(PYBEL_CONNECTION, get_cache_connection()))
     else:
-        ctx.obj = build_manager(connection)
+        ctx.obj = Manager(connection=connection)
 
 
 @io.command()

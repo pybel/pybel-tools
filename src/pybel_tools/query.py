@@ -60,7 +60,7 @@ class Query:
         """Runs this query
 
         :param  manager: A cache manager
-        :type manager: pybel.manager.cache.CacheManager or pybel_tools.api.DatabaseService
+        :type manager: pybel.manager.Manager or pybel_tools.api.DatabaseService
         :return: The result of this query
         :rtype: pybel.BELGraph
         """
