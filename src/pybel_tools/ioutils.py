@@ -106,7 +106,7 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, store_part
     :param kwargs: Parameters to pass to :func:`pybel.from_path`
     """
     from .integration.description.go_annotator import GOAnnotator
-    manager = build_manager(connection)
+    manager = Manager.ensure(connection)
     hgnc_annotator = HGNCAnnotator(preload=enrich_genes)
     go_annotator = GOAnnotator(preload=enrich_go)
 
