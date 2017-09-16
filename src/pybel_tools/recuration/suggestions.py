@@ -11,7 +11,6 @@ __all__ = [
     'get_user_ols_search_url',
     'get_ols_suggestion',
     'get_ols_search',
-    'help_suggest_name',
 ]
 
 log = logging.getLogger(__name__)
