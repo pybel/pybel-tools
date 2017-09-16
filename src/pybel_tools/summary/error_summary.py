@@ -18,7 +18,6 @@ __all__ = [
     'get_undefined_namespaces',
     'get_undefined_namespace_names',
     'calculate_incorrect_name_dict',
-    'calculate_suggestions',
     'calculate_error_by_annotation',
     'group_errors',
     'get_names_including_errors',
