@@ -40,6 +40,9 @@ EXTRAS_REQUIRE = {
     ],
     'lexer': [
         'pygments',
+    ],
+    'ipython': [
+        'ipython', # Enable inline viewing in Jupyter notebooks
     ]
 }
 TESTS_REQUIRE = []
