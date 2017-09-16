@@ -28,19 +28,19 @@ INSTALL_REQUIRES = [
     'pybel',
     'click',
     'pandas',
-    'fuzzywuzzy',
-    'ipython',
     'scipy',
     'numpy',
     'artifactory',
     'jinja2',
     'ols_client',
-    'obonet',
 ]
 EXTRAS_REQUIRE = {
-    'speed': [
-        'python-Levenshtein',  # Activates c-based speed improvements for fuzzywuzzy
+    'obonet': [
+        'obonet',  # Enables GO integration
     ],
+    'lexer': [
+        'pygments',
+    ]
 }
 TESTS_REQUIRE = []
 ENTRY_POINTS = {

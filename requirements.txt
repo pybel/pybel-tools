@@ -3,13 +3,9 @@ requests
 networkx
 pybel>=0.8.1
 click
-pygments
 pandas
-fuzzywuzzy
-ipython
 scipy
 numpy
 artifactory
 jinja2
 ols_client
-obonet

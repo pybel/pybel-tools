@@ -59,30 +59,3 @@ def get_ols_search(name):
     """Performs a search with the Ontology Lookup Service"""
     res = requests.get(OLS_MACHINE_SEARCH_FMT, params={'q': name})
     return res.json()
-
-
-def help_suggest_name(namespace, name, metadata_parser, suggestion_cache):
-    """Helps populate a suggestion cache for missing names
-
-    :param str namespace: The namespace to search
-    :param str name: The putative name in the namespace
-    :param metadata_parser: A metadata parser, which contains the namespace dictionary
-    :type metadata_parser: pybel.parser.parse_metadata.MetadataParser
-    :param dict suggestion_cache: A defaultdict of lists
-    :return:
-    :rtype: dict
-    """
-    from fuzzywuzzy import process, fuzz
-
-    if (namespace, name) in suggestion_cache:
-        return suggestion_cache[namespace, name]
-
-    if namespace not in metadata_parser.namespace_dict:
-        raise ValueError('Namespace not cached: {}'.format(namespace))
-
-    terms = set(metadata_parser.namespace_dict[namespace])
-
-    for putative, _ in process.extract(name, terms, scorer=fuzz.partial_token_sort_ratio, limit=5):
-        suggestion_cache[namespace, name].append(putative)
-
-    return suggestion_cache[namespace, name]

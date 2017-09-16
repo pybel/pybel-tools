@@ -3,8 +3,6 @@
 import logging
 import warnings
 
-import obonet
-
 from .node_annotator import NodeAnnotator
 
 __all__ = [
@@ -46,6 +44,12 @@ class GOAnnotator(NodeAnnotator):
 
     def download(self):
         """Downloads the OBO file for Gene Ontology. Returns true on success."""
+        try:
+            import obonet
+        except ImportError as e:
+            log.error('Need to install obonet package to use this feature')
+            raise e
+
         try:
             self.graph = obonet.read_obo(url)
         except:
