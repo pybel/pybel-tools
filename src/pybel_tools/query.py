@@ -88,7 +88,7 @@ class Query:
                 )
 
                 # TODO streamline this logging... maybe put in get_subgraph function
-                log.info(
+                log.debug(
                     'Subgraph coming from %s (seed type) %s (data) contains %d nodes and %d edges',
                     seed['data'],
                     seed['type'],
@@ -100,7 +100,7 @@ class Query:
 
             graph = union(subgraphs)
 
-        log.info(
+        log.debug(
             'Number of nodes/edges in query before running pipeline: %d nodes, %d edges )',
             graph.number_of_nodes(),
             graph.number_of_edges(),
