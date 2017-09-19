@@ -338,12 +338,16 @@ class DatabaseService(QueryService):
             self.id_bel[node_id] = bel
             self.bel_id[bel] = node_id
 
-    def _relabel_notes_to_identifiers_helper(self, graph):
+    def _relabel_nodes_to_identifiers_helper(self, graph):
         if 'PYBEL_RELABELED' in graph.graph:
             log.warning('%s has already been relabeled', graph.name)
             return graph
 
-        mapping = {node: self.node_nid[node] for node in graph.nodes_iter()}
+        mapping = {
+            node: self.node_nid[node]
+            for node in graph.nodes_iter()
+        }
+
         nx.relabel.relabel_nodes(graph, mapping, copy=False)
 
         graph.graph['PYBEL_RELABELED'] = True
@@ -358,7 +362,7 @@ class DatabaseService(QueryService):
         :param bool copy: Copy the graph first?
         :rtype: pybel.BELGraph
         """
-        return self._relabel_notes_to_identifiers_helper(graph.copy() if copy else graph)
+        return self._relabel_nodes_to_identifiers_helper(graph.copy() if copy else graph)
 
     def _add_network(self, network_id, force_reload=False, eager=False, maintain_universe=True):
         """Adds a network to the module-level cache from the underlying database
