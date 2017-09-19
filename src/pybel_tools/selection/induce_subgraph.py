@@ -3,8 +3,9 @@
 import logging
 
 import networkx as nx
+import numpy as np
 from collections import defaultdict
-from random import choice, choices, shuffle
+from random import choice, shuffle
 
 from pybel import BELGraph
 from pybel.constants import ANNOTATIONS
@@ -458,7 +459,8 @@ def get_random_subgraph(graph, number_edges=250, number_seed_nodes=5):
         inv_degrees = [1 / (1 + d) for d in degrees]
         ds = sum(inv_degrees)
         norm_inv_degrees = [d / ds for d in inv_degrees]
-        return choices(nodes, weights=norm_inv_degrees, k=1)[0]
+        nci = np.random.choice(len(nodes), p=norm_inv_degrees)
+        return nodes[nci]
 
     for i in range(number_edges):
 
