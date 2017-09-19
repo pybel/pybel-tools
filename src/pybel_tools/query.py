@@ -7,7 +7,7 @@ from pybel.struct import union
 from pybel.utils import list2tuple
 from .pipeline import Pipeline
 from .selection import get_subgraph
-from .selection.induce_subgraph import NONNODE_SEED_TYPES, SEED_TYPE_INDUCTION, SEED_TYPE_ANNOTATION
+from .selection.induce_subgraph import NONNODE_SEED_TYPES, SEED_TYPE_INDUCTION, SEED_TYPE_ANNOTATION, SEED_TYPE_NEIGHBORS
 
 log = logging.getLogger(__name__)
 
@@ -44,6 +44,13 @@ class Query:
         """
         self.add_seed(SEED_TYPE_INDUCTION, data)
 
+    def add_seed_neighbors(self, data):
+        """Adds a seed by neighbors
+
+        :param list[tuple] data:
+        """
+        self.add_seed(SEED_TYPE_NEIGHBORS, data)
+
     def add_seed_annotation(self, annotation, values):
         """Adds a seed induction method for single annotation's values
 
@@ -55,6 +62,18 @@ class Query:
                 annotation: values
             }
         })
+
+
+    def add_pipeline(self, name, *args, **kwargs):
+        """Adds an entry to the pipeline
+
+        :param str name: The name of the function
+        :param args: The positional arguments to call in the function
+        :param kwargs: The keyword arguments to call in the function
+        :return: This pipeline for fluid query building
+        :rtype: Pipeline
+        """
+        return self.pipeline.append(name, *args, **kwargs)
 
     def run(self, manager):
         """Runs this query
