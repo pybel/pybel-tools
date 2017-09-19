@@ -4,8 +4,6 @@
 
 from random import sample
 
-from IPython.display import Javascript
-
 from pybel.io import to_jsons
 from .utils import render_template, default_color_map
 from ..mutation import add_canonical_names
@@ -37,6 +35,8 @@ def to_jupyter(graph, width=DEFAULT_WIDTH, height=DEFAULT_HEIGHT, color_map=None
     :return: An IPython notebook Javascript object
     :rtype: :class:`IPython.display.Javascript`
     """
+    from IPython.display import Javascript
+
     return Javascript(to_jupyter_str(
         graph,
         width=width,

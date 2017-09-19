@@ -40,7 +40,6 @@ class QueryTest(ExampleNetworkMixin, ManagerMixin):
 
         query = Query(
             network_ids=network_id,
-            seed_list=[],
             pipeline=pipeline
         )
 
@@ -80,15 +79,13 @@ class QueryTest(ExampleNetworkMixin, ManagerMixin):
         network_1_id = test_network_1.id
         network_2_id = test_network_2.id
 
-        pipeline = Pipeline()
-        pipeline.append(get_subgraph_by_annotation_value, 'Annotation', 'foo')
-        pipeline.append(collapse_by_central_dogma_to_genes)
-
-        query = Query(
-            network_ids=[network_1_id, network_2_id],
-            seed_list=[{'type': 'neighbors', 'data': [(RNA, HGNC, 'd'), (PROTEIN, HGNC, 'e')]}],
-            pipeline=pipeline
-        )
+        query = Query(network_ids=[network_1_id, network_2_id])
+        query.add_seed_neighbors([
+            (RNA, HGNC, 'd'),
+            (PROTEIN, HGNC, 'e')
+        ])
+        query.add_pipeline(get_subgraph_by_annotation_value, 'Annotation', 'foo')
+        query.add_pipeline(collapse_by_central_dogma_to_genes)
 
         result_graph = query.run(self.manager)
 

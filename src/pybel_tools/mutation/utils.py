@@ -7,6 +7,7 @@ from .. import pipeline
 __all__ = [
     'ensure_node_from_universe',
     'remove_isolated_nodes',
+    'update_node_helper',
 ]
 
 

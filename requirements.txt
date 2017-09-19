@@ -1,15 +1,11 @@
 sqlalchemy
 requests
 networkx
-pybel>=0.8.1
+pybel>=0.9.0
 click
-pygments
 pandas
-fuzzywuzzy
-ipython
 scipy
 numpy
 artifactory
 jinja2
 ols_client
-obonet

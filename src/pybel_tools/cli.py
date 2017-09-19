@@ -48,6 +48,7 @@ from .document_utils import write_boilerplate
 from .ioutils import convert_directory, upload_recursive, to_pybel_web, convert_paths
 from .mutation.metadata import enrich_pubmed_citations
 from .resources import get_namespace_history, get_annotation_history, get_knowledge_history
+from .summary import get_pubmed_identifiers
 from .utils import enable_cool_mode
 
 log = logging.getLogger(__name__)
@@ -384,6 +385,16 @@ def upload_resources(directory, debug):
     """Uploads the resources in a directory to arty"""
     set_debug_param(debug)
     deploy_directory(directory)
+
+
+@io.command()
+@click.argument('path')
+@click.option('-o', '--output', type=click.File('w'), default=sys.stdout)
+def get_pmids(path, output):
+    """Outputs PubMed identifiers from a graph to a stream"""
+    graph = from_pickle(path)
+    for pmid in get_pubmed_identifiers(graph):
+        click.echo(pmid, file=output)
 
 
 if __name__ == '__main__':

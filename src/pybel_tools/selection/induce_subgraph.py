@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from collections import defaultdict
 
 import networkx as nx
+import numpy as np
+from collections import defaultdict
+from random import choice, shuffle
 
 from pybel import BELGraph
 from pybel.constants import ANNOTATIONS
@@ -29,7 +31,7 @@ from ..mutation.expansion import (
     get_downstream_causal_subgraph,
     expand_downstream_causal_subgraph,
 )
-from ..mutation.utils import update_node_helper
+from ..mutation.utils import update_node_helper, remove_isolated_nodes
 from ..utils import safe_add_edge, safe_add_edges
 
 log = logging.getLogger(__name__)
@@ -52,6 +54,7 @@ __all__ = [
     'get_subgraphs_by_annotation',
     'get_multi_causal_upstream',
     'get_multi_causal_downstream',
+    'get_random_subgraph',
 ]
 
 #: Induce a subgraph over the given nodes
@@ -419,3 +422,69 @@ def get_largest_component(graph):
     :rtype: pybel.BELGraph
     """
     return max(nx.weakly_connected_component_subgraphs(graph), key=len)
+
+
+@pipeline.mutator
+def get_random_subgraph(graph, number_edges=250, number_seed_nodes=5):
+    """Randomly picks a node from the graph, and performs a weighted random walk to sample the given number of edges
+    around it
+
+    :param pybel.BELGraph graph:
+    :param int number_edges: Maximum number of edges
+    :param int number_seed_nodes: Number of nodes to start with (which likely results in different components in large
+                                    graphs)
+    :rtype: pybel.BELGraph
+    """
+    result = BELGraph()
+
+    position = 0
+    universe_nodes = graph.nodes()
+    shuffle(universe_nodes)
+
+    for _ in range(number_seed_nodes):
+        result.add_node(universe_nodes[position])
+        position += 1
+
+    grow_node = choice(universe_nodes[:number_seed_nodes])
+
+    no_grow = set()
+
+    def randomly_select_weighted():
+        """Chooses a node from the graph to expand upon"""
+        nodes, degrees = zip(*list(
+            (node, degree)
+            for node, degree in result.degree_iter()
+            if node not in no_grow
+        ))
+        inv_degrees = [1 / (1 + d) for d in degrees]
+        ds = sum(inv_degrees)
+        norm_inv_degrees = [d / ds for d in inv_degrees]
+        nci = np.random.choice(len(nodes), p=norm_inv_degrees)
+        return nodes[nci]
+
+    for i in range(number_edges):
+
+        while True:
+
+            ud = set(graph.edge[grow_node])
+            gd = set(result.edge[grow_node])
+            dif = ud - gd
+
+            if dif:
+                break
+
+            no_grow.add(grow_node)
+            grow_node = randomly_select_weighted()
+
+        target = choice(list(dif))
+
+        k, attr_dict = choice(list(graph.edge[grow_node][target].items()))
+
+        result.add_edge(grow_node, target, attr_dict=attr_dict)
+
+        grow_node = randomly_select_weighted()
+
+    remove_isolated_nodes(result)
+    update_node_helper(graph, result)
+
+    return result

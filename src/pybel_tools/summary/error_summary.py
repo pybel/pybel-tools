@@ -18,7 +18,6 @@ __all__ = [
     'get_undefined_namespaces',
     'get_undefined_namespace_names',
     'calculate_incorrect_name_dict',
-    'calculate_suggestions',
     'calculate_error_by_annotation',
     'group_errors',
     'get_names_including_errors',
@@ -176,32 +175,6 @@ def calculate_incorrect_name_dict(graph):
         missing[e.namespace].append(e.name)
 
     return dict(missing)
-
-
-def calculate_suggestions(incorrect_name_dict, namespace_dict):
-    """Uses fuzzy string matching to try and find the appropriate names for each of the incorrectly identified names
-
-    :param incorrect_name_dict: A dictionary of {namespace: list of wrong names}
-    :type incorrect_name_dict: dict
-    :param namespace_dict: A dictionary of {namespace: list of allowed names}
-    :type namespace_dict: dict
-    :return: A dictionary of suggestions for each wrong (namespace, name) pair
-    :rtype: dict
-    """
-    from fuzzywuzzy import process, fuzz
-
-    suggestions_cache = defaultdict(list)
-
-    for namespace in incorrect_name_dict:
-        for name in incorrect_name_dict[namespace]:
-            if (namespace, name) in suggestions_cache:
-                continue
-
-            for putative, score in process.extract(name, set(namespace_dict[namespace]),
-                                                   scorer=fuzz.partial_token_set_ratio):
-                suggestions_cache[namespace, name].append((putative, score))
-
-    return dict(suggestions_cache)
 
 
 def calculate_error_by_annotation(graph, annotation):

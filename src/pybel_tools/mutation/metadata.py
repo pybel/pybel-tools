@@ -4,6 +4,7 @@ import logging
 
 from pybel.canonicalize import calculate_canonical_name
 from pybel.constants import CITATION, CITATION_AUTHORS, CITATION_REFERENCE, ID
+from pybel.parser.canonicalize import node_to_tuple
 from pybel.struct.filters import filter_edges
 from pybel.utils import hash_edge, hash_node
 from .. import pipeline
@@ -14,7 +15,6 @@ from ..filters.node_filters import node_missing_cname, filter_nodes
 from ..summary.edge_summary import get_annotations
 from ..summary.node_summary import get_namespaces
 from ..summary.provenance import get_pubmed_identifiers
-from ..utils import hash_str_to_int
 
 __all__ = [
     'parse_authors',
@@ -175,7 +175,9 @@ def add_identifiers(graph):
     :param pybel.BELGraph graph: A BEL Graph
     """
     for node, data in graph.nodes_iter(data=True):
-        graph.node[node][ID] = hash_node(node)
+        canonical_node_tuple = node_to_tuple(data)
+        canonical_node_hash = hash_node(canonical_node_tuple)
+        graph.node[node][ID] = canonical_node_hash
 
     for u, v, k, d in graph.edges_iter(keys=True, data=True):
         graph.edge[u][v][k][ID] = hash_edge(u, v, k, d)

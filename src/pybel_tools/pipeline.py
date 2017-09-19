@@ -177,6 +177,8 @@ class Pipeline:
         """Adds a function and arguments to the pipeline
 
         :param str name: The name of the function
+        :param args: The positional arguments to call in the function
+        :param kwargs: The keyword arguments to call in the function
         :return: This pipeline for fluid query building
         :rtype: Pipeline
         """
