@@ -24,8 +24,8 @@ CLASSIFIERS = [
 INSTALL_REQUIRES = [
     'requests',
     'sqlalchemy',
-    'networkx',
-    'pybel',
+    'networkx==1.11',
+    'pybel==0.9.0',
     'click',
     'pandas',
     'scipy',
