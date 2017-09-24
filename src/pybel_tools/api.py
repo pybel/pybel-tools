@@ -709,6 +709,6 @@ class DatabaseService(QueryService):
         if network_id in self.overlap_cache:
             del self.overlap_cache[network_id]
 
-            for k in self.overlap_cache:
-                if network_id in self.overlap_cache[k]:
-                    del self.overlap_cache[k][network_id]
+        for cached_network_id in self.overlap_cache:
+            if network_id in self.overlap_cache[cached_network_id]:
+                del self.overlap_cache[cached_network_id][network_id]
