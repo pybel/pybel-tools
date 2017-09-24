@@ -15,9 +15,8 @@ from sqlalchemy import func
 from pybel import BELGraph
 from pybel.canonicalize import node_to_bel, calculate_canonical_name
 from pybel.constants import ID
-from pybel.manager.models import Network, Annotation
+from pybel.manager.models import Network, Annotation, Author
 from pybel.struct import left_full_join, union
-from pybel.utils import edge_to_tuple
 from .constants import CNAME
 from .mutation.inference import infer_central_dogma
 from .mutation.metadata import (
@@ -576,14 +575,36 @@ class DatabaseService(QueryService):
         """
         return list(get_pmid_by_keyword(keyword, pubmed_identifiers=self.universe_pmids))
 
-    def get_authors_containing_keyword(self, keyword):
+    def get_authors_containing_keyword(self, keyword, use_cache=True):
+        """Gets a list with authors that contain a certain keyword
+
+        :param str keyword: Search for authors whose names have this as a substring
+        :param bool use_cache: If true, look up by cache, else look up in database
+        :rtype: list[str]
+        """
+        if use_cache:
+            return self._get_authors_containing_keyword_cached(keyword)
+        
+        return self._get_authors_containing_keyword_database(keyword)
+
+    def _get_authors_containing_keyword_cached(self, keyword):
         """Gets a list with authors that contain a certain keyword
 
         :param str keyword: Search for authors whose names have this as a substring
         :rtype: list[str]
         """
-        # TODO switch to doing database lookup
         return get_authors_by_keyword(keyword, authors=self.universe_authors)
+
+    def _get_authors_containing_keyword_database(self, keyword):
+        """Gets a list with authors that contain a certain keyword
+
+        :param str keyword: Search for authors whose names have this as a substring
+        :rtype: list[str]
+        """
+        return [
+            name
+            for name, in self.manager.session.query(Author.name).filter(Author.name.like(keyword)).all()
+        ]
 
     def get_cname_by_node_hash(self, node_hash):
         """Gets the canonical name of a node
