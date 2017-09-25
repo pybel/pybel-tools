@@ -2,7 +2,9 @@
 
 """
 
-This module provides functions for making HTML visualizations of BEL Graphs
+This module provides functions for making HTML visualizations of BEL Graphs. Because the :class:`pybel.BELGraph`
+inherits from :class:`networkx.MultiDiGraph`, it can also be visualized using :mod:`networkx`
+`library <https://networkx.github.io/documentation/latest/reference/drawing.html>`_.
 
 """
 
