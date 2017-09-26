@@ -98,8 +98,8 @@ def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=Fa
             citation.volume = result[pmid]['volume']
             citation.issue = result[pmid]['issue']
             citation.pages = result[pmid]['pages']
-            citation.first = result[pmid]['first']
-            citation.last = result[pmid]['last']
+            citation.first = manager.get_or_create_author(result[pmid]['first'])
+            citation.last = manager.get_or_create_author(result[pmid]['last'])
 
             if 'authors' in p:
                 result[pmid][CITATION_AUTHORS] = [author['name'] for author in p['authors']]
