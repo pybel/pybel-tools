@@ -102,7 +102,8 @@ class QueryTest(ExampleNetworkMixin, ManagerMixin):
         network_1_id = test_network_1.id
         network_2_id = test_network_2.id
 
-        api = DatabaseService(self.manager, autocache=True)
+        api = DatabaseService(self.manager)
+        api.cache_networks(infer_origin=True)
 
         pipeline = Pipeline()
         pipeline.append(get_subgraph_by_annotation_value, 'Annotation', 'foo')
@@ -116,12 +117,11 @@ class QueryTest(ExampleNetworkMixin, ManagerMixin):
 
         query = Query(
             network_ids=[network_1_id, network_2_id],
-            seed_list=[{'type': 'neighbors', 'data': [node_1, node_2]}],
             pipeline=pipeline
         )
+        query.add_seed_neighbors([node_1, node_2])
 
         result_graph = query.run(api)
-
         result_graph = api.relabel_nodes_to_identifiers(result_graph)
 
         self.assertEqual(4, result_graph.number_of_nodes())

@@ -18,6 +18,7 @@ from pybel.constants import ID
 from pybel.manager.models import Network, Annotation, Author
 from pybel.struct import left_full_join, union
 from .constants import CNAME
+from .mutation.inference import infer_central_dogma
 from .mutation.metadata import (
     parse_authors,
     add_canonical_names,
@@ -310,6 +311,7 @@ class DatabaseService(QueryService):
         log.info('initialized dictionary service')
 
     def clear(self):
+        """Clear the cache and start over"""
         self.__init__(self.manager)
 
     def _update_indexes(self, graph):
@@ -343,7 +345,7 @@ class DatabaseService(QueryService):
 
         mapping = {
             node: self.node_nid[node]
-            for node in graph.nodes_iter()
+            for node in graph
         }
 
         nx.relabel.relabel_nodes(graph, mapping, copy=False)
@@ -362,13 +364,14 @@ class DatabaseService(QueryService):
         """
         return self._relabel_nodes_to_identifiers_helper(graph.copy() if copy else graph)
 
-    def _add_network(self, network_id, force_reload=False, eager=False, maintain_universe=True):
+    def _add_network(self, network_id, force_reload=False, eager=False, maintain_universe=True, infer_origin=False):
         """Adds a network to the module-level cache from the underlying database
 
         :param int network_id: The identifier for the graph
         :param bool force_reload: Should the graphs be reloaded even if it has already been cached?
         :param bool eager: Should data be calculated/loaded eagerly?
         :param bool maintain_universe:
+        :param bool infer_origin: Should the central dogma be inferred for proteins, RNA, and miRNA?
         """
         if network_id in self.networks and not force_reload:
             log.info('tried re-adding graph [%s]', network_id)
@@ -397,6 +400,10 @@ class DatabaseService(QueryService):
 
         log.debug('adding canonical names')
         add_canonical_names(graph)
+
+        if infer_origin:
+            log.debug('inferring central dogma')
+            infer_central_dogma(graph)
 
         log.debug('updating graph node/edge indexes')
         self._update_indexes(graph)
@@ -432,11 +439,13 @@ class DatabaseService(QueryService):
 
         return graph
 
-    def cache_networks(self, force_reload=False, eager=False, maintain_universe=True):
+    def cache_networks(self, force_reload=False, eager=False, maintain_universe=True, infer_origin=False):
         """This function needs to get all networks from the graph cache manager and make a dictionary
 
         :param bool force_reload: Should all graphs be reloaded even if they have already been cached?
         :param bool eager: Should difficult to preload features be calculated?
+        :param bool maintain_universe:
+        :param bool infer_origin: Should the central dogma be inferred for proteins, RNA, and miRNA?
         """
         query = self.manager.session.query(Network).group_by(Network.name)
 
@@ -448,7 +457,8 @@ class DatabaseService(QueryService):
                 network.id,
                 force_reload=force_reload,
                 eager=eager,
-                maintain_universe=maintain_universe
+                maintain_universe=maintain_universe,
+                infer_origin=infer_origin,
             )
 
         if maintain_universe:
