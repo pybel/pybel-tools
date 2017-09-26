@@ -18,7 +18,6 @@ from pybel.constants import ID
 from pybel.manager.models import Network, Annotation, Author
 from pybel.struct import left_full_join, union
 from .constants import CNAME
-from .mutation.inference import infer_central_dogma
 from .mutation.metadata import (
     parse_authors,
     add_canonical_names,
@@ -369,6 +368,7 @@ class DatabaseService(QueryService):
         :param int network_id: The identifier for the graph
         :param bool force_reload: Should the graphs be reloaded even if it has already been cached?
         :param bool eager: Should data be calculated/loaded eagerly?
+        :param bool maintain_universe:
         """
         if network_id in self.networks and not force_reload:
             log.info('tried re-adding graph [%s]', network_id)
@@ -394,9 +394,6 @@ class DatabaseService(QueryService):
 
         log.debug('parsing authors')
         parse_authors(graph)
-
-        log.debug('inferring central dogma')
-        infer_central_dogma(graph)
 
         log.debug('adding canonical names')
         add_canonical_names(graph)
@@ -584,7 +581,7 @@ class DatabaseService(QueryService):
         """
         if use_cache:
             return self._get_authors_containing_keyword_cached(keyword)
-        
+
         return self._get_authors_containing_keyword_database(keyword)
 
     def _get_authors_containing_keyword_cached(self, keyword):
