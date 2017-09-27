@@ -84,8 +84,8 @@ class QueryTest(ExampleNetworkMixin, ManagerMixin):
             (RNA, HGNC, 'd'),
             (PROTEIN, HGNC, 'e')
         ])
-        query.add_pipeline(get_subgraph_by_annotation_value, 'Annotation', 'foo')
-        query.add_pipeline(collapse_by_central_dogma_to_genes)
+        query.append_pipeline(get_subgraph_by_annotation_value, 'Annotation', 'foo')
+        query.append_pipeline(collapse_by_central_dogma_to_genes)
 
         result_graph = query.run(self.manager)
 
