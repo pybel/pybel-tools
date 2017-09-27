@@ -35,6 +35,7 @@ from pybel.constants import (
 from pybel.manager import Manager
 from pybel.utils import get_version as pybel_version
 from pybel.utils import parse_bel_resource
+from pybel_tools.ioutils import get_paths_recursive
 from pybel_tools.resources import deploy_directory
 from .constants import GENE_FAMILIES, NAMED_COMPLEXES, DEFAULT_SERVICE_URL
 from .definition_utils import (
@@ -45,7 +46,7 @@ from .definition_utils import (
     get_bel_knowledge_hash,
 )
 from .document_utils import write_boilerplate
-from .ioutils import convert_directory, upload_recursive, to_pybel_web, convert_paths
+from .ioutils import upload_recursive, to_pybel_web, convert_paths
 from .mutation.metadata import enrich_pubmed_citations
 from .resources import get_namespace_history, get_annotation_history, get_knowledge_history
 from .summary import get_pubmed_identifiers
@@ -218,7 +219,13 @@ def convert(manager, enable_upload, store_parts, no_enrich_authors, no_enrich_ge
     if cool:
         enable_cool_mode()
 
-    kwargs = dict(
+    if use_stdin:
+        paths = (path for path in sys.stdin if path.endswith('.bel'))
+    else:
+        paths = get_paths_recursive(directory, exclude_directory_pattern=exclude_directory_pattern)
+
+    results = convert_paths(
+        paths=paths,
         connection=manager,
         upload=(enable_upload or store_parts),
         pickle=True,
@@ -232,16 +239,8 @@ def convert(manager, enable_upload, store_parts, no_enrich_authors, no_enrich_ge
         version_in_path=version_in_path,
     )
 
-    if use_stdin:
-        convert_paths(
-            paths=(path for path in sys.stdin if path.endswith('.bel')),
-            **kwargs
-        )
-    else:
-        results = convert_directory(directory, exclude_directory_pattern=exclude_directory_pattern, **kwargs)
-
-        for path, e in results:
-            click.echo('FAILED {} {}'.format(path, e))
+    for path, e in results:
+        click.echo('FAILED {} {}'.format(path, e))
 
 
 @main.group()
