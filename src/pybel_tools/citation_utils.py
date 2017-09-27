@@ -25,6 +25,8 @@ re2 = re.compile('^[12][0-9]{3} [a-zA-Z]{3}$')
 re3 = re.compile('^[12][0-9]{3}$')
 re4 = re.compile('^[12][0-9]{3} [a-zA-Z]{3}-[a-zA-Z]{3}$')
 
+# TODO re5 = re.compile('^[12][0-9]{3} Fall|Spring|Winter|Summer$')
+
 
 def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=False, manager=None):
     """Gets the citation information for the given list of PubMed identifiers using the NCBI's eutils service
@@ -125,7 +127,7 @@ def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=Fa
             if CITATION_DATE in result[pmid]:
                 citation.date = datetime.strptime(result[pmid][CITATION_DATE], '%Y-%m-%d')
 
-        manager.session.commit()  # commit in groups
+            manager.session.commit()  # commit in groups
 
         # Don't want to hit that rate limit
         time.sleep(sleep_time)
