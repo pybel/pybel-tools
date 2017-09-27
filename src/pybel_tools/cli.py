@@ -198,8 +198,8 @@ def post(path, url, skip_check_version):
 @click.option('--no-enrich-authors', is_flag=True, help="Don't enrich authors. Makes faster.")
 @click.option('--no-enrich-genes', is_flag=True, help="Don't enrich HGNC genes")
 @click.option('--no-enrich-go', is_flag=True, help="Don't enrich GO entries")
-@click.option('--no-citation-clearing', is_flag=True, help='Turn off citation clearing')
-@click.option('--allow-nested', is_flag=True, help="Enable lenient parsing for nested statements")
+@click.option('-c', '--no-citation-clearing', is_flag=True, help='Turn off citation clearing')
+@click.option('-n', '--allow-nested', is_flag=True, help="Enable lenient parsing for nested statements")
 @click.option('-d', '--directory', default=os.getcwd(),
               help='The directory to search. Defaults to current working directory')
 @click.option('-i', '--use-stdin', is_flag=True, help='Use stdin for paths')
