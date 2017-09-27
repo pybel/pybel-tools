@@ -154,9 +154,9 @@ def io(ctx, connection, config):
     """Upload and conversion utilities"""
     if config:
         file = json.load(config)
-        ctx.obj = Manager(connection=file.get(PYBEL_CONNECTION, get_cache_connection()))
-    else:
-        ctx.obj = Manager(connection=connection)
+        connection = file.get(PYBEL_CONNECTION, get_cache_connection())
+
+    ctx.obj = Manager(connection=connection)
 
 
 @io.command()
