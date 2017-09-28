@@ -27,7 +27,6 @@ from .mutation.metadata import (
 )
 from .summary.edge_summary import (
     count_pathologies,
-    get_tree_annotations,
     get_annotations_containing_keyword
 )
 from .summary.provenance import (
@@ -667,16 +666,6 @@ class DatabaseService(QueryService):
             self.get_cname(node): v
             for node, v in cm.most_common(count)
         }
-
-    @lru_cache(maxsize=32)
-    def get_tree_annotations(self, graph):
-        """Gets tree annotations for the given graph
-
-        :param pybel.BELGraph graph: A BEL Graph
-        :return: Annotations for the given graph
-        :rtype: list[dict]
-        """
-        return get_tree_annotations(graph)
 
     def get_node_overlap(self, network_id):
         """Calculates overlaps to all other networks in the database
