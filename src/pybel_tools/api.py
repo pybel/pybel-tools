@@ -658,8 +658,7 @@ class DatabaseService(QueryService):
         :param int count: The number of most frequently mentioned pathologies to get
         :rtype: dict[str,int]
         """
-        network = self.manager.get_network_by_id(network_id)
-        graph = network.as_bel()
+        graph = self.get_graph_by_id(network_id)
         cm = count_pathologies(graph)
 
         return {
