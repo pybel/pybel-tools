@@ -175,11 +175,11 @@ def get_subgraph_edges(graph, annotation, value, source_filter=None, target_filt
     if target_filter is None:
         target_filter = keep_node_permissive
 
-    for u, v, k, d in graph.edges_iter(keys=True, data=True):
-        if not check_has_annotation(d, annotation):
+    for u, v, k, data in graph.edges_iter(keys=True, data=True):
+        if not check_has_annotation(data, annotation):
             continue
-        if d[ANNOTATIONS][annotation] == value and source_filter(graph, u) and target_filter(graph, v):
-            yield u, v, k, d
+        if data[ANNOTATIONS][annotation] == value and source_filter(graph, u) and target_filter(graph, v):
+            yield u, v, k, data
 
 
 def get_subgraph_peripheral_nodes(graph, subgraph, node_filters=None, edge_filters=None):

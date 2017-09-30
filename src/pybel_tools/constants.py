@@ -48,7 +48,6 @@ def print_set_confidence(confidence, file=None):
 
 
 CNAME = 'cname'
-PUBMED = 'PubMed'
 DATA_WEIGHT = 'weight'
 
 # Resources

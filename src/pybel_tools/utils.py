@@ -107,17 +107,25 @@ def count_dict_values(dict_of_counters):
     })
 
 
-def _check_has_data(d, sd, key):
-    return sd in d and key in d[sd]
+def _check_has_data(data, super_key, sub_key):
+    """
+
+    :param dict data:
+    :param str super_key:
+    :param str sub_key:
+    :return: None if the conditions don't pass, or the value from the subdict if they do
+    """
+    if super_key not in data:
+        return
+
+    return data[super_key].get(sub_key)
 
 
 def check_has_annotation(data, key):
     """Checks that ANNOTATION is included in the data dictionary and that the key is also present
 
-    :param data: The data dictionary from a BELGraph's edge
-    :type data: dict
-    :param key: An annotation key
-    :param key: str
+    :param dict data: The data dictionary from a BELGraph's edge
+    :param str key: An annotation key
     :return: If the annotation key is present in the current data dictionary
     :rtype: bool
 

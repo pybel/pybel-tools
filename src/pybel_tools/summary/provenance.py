@@ -10,7 +10,6 @@ from collections import defaultdict, Counter
 
 from pybel.constants import *
 from pybel.struct.filters import filter_edges
-from ..constants import PUBMED
 from ..filters import build_pmid_inclusion_filter, build_edge_data_filter
 from ..utils import graph_edge_data_iter, count_defaultdict, check_has_annotation, count_dict_values
 
@@ -43,22 +42,22 @@ def _generate_citation_dict(graph):
     """
     results = defaultdict(lambda: defaultdict(set))
 
-    for u, v, d in graph.edges_iter(data=True):
-        if CITATION not in d:
+    for u, v, data in graph.edges_iter(data=True):
+        if CITATION not in data:
             continue
-        results[d[CITATION][CITATION_TYPE]][u, v].add(d[CITATION][CITATION_REFERENCE].strip())
+        results[data[CITATION][CITATION_TYPE]][u, v].add(data[CITATION][CITATION_REFERENCE].strip())
 
     return dict(results)
 
 
-def has_pubmed_citation(edge_data_dictionary):
+def has_pubmed_citation(data):
     """Checks if the edge data dictionary has a PubMed citation
 
-    :param dict edge_data_dictionary: The edge data dictionary from a :class:`pybel.BELGraph`
+    :param dict data: A PyBEL edge data dictionary from a :class:`pybel.BELGraph`
     :return: Does the edge data dictionary has a PubMed citation?
     :rtype: bool
     """
-    return CITATION in edge_data_dictionary and PUBMED == edge_data_dictionary[CITATION][CITATION_TYPE]
+    return CITATION in data and CITATION_TYPE_PUBMED == data[CITATION][CITATION_TYPE]
 
 
 def iterate_pubmed_identifiers(graph):
