@@ -4,8 +4,10 @@ cache: pip
 language: python
 
 python:
-    - 3.4
     - 3.6
+    - 3.5
+    - 3.4
+
 env:
   matrix:
     - TOXENV=py
@@ -18,7 +20,6 @@ matrix:
           env: TOXENV=manifest
 
 before_install:
-    - pip install --upgrade pip
     - pip install codecov
 
 install:

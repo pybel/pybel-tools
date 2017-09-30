@@ -1,11 +1,8 @@
 PyBEL Tools |develop_build| |develop_coverage| |develop_documentation| |zenodo|
 ===============================================================================
 `PyBEL Tools <https://pybel-tools.readthedocs.io/>`_ is a suite of tools built on top of
-`PyBEL <https://pybel.readthedocs.io>`_ to facilitate data management, integration, and analysis.
-
-This package was developed at `Fraunhofer SCAI <https://www.scai.fraunhofer.de/>`_
-with support from the `IMI <https://www.imi.europa.eu/>`_ projects: `AETIONOMY <http://www.aetionomy.eu/>`_ and
-`PHAGO <http://www.phago.eu/>`_.
+`PyBEL <https://pybel.readthedocs.io>`_ to facilitate data management, integration, and analysis. For further examples,
+see the `PyBEL Notebooks <https://github.com/pybel/pybel-notebooks>`_ repository.
 
 Installation |pypi_version| |python_versions| |pypi_license|
 ------------------------------------------------------------
@@ -26,6 +23,13 @@ Documentation and Examples
 --------------------------
 - Documentation at https://pybel-tools.readthedocs.io
 - Cookbook at https://github.com/pybel/pybel-notebooks
+
+Acknowledgements
+----------------
+This package was originally developed as part of the master's work of
+`Charles Tapley Hoyt <https://github.com/cthoyt>`_ at `Fraunhofer SCAI <https://www.scai.fraunhofer.de/>`_ with
+support from the `IMI <https://www.imi.europa.eu/>`_ projects: `AETIONOMY <http://www.aetionomy.eu/>`_ and
+`PHAGO <http://www.phago.eu/>`_.
 
 Links
 -----
