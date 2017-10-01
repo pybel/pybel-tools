@@ -103,8 +103,7 @@ def _structure_orthologies_from_rgd(path=None):
     return mgi_orthologies, rgd_orthologies
 
 
-@pipeline.in_place_mutator
-def add_orthology_statements(graph, orthologies, namespace):
+def _add_orthology_statements(graph, orthologies, namespace):
     """Adds orthology statements for all orthologous nodes to HGNC nodes
 
     :param pybel.BELGraph graph: A BEL Graph
@@ -141,8 +140,8 @@ def integrate_orthologies_from_hgnc(graph, lines=None):
     :param list[str] lines:
     """
     mgi_orthologies, rgd_orthologies = _structure_orthologies_from_hgnc(lines=lines)
-    add_orthology_statements(graph, mgi_orthologies, MGI)
-    add_orthology_statements(graph, rgd_orthologies, RGD)
+    _add_orthology_statements(graph, mgi_orthologies, MGI)
+    _add_orthology_statements(graph, rgd_orthologies, RGD)
 
 
 @pipeline.in_place_mutator
@@ -156,8 +155,8 @@ def integrate_orthologies_from_rgd(graph, path=None):
                  Defaults to downloading directly from RGD FTP server with pandas
     """
     mgi_orthologies, rgd_orthologies = _structure_orthologies_from_rgd(path=path)
-    add_orthology_statements(graph, mgi_orthologies, MGI)
-    add_orthology_statements(graph, rgd_orthologies, RGD)
+    _add_orthology_statements(graph, mgi_orthologies, MGI)
+    _add_orthology_statements(graph, rgd_orthologies, RGD)
 
 
 #: Filters to keep only edges representing orthologies

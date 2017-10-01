@@ -34,7 +34,7 @@ __all__ = [
     'build_author_inclusion_filter',
     'edge_has_activity',
     'edge_has_translocation',
-    'edge_has_degradation'
+    'edge_has_degradation',
     'edge_has_pathology_causal',
 ]
 
