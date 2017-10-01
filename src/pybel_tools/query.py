@@ -29,19 +29,31 @@ class Query:
         :param list[dict] seed_list:
         :param Pipeline pipeline: Instance of a pipeline
         """
+        self.network_ids = []
+        self.seeds = []
+
         if isinstance(network_ids, int):
-            self.network_ids = [network_ids]
+            self.append_network(network_ids)
         elif isinstance(network_ids, (list, set, tuple)):
-            self.network_ids = [int(network_id) for network_id in network_ids]
+            self.network_ids.extend(int(network_id) for network_id in network_ids)
         else:
             raise TypeError(network_ids)
 
-        self.seeds = seed_list if seed_list is not None else []
+        if seed_list:
+            self.seeds.extend(seed_list)
+
         self.pipeline = pipeline if pipeline is not None else Pipeline()
 
-    def add_seed(self, type, data):
+    def append_network(self, network_id):
+        """Adds a network to this query
+
+        :param int network_id: The database identifier of the network
+        """
+        self.network_ids.append(network_id)
+
+    def add_seed(self, seed_type, data):
         self.seeds.append({
-            SEED_TYPE_KEY: type,
+            SEED_TYPE_KEY: seed_type,
             SEED_DATA_KEY: data
         })
 
