@@ -19,9 +19,9 @@ class OlsNamespaceOntology:
         :param str functions: The encoding for the elements in this namespace. See
                               :data:`pybel.constants.belns_encodings`
         :param str ols_base: An optional, custom OLS base url
-        :param tuple[str] auth: A pair of (str username, str password) to give to the auth keyword of the constructor of
-                            :class:`artifactory.ArtifactoryPath`. Defaults to the result of
-                            :func:`pybel_tools.resources.get_arty_auth`.
+        :param tuple[str,str] auth: A pair of (str username, str password) to give to the auth keyword of the
+                                    constructor of :class:`artifactory.ArtifactoryPath`. Defaults to the result of
+                                    :func:`pybel_tools.resources.get_arty_auth`.
         """
         self.ontology = ontology
         self.namespace_domain = namespace_domain
@@ -35,7 +35,7 @@ class OlsNamespaceOntology:
         :param file file: A write-enable file or file-like
         """
         metadata = self.ols_client.get_metadata(self.ontology)
-        values = self.ols_client.get_labels(self.ontology)
+        values = self.ols_client.iter_labels(self.ontology)
 
         config = metadata['config']
 

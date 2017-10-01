@@ -8,4 +8,4 @@ scipy
 numpy
 artifactory
 jinja2
-ols_client
+ols_client==0.0.7
