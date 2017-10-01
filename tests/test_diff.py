@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import unittest
-
 import pybel
 from pybel.constants import *
 from pybel_tools.comparison import graph_edges_difference, graph_entities_equal
 from pybel_tools.comparison import graph_provenance_equal, graph_topologically_equal
+from tests.constants import ManagerMixin
 
 test_bel_1 = """
 SET DOCUMENT Name = "PyBEL Test Document 1"
@@ -71,12 +70,12 @@ AKT1 = PROTEIN, 'HGNC', 'AKT1'
 AKT1_Ph = PROTEIN, 'HGNC', 'AKT1', (PMOD, (BEL_DEFAULT_NAMESPACE, 'Ph'))
 
 
-class TestGraphDiff(unittest.TestCase):
+class TestGraphDiff(ManagerMixin):
     """Tests the ability to compare to BELGraphs"""
 
     def test_difference(self):
-        a = pybel.from_lines(test_bel_1.split('\n'))
-        b = pybel.from_lines(test_bel_2.split('\n'))
+        a = pybel.from_lines(test_bel_1.split('\n'), manager=self.manager)
+        b = pybel.from_lines(test_bel_2.split('\n'), manager=self.manager)
 
         self.assertFalse(graph_entities_equal(a, b))
         self.assertFalse(graph_topologically_equal(a, b))
