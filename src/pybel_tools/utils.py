@@ -7,7 +7,6 @@ import itertools as itt
 import json
 import logging
 import time
-from itertools import zip_longest
 
 import jinja2
 import networkx as nx
@@ -16,6 +15,7 @@ import pandas as pd
 from collections import Counter, defaultdict
 from operator import itemgetter
 from pkg_resources import get_distribution
+from six.moves import zip_longest
 
 from pybel.constants import (
     ANNOTATIONS,
