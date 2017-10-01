@@ -17,6 +17,7 @@ from pybel.canonicalize import node_to_bel, calculate_canonical_name
 from pybel.constants import ID
 from pybel.manager.models import Network, Annotation, Author
 from pybel.struct import left_full_join, union
+from pybel.utils import hash_node
 from .constants import CNAME
 from .mutation.inference import infer_central_dogma
 from .mutation.metadata import (
@@ -50,6 +51,7 @@ class DatabaseServiceBase:
         self.manager = manager
 
 
+# TODO delete?
 class QueryService(DatabaseServiceBase):
     def query_namespaces(self, network_id=None, offset_start=0, offset_end=500, name_list=False, keyword=None):
         """Provides a list of namespaces filtered by the given parameters.
@@ -279,14 +281,13 @@ class DatabaseService(QueryService):
         #: dictionary of {int id: BELGraph graph}
         self.networks = {}
 
-        #: dictionary of {tuple node: int id}
-        self.node_nid = {}
-
         #: dictionary of {int id: tuple node}
-        self.nid_node = {}
+        self.hash_to_node_cache = {}
 
-        #: dictionary of {str BEL: int id}
+        #: dictionary of {str BEL: node hash}
         self.bel_id = {}
+
+        #: dictionary of {node hash: BEL}
         self.id_bel = {}
 
         #: The complete graph of all knowledge stored in the cache
@@ -325,27 +326,24 @@ class DatabaseService(QueryService):
                 log.warning('nodes already converted to ids')
                 return
 
-            if node in self.node_nid:
-                continue
+            node_hash = data[ID]
 
-            node_id = data[ID]
-
-            self.node_nid[node] = node_id
-            self.nid_node[node_id] = node
+            self.hash_to_node_cache[node_hash] = node
 
             bel = node_to_bel(graph, node)
-            self.id_bel[node_id] = bel
-            self.bel_id[bel] = node_id
+            self.id_bel[node_hash] = bel
+            self.bel_id[bel] = node_hash
 
     def _relabel_nodes_to_identifiers_helper(self, graph):
         if 'PYBEL_RELABELED' in graph.graph:
             log.warning('%s has already been relabeled', graph.name)
             return graph
 
-        mapping = {
-            node: self.node_nid[node]
-            for node in graph
-        }
+        mapping = {}
+        for node in graph:
+            nh = hash_node(node)
+            self.hash_to_node_cache[nh] = node
+            mapping[node] = nh
 
         nx.relabel.relabel_nodes(graph, mapping, copy=False)
 
@@ -355,7 +353,7 @@ class DatabaseService(QueryService):
 
     def relabel_nodes_to_identifiers(self, graph, copy=True):
         """Relabels all nodes by their identifiers, in place. This function is a thin wrapper around
-        :func:`networkx.relabel.relabel_nodes` with the module level variable :data:`node_nid` used as the mapping.
+        :func:`networkx.relabel.relabel_nodes`
 
         :param pybel.BELGraph graph: A BEL Graph
         :param bool copy: Copy the graph first?
@@ -376,13 +374,10 @@ class DatabaseService(QueryService):
             log.info('tried re-adding graph [%s]', network_id)
             return self.networks[network_id]
 
-        network = self.manager.get_network_by_id(network_id)
-
         try:
-            log.debug('getting bytes from [%s]', network.id)
-            graph = network.as_bel()
+            graph = self.manager.get_graph_by_id(network_id)
         except:
-            log.exception("couldn't load from bytes [%s]", network.id)
+            log.exception("couldn't load from bytes [%s]", network_id)
             return
 
         t = time.time()
@@ -517,7 +512,7 @@ class DatabaseService(QueryService):
 
         :param tuple node: A PyBEL node tuple
         """
-        return self.node_nid[node]
+        return hash
 
     def get_node_hashes(self, node_tuples):
         """Converts a list of BEL nodes to their node identifiers
@@ -537,7 +532,7 @@ class DatabaseService(QueryService):
         :return: A PyBEL node tuple
         :rtype: tuple
         """
-        return self.nid_node.get(node_hash)
+        return self.hash_to_node_cache.get(node_hash)
 
     def get_nodes_by_hashes(self, node_hashes):
         """Gets a list of node tuples from a list of ids
