@@ -28,6 +28,8 @@ __all__ = [
     'count_authors_by_annotation',
     'get_evidences_by_pmid',
     'count_citation_years',
+    'create_timeline',
+    'get_citation_years'
 ]
 
 log = logging.getLogger(__name__)
@@ -357,3 +359,33 @@ def _ensure_datetime(s):
         return datetime.strptime(s, '%Y-%m-%d')
 
     raise TypeError
+
+
+def create_timeline(year_counter):
+    """Completes the Counter timeline
+
+    :param Counter year_counter: counter dict for each year
+    :return: complete timeline
+    :rtype: list[tuple[int,int]]
+    """
+    if not year_counter:
+        return []
+
+    until_year = datetime.now().year
+    from_year = min(year_counter)
+
+    timeline = [
+        (year, year_counter.get(year, 0))
+        for year in range(from_year, until_year)
+    ]
+
+    return timeline
+
+
+def get_citation_years(graph):
+    """Creates a citation timeline counter
+
+    :param pybel.BELGraph graph: A BEL graph
+    :rtype: list[tuple[int,int]]
+    """
+    return create_timeline(count_citation_years(graph))

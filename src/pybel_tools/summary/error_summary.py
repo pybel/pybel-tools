@@ -7,7 +7,7 @@ from collections import Counter, defaultdict
 from pybel.constants import ANNOTATIONS
 from pybel.parser.parse_exceptions import *
 from .node_summary import get_namespaces, get_names_by_namespace
-from ..utils import check_has_annotation
+from ..utils import check_has_annotation, count_dict_values
 
 __all__ = [
     'count_error_types',
@@ -24,6 +24,7 @@ __all__ = [
     'get_names_including_errors_by_namespace',
     'get_undefined_annotations',
     'get_namespaces_with_incorrect_names',
+    'get_most_common_errors',
 ]
 
 
@@ -216,6 +217,16 @@ def group_errors(graph):
         warning_summary[str(e)].append(ln)
 
     return dict(warning_summary)
+
+
+def get_most_common_errors(graph, number=20):
+    """Gets the most common errors in a graph
+
+    :param pybel.BELGraph graph:
+    :param int number:
+    :rtype: Counter
+    """
+    return count_dict_values(group_errors(graph)).most_common(number)
 
 
 def get_names_including_errors_by_namespace(graph, namespace):

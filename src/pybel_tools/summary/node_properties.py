@@ -28,6 +28,7 @@ __all__ = [
     'count_variants',
     'count_top_centrality',
     'count_top_degrees',
+    'get_modifications_count',
 ]
 
 
@@ -247,3 +248,27 @@ def count_top_centrality(graph, number=30):
     dd = nx.betweenness_centrality(graph)
     dc = Counter(dd)
     return dict(dc.most_common(number))
+
+
+def get_modifications_count(graph):
+    """Gets a modifications count dictionary
+
+    :param pybel.BELGraph graph:
+    :rtype: dict
+    """
+    translocation_count = len(get_translocated(graph))
+    degradation_count = len(get_degradations(graph))
+    molecular_count = len(get_activities(graph))
+
+    modification_count_labels = (
+        'Translocations',
+        'Degradations',
+        'Molecular Activities',
+    )
+    modification_counts = (translocation_count, degradation_count, molecular_count)
+
+    return {
+        label: count
+        for label, count in zip(modification_count_labels, modification_counts)
+        if count
+    }
