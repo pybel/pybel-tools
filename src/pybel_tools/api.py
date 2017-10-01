@@ -15,9 +15,9 @@ from sqlalchemy import func
 from pybel import BELGraph
 from pybel.canonicalize import node_to_bel, calculate_canonical_name
 from pybel.constants import ID
-from pybel.manager.models import Network, Annotation
+from pybel.manager.models import Network, Annotation, Author
 from pybel.struct import left_full_join, union
-from pybel.utils import edge_to_tuple
+from pybel.utils import hash_node
 from .constants import CNAME
 from .mutation.inference import infer_central_dogma
 from .mutation.metadata import (
@@ -28,7 +28,6 @@ from .mutation.metadata import (
 )
 from .summary.edge_summary import (
     count_pathologies,
-    get_tree_annotations,
     get_annotations_containing_keyword
 )
 from .summary.provenance import (
@@ -52,6 +51,7 @@ class DatabaseServiceBase:
         self.manager = manager
 
 
+# TODO delete?
 class QueryService(DatabaseServiceBase):
     def query_namespaces(self, network_id=None, offset_start=0, offset_end=500, name_list=False, keyword=None):
         """Provides a list of namespaces filtered by the given parameters.
@@ -281,14 +281,13 @@ class DatabaseService(QueryService):
         #: dictionary of {int id: BELGraph graph}
         self.networks = {}
 
-        #: dictionary of {tuple node: int id}
-        self.node_nid = {}
-
         #: dictionary of {int id: tuple node}
-        self.nid_node = {}
+        self.hash_to_node_cache = {}
 
-        #: dictionary of {str BEL: int id}
+        #: dictionary of {str BEL: node hash}
         self.bel_id = {}
+
+        #: dictionary of {node hash: BEL}
         self.id_bel = {}
 
         #: The complete graph of all knowledge stored in the cache
@@ -312,6 +311,7 @@ class DatabaseService(QueryService):
         log.info('initialized dictionary service')
 
     def clear(self):
+        """Clear the cache and start over"""
         self.__init__(self.manager)
 
     def _update_indexes(self, graph):
@@ -326,27 +326,24 @@ class DatabaseService(QueryService):
                 log.warning('nodes already converted to ids')
                 return
 
-            if node in self.node_nid:
-                continue
+            node_hash = data[ID]
 
-            node_id = data[ID]
-
-            self.node_nid[node] = node_id
-            self.nid_node[node_id] = node
+            self.hash_to_node_cache[node_hash] = node
 
             bel = node_to_bel(graph, node)
-            self.id_bel[node_id] = bel
-            self.bel_id[bel] = node_id
+            self.id_bel[node_hash] = bel
+            self.bel_id[bel] = node_hash
 
     def _relabel_nodes_to_identifiers_helper(self, graph):
         if 'PYBEL_RELABELED' in graph.graph:
             log.warning('%s has already been relabeled', graph.name)
             return graph
 
-        mapping = {
-            node: self.node_nid[node]
-            for node in graph.nodes_iter()
-        }
+        mapping = {}
+        for node in graph:
+            nh = hash_node(node)
+            self.hash_to_node_cache[nh] = node
+            mapping[node] = nh
 
         nx.relabel.relabel_nodes(graph, mapping, copy=False)
 
@@ -356,7 +353,7 @@ class DatabaseService(QueryService):
 
     def relabel_nodes_to_identifiers(self, graph, copy=True):
         """Relabels all nodes by their identifiers, in place. This function is a thin wrapper around
-        :func:`networkx.relabel.relabel_nodes` with the module level variable :data:`node_nid` used as the mapping.
+        :func:`networkx.relabel.relabel_nodes`
 
         :param pybel.BELGraph graph: A BEL Graph
         :param bool copy: Copy the graph first?
@@ -364,24 +361,23 @@ class DatabaseService(QueryService):
         """
         return self._relabel_nodes_to_identifiers_helper(graph.copy() if copy else graph)
 
-    def _add_network(self, network_id, force_reload=False, eager=False, maintain_universe=True):
+    def _add_network(self, network_id, force_reload=False, eager=False, maintain_universe=True, infer_origin=False):
         """Adds a network to the module-level cache from the underlying database
 
         :param int network_id: The identifier for the graph
         :param bool force_reload: Should the graphs be reloaded even if it has already been cached?
         :param bool eager: Should data be calculated/loaded eagerly?
+        :param bool maintain_universe:
+        :param bool infer_origin: Should the central dogma be inferred for proteins, RNA, and miRNA?
         """
         if network_id in self.networks and not force_reload:
             log.info('tried re-adding graph [%s]', network_id)
             return self.networks[network_id]
 
-        network = self.manager.get_network_by_id(network_id)
-
         try:
-            log.debug('getting bytes from [%s]', network.id)
-            graph = network.as_bel()
+            graph = self.manager.get_graph_by_id(network_id)
         except:
-            log.exception("couldn't load from bytes [%s]", network.id)
+            log.exception("couldn't load from bytes [%s]", network_id)
             return
 
         t = time.time()
@@ -396,11 +392,12 @@ class DatabaseService(QueryService):
         log.debug('parsing authors')
         parse_authors(graph)
 
-        log.debug('inferring central dogma')
-        infer_central_dogma(graph)
-
         log.debug('adding canonical names')
         add_canonical_names(graph)
+
+        if infer_origin:
+            log.debug('inferring central dogma')
+            infer_central_dogma(graph)
 
         log.debug('updating graph node/edge indexes')
         self._update_indexes(graph)
@@ -436,11 +433,13 @@ class DatabaseService(QueryService):
 
         return graph
 
-    def cache_networks(self, force_reload=False, eager=False, maintain_universe=True):
+    def cache_networks(self, force_reload=False, eager=False, maintain_universe=True, infer_origin=False):
         """This function needs to get all networks from the graph cache manager and make a dictionary
 
         :param bool force_reload: Should all graphs be reloaded even if they have already been cached?
         :param bool eager: Should difficult to preload features be calculated?
+        :param bool maintain_universe:
+        :param bool infer_origin: Should the central dogma be inferred for proteins, RNA, and miRNA?
         """
         query = self.manager.session.query(Network).group_by(Network.name)
 
@@ -452,7 +451,8 @@ class DatabaseService(QueryService):
                 network.id,
                 force_reload=force_reload,
                 eager=eager,
-                maintain_universe=maintain_universe
+                maintain_universe=maintain_universe,
+                infer_origin=infer_origin,
             )
 
         if maintain_universe:
@@ -512,7 +512,7 @@ class DatabaseService(QueryService):
 
         :param tuple node: A PyBEL node tuple
         """
-        return self.node_nid[node]
+        return hash
 
     def get_node_hashes(self, node_tuples):
         """Converts a list of BEL nodes to their node identifiers
@@ -532,7 +532,7 @@ class DatabaseService(QueryService):
         :return: A PyBEL node tuple
         :rtype: tuple
         """
-        return self.nid_node.get(node_hash)
+        return self.hash_to_node_cache.get(node_hash)
 
     def get_nodes_by_hashes(self, node_hashes):
         """Gets a list of node tuples from a list of ids
@@ -576,14 +576,36 @@ class DatabaseService(QueryService):
         """
         return list(get_pmid_by_keyword(keyword, pubmed_identifiers=self.universe_pmids))
 
-    def get_authors_containing_keyword(self, keyword):
+    def get_authors_containing_keyword(self, keyword, use_cache=True):
+        """Gets a list with authors that contain a certain keyword
+
+        :param str keyword: Search for authors whose names have this as a substring
+        :param bool use_cache: If true, look up by cache, else look up in database
+        :rtype: list[str]
+        """
+        if use_cache:
+            return self._get_authors_containing_keyword_cached(keyword)
+
+        return self._get_authors_containing_keyword_database(keyword)
+
+    def _get_authors_containing_keyword_cached(self, keyword):
         """Gets a list with authors that contain a certain keyword
 
         :param str keyword: Search for authors whose names have this as a substring
         :rtype: list[str]
         """
-        # TODO switch to doing database lookup
         return get_authors_by_keyword(keyword, authors=self.universe_authors)
+
+    def _get_authors_containing_keyword_database(self, keyword):
+        """Gets a list with authors that contain a certain keyword
+
+        :param str keyword: Search for authors whose names have this as a substring
+        :rtype: list[str]
+        """
+        return [
+            name
+            for name, in self.manager.session.query(Author.name).filter(Author.name.like(keyword)).all()
+        ]
 
     def get_cname_by_node_hash(self, node_hash):
         """Gets the canonical name of a node
@@ -631,24 +653,13 @@ class DatabaseService(QueryService):
         :param int count: The number of most frequently mentioned pathologies to get
         :rtype: dict[str,int]
         """
-        network = self.manager.get_network_by_id(network_id)
-        graph = network.as_bel()
+        graph = self.get_graph_by_id(network_id)
         cm = count_pathologies(graph)
 
         return {
             self.get_cname(node): v
             for node, v in cm.most_common(count)
         }
-
-    @lru_cache(maxsize=32)
-    def get_tree_annotations(self, graph):
-        """Gets tree annotations for the given graph
-
-        :param pybel.BELGraph graph: A BEL Graph
-        :return: Annotations for the given graph
-        :rtype: list[dict]
-        """
-        return get_tree_annotations(graph)
 
     def get_node_overlap(self, network_id):
         """Calculates overlaps to all other networks in the database
@@ -709,6 +720,6 @@ class DatabaseService(QueryService):
         if network_id in self.overlap_cache:
             del self.overlap_cache[network_id]
 
-            for k in self.overlap_cache:
-                if network_id in self.overlap_cache[k]:
-                    del self.overlap_cache[k][network_id]
+        for cached_network_id in self.overlap_cache:
+            if network_id in self.overlap_cache[cached_network_id]:
+                del self.overlap_cache[cached_network_id][network_id]

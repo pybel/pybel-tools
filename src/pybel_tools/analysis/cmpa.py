@@ -26,6 +26,8 @@ __all__ = [
     'workflow',
     'workflow_all',
     'workflow_all_average',
+    'calculate_average_score_by_annotation',
+    'calculate_average_scores_on_subgraphs',
 ]
 
 log = logging.getLogger(__name__)

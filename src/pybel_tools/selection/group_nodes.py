@@ -106,6 +106,4 @@ def get_mapped(graph, namespace, names):
                         graph.node[u][NAME] in names:
             mapped_nodes[u].add(v)
 
-    mapped_nodes.default_factory = None
-
-    return mapped_nodes
+    return dict(mapped_nodes)

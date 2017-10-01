@@ -32,7 +32,7 @@ from ..mutation.expansion import (
     expand_downstream_causal_subgraph,
 )
 from ..mutation.utils import update_node_helper, remove_isolated_nodes
-from ..utils import safe_add_edge, safe_add_edges
+from ..utils import safe_add_edge, safe_add_edges, check_has_annotation
 
 log = logging.getLogger(__name__)
 
@@ -250,8 +250,7 @@ def get_subgraphs_by_annotation(graph, annotation):
     result = defaultdict(BELGraph)
 
     for source, target, key, data in graph.edges_iter(keys=True, data=True):
-
-        if ANNOTATIONS not in data or annotation not in data[ANNOTATIONS]:
+        if not check_has_annotation(data, annotation):
             continue
 
         value = data[ANNOTATIONS][annotation]

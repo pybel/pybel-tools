@@ -2,6 +2,7 @@
 
 import itertools as itt
 import logging
+
 from collections import Counter, defaultdict
 
 from pybel import BELGraph
@@ -39,6 +40,10 @@ __all__ = [
     'enrich_unqualified',
     'expand_internal',
     'expand_internal_causal',
+    'expand_downstream_causal_subgraph',
+    'expand_node_predecessors',
+    'expand_node_successors',
+    'get_downstream_causal_subgraph',
 ]
 
 log = logging.getLogger(__name__)
@@ -175,11 +180,11 @@ def get_subgraph_edges(graph, annotation, value, source_filter=None, target_filt
     if target_filter is None:
         target_filter = keep_node_permissive
 
-    for u, v, k, d in graph.edges_iter(keys=True, data=True):
-        if not check_has_annotation(d, annotation):
+    for u, v, k, data in graph.edges_iter(keys=True, data=True):
+        if not check_has_annotation(data, annotation):
             continue
-        if d[ANNOTATIONS][annotation] == value and source_filter(graph, u) and target_filter(graph, v):
-            yield u, v, k, d
+        if data[ANNOTATIONS][annotation] == value and source_filter(graph, u) and target_filter(graph, v):
+            yield u, v, k, data
 
 
 def get_subgraph_peripheral_nodes(graph, subgraph, node_filters=None, edge_filters=None):
@@ -270,19 +275,6 @@ def expand_periphery(universe, graph, node_filters=None, edge_filters=None, thre
                 safe_add_edge(graph, node, v, k, d)
 
 
-# TODO implement
-def infer_subgraph_expansion(graph, annotation):
-    """Infers the annotations for subgraphs on to edges
-
-    1. Group subgraphs
-    2. Build dictionary of {(u,v,k): {set of inferred subgraph names}}
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param str annotation: The annotation to infer
-    """
-    raise NotImplementedError
-
-
 @pipeline.uni_in_place_mutator
 def enrich_grouping(universe, graph, function, relation):
     """Adds all of the grouped elements. See :func:`enrich_complexes`, :func:`enrich_composites`, and
@@ -342,13 +334,17 @@ def enrich_reactions(universe, graph):
 
 
 @pipeline.uni_in_place_mutator
-def enrich_variants_helper(universe, graph, function):
+def enrich_variants(universe, graph, function=None):
     """Adds the reference nodes for all variants of the given function
 
     :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
     :param pybel.BELGraph graph: The target BEL graph to enrich
-    :param str function: The function by which the subject of each triple is filtered
+    :param str or iter[str] function: The function by which the subject of each triple is filtered. Defaults to
+                                      the set of protein, rna, mirna, and gene.
     """
+    if function is None:
+        function = {PROTEIN, RNA, MIRNA, GENE}
+
     nodes = list(get_nodes_by_function(graph, function))
     for u, v, d in universe.in_edges_iter(nodes, data=True):
         if d[RELATION] != HAS_VARIANT:
@@ -359,29 +355,6 @@ def enrich_variants_helper(universe, graph, function):
 
         if v not in graph.edge[u] or unqualified_edge_code[HAS_VARIANT] not in graph.edge[u][v]:
             graph.add_unqualified_edge(u, v, HAS_VARIANT)
-
-
-@pipeline.uni_in_place_mutator
-def enrich_variants(universe, graph):
-    """Adds the reference nodes for all variants of genes, RNAs, miRNAs, and proteins
-
-    :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
-    :param pybel.BELGraph graph: The target BEL graph to enrich
-
-    Equivalent to:
-
-    >>> from pybel.constants import PROTEIN, RNA, MIRNA, GENE
-    >>> enrich_variants_helper(universe, graph, PROTEIN)
-    >>> enrich_variants_helper(universe, graph, RNA)
-    >>> enrich_variants_helper(universe, graph, MIRNA)
-    >>> enrich_variants_helper(universe, graph, GENE)
-
-    .. seealso:: :func:`enrich_variants_helper`
-    """
-    enrich_variants_helper(universe, graph, PROTEIN)
-    enrich_variants_helper(universe, graph, RNA)
-    enrich_variants_helper(universe, graph, MIRNA)
-    enrich_variants_helper(universe, graph, GENE)
 
 
 @pipeline.uni_in_place_mutator

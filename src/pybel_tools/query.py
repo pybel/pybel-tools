@@ -7,9 +7,17 @@ from pybel.struct import union
 from pybel.utils import list2tuple
 from .pipeline import Pipeline
 from .selection import get_subgraph
-from .selection.induce_subgraph import NONNODE_SEED_TYPES, SEED_TYPE_INDUCTION, SEED_TYPE_ANNOTATION, SEED_TYPE_NEIGHBORS
+from .selection.induce_subgraph import (
+    NONNODE_SEED_TYPES,
+    SEED_TYPE_INDUCTION,
+    SEED_TYPE_ANNOTATION,
+    SEED_TYPE_NEIGHBORS
+)
 
 log = logging.getLogger(__name__)
+
+SEED_TYPE_KEY = 'type'
+SEED_DATA_KEY = 'data'
 
 
 class Query:
@@ -21,20 +29,32 @@ class Query:
         :param list[dict] seed_list:
         :param Pipeline pipeline: Instance of a pipeline
         """
+        self.network_ids = []
+        self.seeds = []
+
         if isinstance(network_ids, int):
-            self.network_ids = [network_ids]
+            self.append_network(network_ids)
         elif isinstance(network_ids, (list, set, tuple)):
-            self.network_ids = [int(network_id) for network_id in network_ids]
+            self.network_ids.extend(int(network_id) for network_id in network_ids)
         else:
             raise TypeError(network_ids)
 
-        self.seeds = seed_list if seed_list is not None else []
+        if seed_list:
+            self.seeds.extend(seed_list)
+
         self.pipeline = pipeline if pipeline is not None else Pipeline()
 
-    def add_seed(self, type, data):
+    def append_network(self, network_id):
+        """Adds a network to this query
+
+        :param int network_id: The database identifier of the network
+        """
+        self.network_ids.append(network_id)
+
+    def add_seed(self, seed_type, data):
         self.seeds.append({
-            'type': type,
-            'data': data
+            SEED_TYPE_KEY: seed_type,
+            SEED_DATA_KEY: data
         })
 
     def add_seed_induction(self, data):
@@ -63,8 +83,7 @@ class Query:
             }
         })
 
-
-    def add_pipeline(self, name, *args, **kwargs):
+    def append_pipeline(self, name, *args, **kwargs):
         """Adds an entry to the pipeline
 
         :param str name: The name of the function
@@ -102,15 +121,15 @@ class Query:
             for seed in self.seeds:
                 subgraph = get_subgraph(
                     query_universe,
-                    seed_method=seed['type'],
-                    seed_data=seed['data']
+                    seed_method=seed[SEED_TYPE_KEY],
+                    seed_data=seed[SEED_DATA_KEY]
                 )
 
                 # TODO streamline this logging... maybe put in get_subgraph function
                 log.debug(
                     'Subgraph coming from %s (seed type) %s (data) contains %d nodes and %d edges',
-                    seed['data'],
-                    seed['type'],
+                    seed[SEED_DATA_KEY],
+                    seed[SEED_TYPE_KEY],
                     subgraph.number_of_nodes(),
                     subgraph.number_of_edges()
                 )
@@ -134,8 +153,8 @@ class Query:
         """
         return [
             {
-                'type': seed['type'],
-                'data': seed['data']
+                SEED_TYPE_KEY: seed[SEED_TYPE_KEY],
+                SEED_DATA_KEY: seed[SEED_DATA_KEY]
             }
             for seed in self.seeds
         ]
@@ -192,12 +211,12 @@ def process_seeding(seeds):
     """Makes sure nodes are tuples and not lists once back in"""
     return [
         {
-            'type': seed['type'],
-            'data': [
+            SEED_TYPE_KEY: seed[SEED_TYPE_KEY],
+            SEED_DATA_KEY: [
                 list2tuple(node)
-                for node in seed['data']
+                for node in seed[SEED_DATA_KEY]
             ]
-            if seed['type'] not in NONNODE_SEED_TYPES else seed['data']
+            if seed[SEED_TYPE_KEY] not in NONNODE_SEED_TYPES else seed[SEED_DATA_KEY]
         }
         for seed in seeds
     ]

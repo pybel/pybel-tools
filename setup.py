@@ -24,15 +24,15 @@ CLASSIFIERS = [
 INSTALL_REQUIRES = [
     'requests',
     'sqlalchemy',
-    'networkx',
-    'pybel',
+    'networkx==1.11',
+    'pybel>=0.9.1',
     'click',
     'pandas',
     'scipy',
     'numpy',
     'artifactory',
     'jinja2',
-    'ols_client',
+    'ols_client==0.0.7',
 ]
 EXTRAS_REQUIRE = {
     'obonet': [

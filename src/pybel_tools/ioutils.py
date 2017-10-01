@@ -27,6 +27,8 @@ __all__ = [
     'convert_paths',
     'convert_directory',
     'to_pybel_web',
+    'get_paths_recursive',
+    'upload_recursive',
 ]
 
 log = logging.getLogger(__name__)

@@ -4,8 +4,11 @@ cache: pip
 language: python
 
 python:
-    - 3.4
     - 3.6
+    - 3.5
+    - 3.4
+    - 2.7
+
 env:
   matrix:
     - TOXENV=py
@@ -16,9 +19,12 @@ matrix:
           env: TOXENV=docs
         - python: 3.6
           env: TOXENV=manifest
+        - python: 3.6
+          env: TOXENV=rst-lint
+    allow_failures:
+        - python: 2.7
 
 before_install:
-    - pip install --upgrade pip
     - pip install codecov
 
 install:

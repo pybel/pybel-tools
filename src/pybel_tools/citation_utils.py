@@ -25,6 +25,8 @@ re2 = re.compile('^[12][0-9]{3} [a-zA-Z]{3}$')
 re3 = re.compile('^[12][0-9]{3}$')
 re4 = re.compile('^[12][0-9]{3} [a-zA-Z]{3}-[a-zA-Z]{3}$')
 
+# TODO re5 = re.compile('^[12][0-9]{3} Fall|Spring|Winter|Summer$')
+
 
 def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=False, manager=None):
     """Gets the citation information for the given list of PubMed identifiers using the NCBI's eutils service
@@ -41,7 +43,7 @@ def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=Fa
     :rtype: dict[str,dict]
     """
     pmids = {str(pmid).strip() for pmid in pmids}
-    log.info('querying %d PubMed identifiers', len(pmids))
+    log.info('Getting %d PubMed identifiers', len(pmids))
 
     manager = Manager.ensure(manager)
 
@@ -59,12 +61,13 @@ def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=Fa
 
     manager.session.commit()
 
-    log.info('Used %d citations from cache', len(pmids) - len(unresolved_pmids))
+    log.debug('Found %d PubMed identifiers in database', len(pmids) - len(unresolved_pmids))
 
     if not unresolved_pmids:
         return (result, set()) if return_errors else result
 
-    log.info('Looking up %d citations in PubMed', len(unresolved_pmids))
+    total_unresolved_count = len(unresolved_pmids)
+    log.debug('Querying PubMed for %d identifiers', total_unresolved_count)
 
     errors = set()
     t = time.time()
@@ -98,8 +101,8 @@ def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=Fa
             citation.volume = result[pmid]['volume']
             citation.issue = result[pmid]['issue']
             citation.pages = result[pmid]['pages']
-            citation.first = result[pmid]['first']
-            citation.last = result[pmid]['last']
+            citation.first = manager.get_or_create_author(result[pmid]['first'])
+            citation.last = manager.get_or_create_author(result[pmid]['last'])
 
             if 'authors' in p:
                 result[pmid][CITATION_AUTHORS] = [author['name'] for author in p['authors']]
@@ -124,7 +127,7 @@ def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=Fa
             if CITATION_DATE in result[pmid]:
                 citation.date = datetime.strptime(result[pmid][CITATION_DATE], '%Y-%m-%d')
 
-        manager.session.commit()  # commit in groups
+            manager.session.commit()  # commit in groups
 
         # Don't want to hit that rate limit
         time.sleep(sleep_time)

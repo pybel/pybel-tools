@@ -33,16 +33,14 @@ class QueryTest(ExampleNetworkMixin, ManagerMixin):
         self.assertEqual(8, test_network.number_of_edges())  # 3 already there + 2*2 proteins + 1 (rna)
 
         network = self.manager.insert_graph(test_network, store_parts=False)
-        network_id = network.id
 
         pipeline = Pipeline()
         pipeline.append(collapse_by_central_dogma_to_genes)
 
         query = Query(
-            network_ids=network_id,
+            network_ids=[network.id],
             pipeline=pipeline
         )
-
         result_graph = query.run(self.manager)
 
         self.assertEqual(4, result_graph.number_of_nodes())  # same number of nodes than there were
@@ -71,21 +69,16 @@ class QueryTest(ExampleNetworkMixin, ManagerMixin):
         self.assertEqual(2, result_graph.number_of_edges())  # three nodes with two relationships
 
     def test_query_multiple_networks(self):
-        test_network_1 = self.network1  # Defined in test.constants.TestNetworks
-        test_network_2 = self.network2  # Defined in test.constants.TestNetworks
+        test_network_1 = self.manager.insert_graph(self.network1)
+        test_network_2 = self.manager.insert_graph(self.network2)
 
-        test_network_1 = self.manager.insert_graph(test_network_1, store_parts=False)
-        test_network_2 = self.manager.insert_graph(test_network_2, store_parts=False)
-        network_1_id = test_network_1.id
-        network_2_id = test_network_2.id
-
-        query = Query(network_ids=[network_1_id, network_2_id])
+        query = Query(network_ids=[test_network_1.id, test_network_2.id])
         query.add_seed_neighbors([
             (RNA, HGNC, 'd'),
             (PROTEIN, HGNC, 'e')
         ])
-        query.add_pipeline(get_subgraph_by_annotation_value, 'Annotation', 'foo')
-        query.add_pipeline(collapse_by_central_dogma_to_genes)
+        query.append_pipeline(get_subgraph_by_annotation_value, 'Annotation', 'foo')
+        query.append_pipeline(collapse_by_central_dogma_to_genes)
 
         result_graph = query.run(self.manager)
 
@@ -94,15 +87,11 @@ class QueryTest(ExampleNetworkMixin, ManagerMixin):
         self.assertEqual(2, result_graph.number_of_edges())
 
     def test_query_multiple_networks_with_api(self):
-        test_network_1 = self.network1  # Defined in test.constants.TestNetworks
-        test_network_2 = self.network2  # Defined in test.constants.TestNetworks
+        test_network_1 = self.manager.insert_graph(self.network1)
+        test_network_2 = self.manager.insert_graph(self.network2)
 
-        test_network_1 = self.manager.insert_graph(test_network_1, store_parts=False)
-        test_network_2 = self.manager.insert_graph(test_network_2, store_parts=False)
-        network_1_id = test_network_1.id
-        network_2_id = test_network_2.id
-
-        api = DatabaseService(self.manager, autocache=True)
+        api = DatabaseService(self.manager)
+        api.cache_networks(infer_origin=True)
 
         pipeline = Pipeline()
         pipeline.append(get_subgraph_by_annotation_value, 'Annotation', 'foo')
@@ -115,13 +104,12 @@ class QueryTest(ExampleNetworkMixin, ManagerMixin):
         # node_2_id = api.get_node_id(node_2)
 
         query = Query(
-            network_ids=[network_1_id, network_2_id],
-            seed_list=[{'type': 'neighbors', 'data': [node_1, node_2]}],
+            network_ids=[test_network_1.id, test_network_2.id],
             pipeline=pipeline
         )
+        query.add_seed_neighbors([node_1, node_2])
 
         result_graph = query.run(api)
-
         result_graph = api.relabel_nodes_to_identifiers(result_graph)
 
         self.assertEqual(4, result_graph.number_of_nodes())

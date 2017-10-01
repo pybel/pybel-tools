@@ -6,16 +6,17 @@ import datetime
 import itertools as itt
 import json
 import logging
-import os
 import time
-from collections import Counter, defaultdict
-from itertools import zip_longest
-from operator import itemgetter
 
 import jinja2
 import networkx as nx
+import os
 import pandas as pd
+from collections import Counter, defaultdict
+from operator import itemgetter
 from pkg_resources import get_distribution
+from six.moves import zip_longest
+
 from pybel.constants import (
     ANNOTATIONS,
     CITATION_TYPE,
@@ -33,6 +34,11 @@ CENTRALITY_SAMPLES = 200
 
 
 def multidict_list(it):
+    """Collects a list of pairs with a group by into a list
+
+    :param iter[tuple[X,Y]] it: An iterable of pairs where the first element is hashable
+    :rtype: dict[X,list[Y]]
+    """
     result = defaultdict(list)
     for k, v in it:
         result[k].append(v)
@@ -40,6 +46,11 @@ def multidict_list(it):
 
 
 def multidict_set(it):
+    """Collects a list of pairs with a group by into a set
+
+    :param iter[tuple[X,Y]] it: An iterable of pairs where the first and second elements are hashable
+    :rtype: dict[X,set[Y]]
+    """
     result = defaultdict(set)
     for k, v in it:
         result[k].add(v)
@@ -107,17 +118,25 @@ def count_dict_values(dict_of_counters):
     })
 
 
-def _check_has_data(d, sd, key):
-    return sd in d and key in d[sd]
+def _check_has_data(data, super_key, sub_key):
+    """
+
+    :param dict data:
+    :param str super_key:
+    :param str sub_key:
+    :return: None if the conditions don't pass, or the value from the subdict if they do
+    """
+    if super_key not in data:
+        return
+
+    return data[super_key].get(sub_key)
 
 
 def check_has_annotation(data, key):
     """Checks that ANNOTATION is included in the data dictionary and that the key is also present
 
-    :param data: The data dictionary from a BELGraph's edge
-    :type data: dict
-    :param key: An annotation key
-    :param key: str
+    :param dict data: The data dictionary from a BELGraph's edge
+    :param str key: An annotation key
     :return: If the annotation key is present in the current data dictionary
     :rtype: bool
 
@@ -480,6 +499,10 @@ def grouper(n, iterable, fillvalue=None):
 
 
 def get_iso_8601_date():
+    """Gets the current ISO 8601 date as a string
+
+    :rtype: str
+    """
     return time.strftime('%Y%m%d')
 
 

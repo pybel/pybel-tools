@@ -187,9 +187,9 @@ def count_annotation_values(graph, annotation):
     :rtype: collections.Counter
     """
     return Counter(
-        d[ANNOTATIONS][annotation]
-        for _, _, d in graph.edges_iter(data=True)
-        if check_has_annotation(d, annotation)
+        data[ANNOTATIONS][annotation]
+        for _, _, data in graph.edges_iter(data=True)
+        if check_has_annotation(data, annotation)
     )
 
 
@@ -222,9 +222,9 @@ def count_annotation_values_filtered(graph, annotation, source_filter=None, targ
     target_filter = keep_node_permissive if target_filter is None else target_filter
 
     return Counter(
-        d[ANNOTATIONS][annotation]
-        for u, v, d in graph.edges_iter(data=True)
-        if check_has_annotation(d, annotation) and source_filter(graph, u) and target_filter(graph, v)
+        data[ANNOTATIONS][annotation]
+        for u, v, data in graph.edges_iter(data=True)
+        if check_has_annotation(data, annotation) and source_filter(graph, u) and target_filter(graph, v)
     )
 
 

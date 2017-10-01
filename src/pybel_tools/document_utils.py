@@ -26,6 +26,9 @@ __all__ = [
     'get_entrez_gene_data',
     'make_pubmed_gene_group',
     'write_boilerplate',
+    'lint_file',
+    'lint_directory',
+
 ]
 
 log = logging.getLogger(__name__)
@@ -40,7 +43,8 @@ ANNOTATION_PATTERN_FMT = 'DEFINE ANNOTATION {} AS PATTERN "{}"'
 PUBMED_GENE_QUERY_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gene&id={}'
 
 
-def split_document(lines):
+# TODO replace with pybel.io.line_utils.split_file_to_annotations_and_definitions
+def _split_document(lines):
     """Splits the lines over a document into the documents, definitions, and statements section
 
     :param iter[str] lines: A file or file-like that is an iterable over the lines of a document
@@ -77,7 +81,7 @@ def merge(output_path, input_paths, merged_name=None, merged_contact=None, merge
 
     for input_path in input_paths:
         with open(os.path.expanduser(input_path)) as file:
-            a, b, c = split_document(line.strip() for line in file)
+            a, b, c = _split_document(line.strip() for line in file)
             metadata.append(a)
             defs.append(set(b))
             statements.append(c)
@@ -216,7 +220,7 @@ def make_pubmed_abstract_group(pmids):
         yield '\nUNSET Evidence\nUNSET Citation'
 
 
-def sanitize(s):
+def _sanitize(s):
     if s is None:
         return None
     return s.strip().replace('\n', '')
@@ -229,11 +233,11 @@ def get_entrez_gene_data(entrez_ids):
     tree = ElementTree.fromstring(response.content)
 
     return {
-        x.attrib['uid']: {
-            'summary': sanitize(x.find('Summary').text),
-            'description': x.find('Description').text
+        element.attrib['uid']: {
+            'summary': _sanitize(element.find('Summary').text),
+            'description': element.find('Description').text
         }
-        for x in tree.findall('./DocumentSummarySet/DocumentSummary')
+        for element in tree.findall('./DocumentSummarySet/DocumentSummary')
     }
 
 
@@ -311,7 +315,7 @@ def write_boilerplate(document_name, contact, description, authors, version=None
             print(line, file=file)
 
 
-def lint_helper(in_file, out_file=None):
+def lint_file(in_file, out_file=None):
     """Helps remove extraneous whitespace from the lines of a file
 
     :param file in_file: A readable file or file-like
@@ -333,4 +337,4 @@ def lint_directory(source, target):
 
         log.info('linting: %s', path)
         with open(os.path.join(source, path)) as i, open(os.path.join(target, path), 'w') as o:
-            lint_helper(i, o)
+            lint_file(i, o)

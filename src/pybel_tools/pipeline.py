@@ -49,6 +49,7 @@ from __future__ import print_function
 import inspect
 import json
 import logging
+
 from functools import wraps
 
 from pybel.struct.operations import union
@@ -59,6 +60,7 @@ __all__ = [
     'uni_in_place_mutator',
     'uni_mutator',
     'mutator',
+    'splitter'
 ]
 
 log = logging.getLogger(__name__)
@@ -75,7 +77,7 @@ no_arguments_map = {}
 splitter_map = {}
 
 
-def register(universe, in_place, **kwargs):
+def _register(universe, in_place, **kwargs):
     """Builds a decorator function to tag mutator functions
 
     :param bool universe: Does the first positional argument of this function correspond to a universe graph?
@@ -118,19 +120,23 @@ def register(universe, in_place, **kwargs):
 
 
 #: A function decorator to inform the Pipeline how to handle a function
-in_place_mutator = register(universe=False, in_place=True)
+in_place_mutator = _register(universe=False, in_place=True)
 #: A function decorator to inform the Pipeline how to handle a function
-uni_in_place_mutator = register(universe=True, in_place=True)
+uni_in_place_mutator = _register(universe=True, in_place=True)
 #: A function decorator to inform the Pipeline how to handle a function
-uni_mutator = register(universe=True, in_place=False)
+uni_mutator = _register(universe=True, in_place=False)
 #: A function decorator to inform the Pipeline how to handle a function
-mutator = register(universe=False, in_place=False)
+mutator = _register(universe=False, in_place=False)
 
 SET_UNIVERSE = 'UNIVERSE'
 
 
 def splitter(f):
-    """Decorates a function that takes in a graph and returns a dictionary of keys to graphs"""
+    """A function decorator that signifies a function that takes in a graph and returns a dictionary of keys to graphs
+
+    :param types.FunctionType f: A function
+    :rtype: types.FunctionType
+    """
     splitter_map[f.__name__] = f
     return f
 

@@ -16,20 +16,25 @@ A general use for an edge filter function is to use the built-in :func:`filter` 
 from pybel.constants import *
 from pybel.struct.filters import count_passed_edge_filter
 from pybel.utils import subdict_matches
-from ..constants import PUBMED
 from ..utils import check_has_annotation
 
 __all__ = [
+    'summarize_edge_filter',
     'edge_is_causal',
     'edge_has_author_annotation',
+    'edge_has_pubmed_citation',
     'build_inverse_filter',
     'build_annotation_value_filter',
     'build_edge_data_filter',
+    'build_annotation_dict_all_filter',
+    'build_annotation_dict_any_filter',
+    'build_relation_filter',
     'build_pmid_inclusion_filter',
     'build_pmid_exclusion_filter',
     'build_author_inclusion_filter',
-    'build_relation_filter',
-    'summarize_edge_filter',
+    'edge_has_activity',
+    'edge_has_translocation',
+    'edge_has_degradation',
     'edge_has_pathology_causal',
 ]
 
@@ -76,18 +81,18 @@ def edge_has_author_annotation(graph, u, v, k, d):
     return CITATION in graph.edge[u][v][k] and CITATION_AUTHORS in graph.edge[u][v][k][CITATION]
 
 
-def edge_has_pubmed_citation(graph, u, v, k, d):
+def edge_has_pubmed_citation(graph, u, v, k, data):
     """Passes for edges that have PubMed citations
     
     :param pybel.BELGraph graph: A BEL Graph
     :param tuple u: A BEL node
     :param tuple v: A BEL node
     :param int k: The edge key between the given nodes
-    :param dict d: The edge data dictionary
+    :param dict data: The edge data dictionary
     :return: Is the edge's citation from :data:`PUBMED`?
     :rtype: bool
     """
-    return CITATION in graph.edge[u][v][k] and PUBMED == graph.edge[u][v][k][CITATION][CITATION_TYPE]
+    return CITATION in graph.edge[u][v][k] and CITATION_TYPE_PUBMED == graph.edge[u][v][k][CITATION][CITATION_TYPE]
 
 
 def build_inverse_filter(edge_filter):
@@ -115,18 +120,18 @@ def build_annotation_value_filter(annotation, value):
     """
 
     if isinstance(value, str):
-        def annotation_value_filter(graph, u, v, k, d):
+        def annotation_value_filter(graph, u, v, k, data):
             """Only passes for edges that contain the given annotation and have the given value
     
             :param pybel.BELGraph graph: A BEL Graph
             :param tuple u: A BEL node
             :param tuple v: A BEL node
             :param int k: The edge key between the given nodes
-            :param dict d: The edge data dictionary
+            :param dict data: The edge data dictionary
             :return: If the edge has the contained annotation with the contained value
             :rtype: bool
             """
-            if not check_has_annotation(graph.edge[u][v][k], annotation):
+            if not check_has_annotation(data, annotation):
                 return False
 
             return graph.edge[u][v][k][ANNOTATIONS][annotation] == value
@@ -191,10 +196,10 @@ def build_annotation_dict_any_filter(annotations):
     :param dict annotations: The annotation query dict to match
     """
 
-    def annotation_dict_filter(graph, u, v, k, d):
+    def annotation_dict_filter(graph, u, v, k, data):
         """A filter that matches edges with the given dictionary as a subdictionary"""
         return any(
-            ANNOTATIONS in d and key in d[ANNOTATIONS] and d[ANNOTATIONS][key] == value
+            check_has_annotation(data, key) and data[ANNOTATIONS][key] == value
             for key, values in annotations.items()
             for value in values
         )

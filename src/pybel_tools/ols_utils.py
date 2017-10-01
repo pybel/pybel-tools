@@ -9,9 +9,9 @@ from .resources import get_today_arty_namespace, deploy_namespace
 class OlsNamespaceOntology:
     """Wraps the functions needed to use the OLS to generate and deploy BEL namespaces"""
 
-    def __init__(self, ontology_name, namespace_domain, functions=None, ols_base=None, auth=None):
+    def __init__(self, ontology, namespace_domain, functions=None, ols_base=None, auth=None):
         """
-        :param str ontology_name: The name of the ontology. Ex: ``uberon``
+        :param str ontology: The name of the ontology. Ex: ``uberon``, ``go``, etc.
         :param str namespace_domain: One of: :data:`pybel.constants.NAMESPACE_DOMAIN_BIOPROCESS`,
                             :data:`pybel.constants.NAMESPACE_DOMAIN_CHEMICAL`,
                             :data:`pybel.constants.NAMESPACE_DOMAIN_GENE`, or
@@ -19,11 +19,11 @@ class OlsNamespaceOntology:
         :param str functions: The encoding for the elements in this namespace. See
                               :data:`pybel.constants.belns_encodings`
         :param str ols_base: An optional, custom OLS base url
-        :param tuple[str] auth: A pair of (str username, str password) to give to the auth keyword of the constructor of
-                            :class:`artifactory.ArtifactoryPath`. Defaults to the result of
-                            :func:`pybel_tools.resources.get_arty_auth`.
+        :param tuple[str,str] auth: A pair of (str username, str password) to give to the auth keyword of the
+                                    constructor of :class:`artifactory.ArtifactoryPath`. Defaults to the result of
+                                    :func:`pybel_tools.resources.get_arty_auth`.
         """
-        self.ontology_name = ontology_name
+        self.ontology = ontology
         self.namespace_domain = namespace_domain
         self.functions = functions
         self.ols_client = OlsClient(ols_base=ols_base)
@@ -34,8 +34,8 @@ class OlsNamespaceOntology:
 
         :param file file: A write-enable file or file-like
         """
-        metadata = self.ols_client.get_metadata(self.ontology_name)
-        values = self.ols_client.get_labels(self.ontology_name)
+        metadata = self.ols_client.get_metadata(self.ontology)
+        values = self.ols_client.iter_labels(self.ontology)
 
         config = metadata['config']
 
@@ -62,9 +62,9 @@ class OlsNamespaceOntology:
         :return: The path, if it was deployed successfully, else none.
         :rtype: str
         """
-        file_name = get_today_arty_namespace(self.ontology_name)
+        file_name = get_today_arty_namespace(self.ontology)
 
         with open(file_name, 'w') as file:
             self.write(file)
 
-        return deploy_namespace(file_name, self.ontology_name, hash_check=hash_check, auth=self.auth)
+        return deploy_namespace(file_name, self.ontology, hash_check=hash_check, auth=self.auth)
