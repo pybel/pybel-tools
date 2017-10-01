@@ -6,16 +6,17 @@ import datetime
 import itertools as itt
 import json
 import logging
-import os
 import time
-from collections import Counter, defaultdict
 from itertools import zip_longest
-from operator import itemgetter
 
 import jinja2
 import networkx as nx
+import os
 import pandas as pd
+from collections import Counter, defaultdict
+from operator import itemgetter
 from pkg_resources import get_distribution
+
 from pybel.constants import (
     ANNOTATIONS,
     CITATION_TYPE,
@@ -33,6 +34,11 @@ CENTRALITY_SAMPLES = 200
 
 
 def multidict_list(it):
+    """Collects a list of pairs with a group by into a list
+
+    :param iter[tuple[X,Y]] it: An iterable of pairs where the first element is hashable
+    :rtype: dict[X,list[Y]]
+    """
     result = defaultdict(list)
     for k, v in it:
         result[k].append(v)
@@ -40,6 +46,11 @@ def multidict_list(it):
 
 
 def multidict_set(it):
+    """Collects a list of pairs with a group by into a set
+
+    :param iter[tuple[X,Y]] it: An iterable of pairs where the first and second elements are hashable
+    :rtype: dict[X,set[Y]]
+    """
     result = defaultdict(set)
     for k, v in it:
         result[k].add(v)
@@ -488,6 +499,10 @@ def grouper(n, iterable, fillvalue=None):
 
 
 def get_iso_8601_date():
+    """Gets the current ISO 8601 date as a string
+
+    :rtype: str
+    """
     return time.strftime('%Y%m%d')
 
 

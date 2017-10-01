@@ -19,16 +19,22 @@ from pybel.utils import subdict_matches
 from ..utils import check_has_annotation
 
 __all__ = [
+    'summarize_edge_filter',
     'edge_is_causal',
     'edge_has_author_annotation',
+    'edge_has_pubmed_citation',
     'build_inverse_filter',
     'build_annotation_value_filter',
     'build_edge_data_filter',
+    'build_annotation_dict_all_filter',
+    'build_annotation_dict_any_filter',
+    'build_relation_filter',
     'build_pmid_inclusion_filter',
     'build_pmid_exclusion_filter',
     'build_author_inclusion_filter',
-    'build_relation_filter',
-    'summarize_edge_filter',
+    'edge_has_activity',
+    'edge_has_translocation',
+    'edge_has_degradation'
     'edge_has_pathology_causal',
 ]
 

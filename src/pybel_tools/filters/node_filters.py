@@ -20,16 +20,32 @@ from pybel.struct.filters.node_filters import filter_nodes, count_passed_node_fi
 from ..constants import CNAME
 
 __all__ = [
+    'summarize_node_filter',
     'node_inclusion_filter_builder',
     'node_exclusion_filter_builder',
     'function_inclusion_filter_builder',
     'function_exclusion_filter_builder',
     'function_namespace_inclusion_builder',
     'namespace_inclusion_builder',
+    'data_contains_key_builder',
+    'data_missing_key_builder',
+    'node_has_cname',
+    'node_missing_cname',
+    'node_has_label',
+    'node_missing_label',
     'include_pathology_filter',
     'exclude_pathology_filter',
     'node_has_molecular_activity',
-    'summarize_node_filter',
+    'node_is_degraded',
+    'node_is_translocated',
+    'node_is_upstream_leaf',
+    'node_has_pmod',
+    'node_has_gmod',
+    'node_has_hgvs',
+    'build_node_data_search',
+    'build_node_key_search',
+    'build_node_name_search',
+    'build_node_cname_search',
     'iter_undefined_families',
 ]
 
@@ -181,6 +197,12 @@ def function_namespace_inclusion_builder(function, namespace):
     """
     if isinstance(namespace, str):
         def function_namespace_filter(graph, node):
+            """Passes only for nodes that have the enclosed function and enclosed namespace
+
+            :param pybel.BELGraph graph: A BEL Graph
+            :param tuple node: A BEL node
+            :rtype: bool
+            """
             if function != graph.node[node][FUNCTION]:
                 return False
             return NAMESPACE in graph.node[node] and graph.node[node][NAMESPACE] == namespace
@@ -191,6 +213,12 @@ def function_namespace_inclusion_builder(function, namespace):
         namespaces = set(namespace)
 
         def function_namespaces_filter(graph, node):
+            """Passes only for nodes that have the enclosed function and namespace in the enclose set
+
+            :param pybel.BELGraph graph: A BEL Graph
+            :param tuple node: A BEL node
+            :rtype: bool
+            """
             if function != graph.node[node][FUNCTION]:
                 return False
             return NAMESPACE in graph.node[node] and graph.node[node][NAMESPACE] in namespaces
@@ -210,6 +238,12 @@ def namespace_inclusion_builder(namespace):
     if isinstance(namespace, str):
 
         def namespace_filter(graph, node):
+            """Passes only for a node that has the enclosed namespace
+
+            :param pybel.BELGraph graph: A BEL Graph
+            :param tuple node: A BEL node
+            :rtype: bool
+            """
             return NAMESPACE in graph.node[node] and graph.node[node][NAMESPACE] == namespace
 
         return namespace_filter
@@ -217,6 +251,12 @@ def namespace_inclusion_builder(namespace):
         namespaces = set(namespace)
 
         def namespaces_filter(graph, node):
+            """Passes only for a node that has a namespace in the enclosed set
+
+            :param pybel.BELGraph graph: A BEL Graph
+            :param tuple node: A BEL node
+            :rtype: bool
+            """
             return NAMESPACE in graph.node[node] and graph.node[node][NAMESPACE] in namespaces
 
         return namespaces_filter
@@ -287,7 +327,7 @@ include_pathology_filter = function_inclusion_filter_builder(PATHOLOGY)
 exclude_pathology_filter = function_exclusion_filter_builder(PATHOLOGY)
 
 
-def node_has_modifier(graph, node, modifier):
+def _node_has_modifier(graph, node, modifier):
     """Returns true if over any of a nodes edges, it has a given modifier - :data:`pybel.constants.ACTIVITY`,
      :data:`pybel.constants.DEGRADATION`, or :data:`pybel.constants.TRANSLOCATION`.
 
@@ -317,7 +357,7 @@ def node_has_molecular_activity(graph, node):
     :return: If the node has a known molecular activity
     :rtype: bool
     """
-    return node_has_modifier(graph, node, ACTIVITY)
+    return _node_has_modifier(graph, node, ACTIVITY)
 
 
 def node_is_degraded(graph, node):
@@ -328,7 +368,7 @@ def node_is_degraded(graph, node):
     :return: If the node has a known degradation
     :rtype: bool
     """
-    return node_has_modifier(graph, node, DEGRADATION)
+    return _node_has_modifier(graph, node, DEGRADATION)
 
 
 def node_is_translocated(graph, node):
@@ -339,7 +379,7 @@ def node_is_translocated(graph, node):
     :return: If the node has a known translocation
     :rtype: bool
     """
-    return node_has_modifier(graph, node, TRANSLOCATION)
+    return _node_has_modifier(graph, node, TRANSLOCATION)
 
 
 def node_is_upstream_leaf(graph, node):

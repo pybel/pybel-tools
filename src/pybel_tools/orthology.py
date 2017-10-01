@@ -14,6 +14,14 @@ from . import pipeline
 from .filters.edge_filters import build_relation_filter
 from .utils import safe_add_edge
 
+__all__ = [
+    'download_orthologies_from_hgnc',
+    'integrate_orthologies_from_hgnc',
+    'integrate_orthologies_from_rgd',
+    'ortholog_filter',
+    'collapse_orthologies',
+]
+
 HGNC = 'HGNC'
 MGI = 'MGI'
 RGD = 'RGD'
@@ -54,7 +62,7 @@ def download_orthologies_from_hgnc(path):
             print(line, file=file)
 
 
-def structure_orthologies_from_hgnc(lines=None):
+def _structure_orthologies_from_hgnc(lines=None):
     """Structures the orthology data to two lists of pairs of (HGNC, MGI) and (HGNC, RGD) identifiers
 
     :param lines: The iterable over the downloaded orthologies from HGNC. If None, downloads from HGNC
@@ -82,7 +90,7 @@ def structure_orthologies_from_hgnc(lines=None):
     return mgi_orthologies, rgd_orthologies
 
 
-def structure_orthologies_from_rgd(path=None):
+def _structure_orthologies_from_rgd(path=None):
     df = pd.read_csv(RGD_ORTHOLOGY if path is None else path, skiprows=52, sep='\t')
 
     mgi_orthologies = []
@@ -124,16 +132,6 @@ def add_orthology_statements(graph, orthologies, namespace):
 
 
 @pipeline.in_place_mutator
-def add_mgi_orthology_statements(graph, mgi_orthologies):
-    add_orthology_statements(graph, mgi_orthologies, MGI)
-
-
-@pipeline.in_place_mutator
-def add_rgd_orthology_statements(graph, rgd_orthologies):
-    add_orthology_statements(graph, rgd_orthologies, RGD)
-
-
-@pipeline.in_place_mutator
 def integrate_orthologies_from_hgnc(graph, lines=None):
     """Adds orthology statements to graph using HGNC symbols, MGI IDs, and RGD IDs.
 
@@ -142,9 +140,9 @@ def integrate_orthologies_from_hgnc(graph, lines=None):
     :param pybel.BELGraph graph: A BEL Graph
     :param list[str] lines:
     """
-    mgio, rgdo = structure_orthologies_from_hgnc(lines=lines)
-    add_mgi_orthology_statements(graph, mgio)
-    add_rgd_orthology_statements(graph, rgdo)
+    mgi_orthologies, rgd_orthologies = _structure_orthologies_from_hgnc(lines=lines)
+    add_orthology_statements(graph, mgi_orthologies, MGI)
+    add_orthology_statements(graph, rgd_orthologies, RGD)
 
 
 @pipeline.in_place_mutator
@@ -157,11 +155,12 @@ def integrate_orthologies_from_rgd(graph, path=None):
     :param path: optional path to local RGD_ORTHOLOGS.txt.
                  Defaults to downloading directly from RGD FTP server with pandas
     """
-    mgio, rgdo = structure_orthologies_from_rgd(path=path)
-    add_mgi_orthology_statements(graph, mgio)
-    add_rgd_orthology_statements(graph, rgdo)
+    mgi_orthologies, rgd_orthologies = _structure_orthologies_from_rgd(path=path)
+    add_orthology_statements(graph, mgi_orthologies, MGI)
+    add_orthology_statements(graph, rgd_orthologies, RGD)
 
 
+#: Filters to keep only edges representing orthologies
 ortholog_filter = build_relation_filter(ORTHOLOGOUS)
 
 
