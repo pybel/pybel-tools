@@ -84,7 +84,7 @@ __all__ = (
     visualization,
 )
 
-__version__ = '0.4.1'
+__version__ = '0.4.2-dev'
 
 __title__ = 'pybel_tools'
 __description__ = 'Tools for using BEL documents in python'
