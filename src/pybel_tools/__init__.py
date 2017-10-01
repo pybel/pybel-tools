@@ -67,7 +67,6 @@ from . import ioutils
 from . import mutation
 from . import orthology
 from . import query
-from . import recuration
 from . import selection
 from . import serialization
 from . import summary
@@ -88,7 +87,6 @@ __all__ = (
     mutation,
     orthology,
     query,
-    recuration,
     selection,
     serialization,
     summary,
