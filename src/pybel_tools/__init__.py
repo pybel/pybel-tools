@@ -42,16 +42,6 @@ Caveats
 PyBEL Tools contains many dependencies, including the scientific Python Stack (numpy, scipy, etc.). This makes 
 installation difficult for Windows users, for whom Python cannot easily build C extensions. We recommend using an 
 `Anaconda <https://www.continuum.io/downloads>`_ distribution of Python, which includes these precompiled.
-
-Adding New Web Services
------------------------
-These documents are for developers who want to extend PyBEL Web.
-
-Admin Only
-~~~~~~~~~~
-For making web pages that can only be seen by certain user types, see: 
-`roles required <https://pythonhosted.org/Flask-Security/api.html#flask_security.decorators.roles_required>`_ 
-documentation on Flask-Security.
 """
 
 from . import analysis
