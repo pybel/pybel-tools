@@ -281,8 +281,11 @@ class DatabaseService(QueryService):
         #: dictionary of {int id: BELGraph graph}
         self.networks = {}
 
-        #: dictionary of {int id: tuple node}
+        #: dictionary of {node hash: tuple node}
         self.hash_to_node_cache = {}
+
+        #: dictionary of {node hash: tuple node}
+        self.node_cache_to_hash = {}
 
         #: dictionary of {str BEL: node hash}
         self.bel_id = {}
@@ -329,6 +332,7 @@ class DatabaseService(QueryService):
             node_hash = data[ID]
 
             self.hash_to_node_cache[node_hash] = node
+            self.node_cache_to_hash[node] = node_hash
 
             bel = node_to_bel(graph, node)
             self.id_bel[node_hash] = bel
@@ -512,7 +516,7 @@ class DatabaseService(QueryService):
 
         :param tuple node: A PyBEL node tuple
         """
-        return hash
+        return self.node_cache_to_hash[node]
 
     def get_node_hashes(self, node_tuples):
         """Converts a list of BEL nodes to their node identifiers
