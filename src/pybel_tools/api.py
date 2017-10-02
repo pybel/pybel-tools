@@ -8,6 +8,7 @@ import logging
 import time
 
 import networkx as nx
+import warnings
 from collections import Counter, defaultdict
 from functools import lru_cache
 from sqlalchemy import func
@@ -284,9 +285,6 @@ class DatabaseService(QueryService):
         #: dictionary of {node hash: tuple node}
         self.hash_to_node_cache = {}
 
-        #: dictionary of {node hash: tuple node}
-        self.node_cache_to_hash = {}
-
         #: dictionary of {str BEL: node hash}
         self.bel_id = {}
 
@@ -330,9 +328,7 @@ class DatabaseService(QueryService):
                 return
 
             node_hash = data[ID]
-
             self.hash_to_node_cache[node_hash] = node
-            self.node_cache_to_hash[node] = node_hash
 
             bel = node_to_bel(graph, node)
             self.id_bel[node_hash] = bel
@@ -516,7 +512,8 @@ class DatabaseService(QueryService):
 
         :param tuple node: A PyBEL node tuple
         """
-        return self.node_cache_to_hash[node]
+        warnings.warn('Deprecated usage - user hash_node directly')
+        return hash_node(node)
 
     def get_node_hashes(self, node_tuples):
         """Converts a list of BEL nodes to their node identifiers
