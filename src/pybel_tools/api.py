@@ -513,7 +513,8 @@ class DatabaseService(QueryService):
         :param tuple node: A PyBEL node tuple
         """
         warnings.warn('Deprecated usage - user hash_node directly')
-        return hash_node(node)
+        hs = hash_node(node)
+        return hs
 
     def get_node_hashes(self, node_tuples):
         """Converts a list of BEL nodes to their node identifiers
