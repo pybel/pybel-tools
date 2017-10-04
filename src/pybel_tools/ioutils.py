@@ -88,9 +88,8 @@ def get_paths_recursive(directory, extension='.bel', exclude_directory_pattern=N
                 yield os.path.join(root, file)
 
 
-def convert_paths(paths, connection=None, upload=False, pickle=False, store_parts=False,
-                  infer_central_dogma=True, enrich_citations=False, enrich_genes=False, enrich_go=False, send=False,
-                  version_in_path=False, **kwargs):
+def convert_paths(paths, connection=None, upload=False, pickle=False, infer_central_dogma=True, enrich_citations=False,
+                  enrich_genes=False, enrich_go=False, send=False, version_in_path=False, **kwargs):
     """Recursively parses and either uploads/pickles graphs in a given set of files
 
     :param iter[str] paths: The paths to convert
@@ -98,7 +97,6 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, store_part
     :type connection: None or str or pybel.manager.Manager
     :param bool upload: Should the networks be uploaded to the cache?
     :param bool pickle: Should the networks be saved as pickles?
-    :param bool store_parts: Should the networks be uploaded to the edge store?
     :param bool infer_central_dogma: Should the central dogma be inferred for all proteins, RNAs, and miRNAs
     :param bool enrich_citations: Should the citations be enriched using Entrez Utils?
     :param bool enrich_genes: Should the genes' descriptions be downloaded from Gene Cards?
@@ -136,8 +134,8 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, store_part
         if enrich_go and go_annotator.download_successful:
             go_annotator.annotate(network)
 
-        if upload or store_parts:
-            to_database(network, connection=manager, store_parts=store_parts)
+        if upload:
+            to_database(network, connection=manager, store_parts=True)
 
         if pickle:
             name = path[:-4]  # [:-4] gets rid of .bel at the end of the file name
@@ -155,7 +153,7 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, store_part
     return failures
 
 
-def convert_directory(directory, connection=None, upload=False, pickle=False, store_parts=False,
+def convert_directory(directory, connection=None, upload=False, pickle=False,
                       infer_central_dogma=True, enrich_citations=False, enrich_genes=False, enrich_go=False, send=False,
                       exclude_directory_pattern=None, version_in_path=False, **kwargs):
     """Recursively parses and either uploads/pickles graphs in a given directory and sub-directories
@@ -165,7 +163,6 @@ def convert_directory(directory, connection=None, upload=False, pickle=False, st
     :type connection: None or str or pybel.manager.Manage.
     :param bool upload: Should the networks be uploaded to the cache?
     :param bool pickle: Should the networks be saved as pickles?
-    :param bool store_parts: Should the networks be uploaded to the edge store?
     :param bool infer_central_dogma: Should the central dogma be inferred for all proteins, RNAs, and miRNAs
     :param bool enrich_citations: Should the citations be enriched using Entrez Utils?
     :param bool enrich_genes: Should the genes' descriptions be downloaded from Gene Cards?
@@ -183,7 +180,6 @@ def convert_directory(directory, connection=None, upload=False, pickle=False, st
         connection=connection,
         upload=upload,
         pickle=pickle,
-        store_parts=store_parts,
         infer_central_dogma=infer_central_dogma,
         enrich_citations=enrich_citations,
         enrich_genes=enrich_genes,
@@ -196,13 +192,12 @@ def convert_directory(directory, connection=None, upload=False, pickle=False, st
     return result
 
 
-def upload_recursive(directory, connection=None, store_parts=False, exclude_directory_pattern=None):
+def upload_recursive(directory, connection=None, exclude_directory_pattern=None):
     """Recursively uploads all gpickles in a given directory and sub-directories
     
     :param str directory: the directory to traverse
     :param connection: A connection string or manager
     :type connection: None or str or pybel.manage.Manager
-    :param bool store_parts: Should the edge store be used?
     :param str exclude_directory_pattern: Any directory names to exclude
     """
     manager = Manager.ensure(connection)
@@ -220,7 +215,7 @@ def upload_recursive(directory, connection=None, store_parts=False, exclude_dire
             log.warning('%s uses a pickle from an old version of PyBEL. Quitting.', path)
             continue
 
-        to_database(network, connection=manager, store_parts=store_parts)
+        to_database(network, connection=manager, store_parts=True)
 
 
 def subgraphs_to_pickles(network, directory=None, annotation='Subgraph'):

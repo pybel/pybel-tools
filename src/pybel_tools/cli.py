@@ -92,58 +92,54 @@ def ensure(ctx, connection):
 
 @ensure.command()
 @click.option('--enrich-authors', is_flag=True)
-@click.option('--use-edge-store', is_flag=True)
 @click.option('-v', '--debug', count=True, help="Turn on debugging. More v's, more debugging")
 @click.pass_obj
-def small_corpus(manager, enrich_authors, use_edge_store, debug):
+def small_corpus(manager, enrich_authors, debug):
     """Caches the Selventa Small Corpus"""
     set_debug_param(debug)
     graph = from_url(SMALL_CORPUS_URL, manager=manager, citation_clearing=False, allow_nested=True)
     if enrich_authors:
         enrich_pubmed_citations(graph, manager=manager)
-    manager.insert_graph(graph, store_parts=use_edge_store)
+    manager.insert_graph(graph, store_parts=True)
 
 
 @ensure.command()
 @click.option('--enrich-authors', is_flag=True)
-@click.option('--use-edge-store', is_flag=True)
 @click.option('-v', '--debug', count=True, help="Turn on debugging. More v's, more debugging")
 @click.pass_obj
-def large_corpus(manager, enrich_authors, use_edge_store, debug):
+def large_corpus(manager, enrich_authors, debug):
     """Caches the Selventa Large Corpus"""
     set_debug_param(debug)
     graph = from_url(LARGE_CORPUS_URL, manager=manager, citation_clearing=False, allow_nested=True)
     if enrich_authors:
         enrich_pubmed_citations(graph, manager=manager)
-    manager.insert_graph(graph, store_parts=use_edge_store)
+    manager.insert_graph(graph, store_parts=True)
 
 
 @ensure.command()
 @click.option('--enrich-authors', is_flag=True)
-@click.option('--use-edge-store', is_flag=True)
 @click.option('-v', '--debug', count=True, help="Turn on debugging. More v's, more debugging")
 @click.pass_obj
-def gene_families(manager, enrich_authors, use_edge_store, debug):
+def gene_families(manager, enrich_authors, debug):
     """Caches the HGNC Gene Family memberships"""
     set_debug_param(debug)
     graph = from_url(GENE_FAMILIES, manager=manager)
     if enrich_authors:
         enrich_pubmed_citations(graph, manager=manager)
-    manager.insert_graph(graph, store_parts=use_edge_store)
+    manager.insert_graph(graph, store_parts=True)
 
 
 @ensure.command()
 @click.option('--enrich-authors', is_flag=True)
-@click.option('--use-edge-store', is_flag=True)
 @click.option('-v', '--debug', count=True, help="Turn on debugging. More v's, more debugging")
 @click.pass_obj
-def named_complexes(manager, enrich_authors, use_edge_store, debug):
+def named_complexes(manager, enrich_authors, debug):
     """Caches GO Named Protein Complexes memberships"""
     set_debug_param(debug)
     graph = from_url(NAMED_COMPLEXES, manager=manager)
     if enrich_authors:
         enrich_pubmed_citations(graph, manager=manager)
-    manager.insert_graph(graph, store_parts=use_edge_store)
+    manager.insert_graph(graph, store_parts=True)
 
 
 @main.group()
@@ -180,7 +176,7 @@ def upload(manager, path, recursive, skip_check_version, to_service, service_url
         if to_service:
             to_pybel_web(graph, service_url)
         else:
-            to_database(graph, connection=manager)
+            to_database(graph, connection=manager, store_parts=True)
 
 
 @io.command()
@@ -195,7 +191,6 @@ def post(path, url, skip_check_version):
 
 @io.command()
 @click.option('-u', '--enable-upload', is_flag=True, help='Enable automatic database uploading')
-@click.option('--store-parts', is_flag=True, help='Automatically upload to database and edge store')
 @click.option('--no-enrich-authors', is_flag=True, help="Don't enrich authors. Makes faster.")
 @click.option('--no-enrich-genes', is_flag=True, help="Don't enrich HGNC genes")
 @click.option('--no-enrich-go', is_flag=True, help="Don't enrich GO entries")
@@ -210,9 +205,9 @@ def post(path, url, skip_check_version):
 @click.option('-v', '--debug', count=True, help="Turn on debugging. More v's, more debugging")
 @click.option('-x', '--cool', is_flag=True, help='enable cool mode')
 @click.pass_obj
-def convert(manager, enable_upload, store_parts, no_enrich_authors, no_enrich_genes, no_enrich_go,
-            no_citation_clearing, allow_nested, directory, use_stdin, send_pybel_web, exclude_directory_pattern,
-            version_in_path, debug, cool):
+def convert(manager, enable_upload, no_enrich_authors, no_enrich_genes, no_enrich_go, no_citation_clearing,
+            allow_nested, directory, use_stdin, send_pybel_web, exclude_directory_pattern, version_in_path, debug,
+            cool):
     """Recursively walks the file tree and converts BEL scripts to gpickles. Optional uploader"""
     set_debug_param(debug)
 
@@ -227,9 +222,8 @@ def convert(manager, enable_upload, store_parts, no_enrich_authors, no_enrich_ge
     results = convert_paths(
         paths=paths,
         connection=manager,
-        upload=(enable_upload or store_parts),
+        upload=enable_upload,
         pickle=True,
-        store_parts=store_parts,
         enrich_citations=(not no_enrich_authors),
         enrich_genes=(not no_enrich_genes),
         enrich_go=(not no_enrich_go),
