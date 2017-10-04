@@ -8,6 +8,7 @@ import logging
 import time
 
 import networkx as nx
+import warnings
 from collections import Counter, defaultdict
 from functools import lru_cache
 from sqlalchemy import func
@@ -281,7 +282,7 @@ class DatabaseService(QueryService):
         #: dictionary of {int id: BELGraph graph}
         self.networks = {}
 
-        #: dictionary of {int id: tuple node}
+        #: dictionary of {node hash: tuple node}
         self.hash_to_node_cache = {}
 
         #: dictionary of {str BEL: node hash}
@@ -327,7 +328,6 @@ class DatabaseService(QueryService):
                 return
 
             node_hash = data[ID]
-
             self.hash_to_node_cache[node_hash] = node
 
             bel = node_to_bel(graph, node)
@@ -507,24 +507,6 @@ class DatabaseService(QueryService):
 
         return union(self.get_graphs_by_ids(network_ids))
 
-    def get_node_hash(self, node):
-        """Gets the hashes of the PyBEL node tuple
-
-        :param tuple node: A PyBEL node tuple
-        """
-        return hash
-
-    def get_node_hashes(self, node_tuples):
-        """Converts a list of BEL nodes to their node identifiers
-
-        :param list[tuple] node_tuples: A list of PyBEL node tuples
-        :rtype: list
-        """
-        return [
-            self.get_node_hash(node)
-            for node in node_tuples
-        ]
-
     def get_node_tuple_by_hash(self, node_hash):
         """Returns the node tuple based on the node id
 
@@ -543,17 +525,6 @@ class DatabaseService(QueryService):
         return [
             self.get_node_tuple_by_hash(node_hash)
             for node_hash in node_hashes
-        ]
-
-    def paths_tuples_to_ids(self, paths):
-        """List of lists of node tuples
-
-        :param list[list[tuple]] paths: list of lists (tuples)
-        :rtype: list[list[tuple]]: list of lists (ids)
-        """
-        return [
-            self.get_node_hashes(path)
-            for path in paths
         ]
 
     def get_nodes_containing_keyword(self, keyword):
