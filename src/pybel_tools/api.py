@@ -8,7 +8,6 @@ import logging
 import time
 
 import networkx as nx
-import warnings
 from collections import Counter, defaultdict
 from functools import lru_cache
 from sqlalchemy import func
@@ -54,113 +53,6 @@ class DatabaseServiceBase:
 
 # TODO delete?
 class QueryService(DatabaseServiceBase):
-    def query_namespaces(self, network_id=None, offset_start=0, offset_end=500, name_list=False, keyword=None):
-        """Provides a list of namespaces filtered by the given parameters.
-
-        :param int network_id: Primary identifier of the network in the PyBEL database.
-        :param int offset_start: The starting point of the offset (position in database)
-        :param int offset_end: The end point of the offset (position in database)
-        :param bool name_list: Flag that identifies if a list of all names in a namespace should be created.
-        :param str keyword: The keyword used to identify a specific namespace. This is only used if name_list is True.
-        :return: List of dictionaries that describe all namespaces.
-        """
-        result = []
-
-        if network_id:
-            network = self.manager.get_network_by_id(network_id)
-            result = [
-                namespace.to_json()
-                for namespace in network.namespaces[offset_start:offset_end]
-            ]
-
-        if name_list and keyword:
-            keyword_url_dict = {
-                namespace.keyword: namespace.url
-                for namespace in self.manager.list_namespaces()
-            }
-            namespace_url = keyword_url_dict[keyword]
-            self.manager.ensure_namespace(url=namespace_url)
-
-            definition = self.manager.get_namespace_by_url(namespace_url)
-            namespace_data = definition.to_json()
-
-            result = {
-                'namespace_definition': namespace_data,
-                'names': self.manager.namespace_cache[namespace_url]
-            }
-
-        if not result:
-            result = [
-                definition.to_json()
-                for definition in self.manager.list_namespaces()
-            ]
-
-        return result
-
-    def query_annotations(self, network_id=None, offset_start=0, offset_end=500, name_list=False, keyword=None):
-        """Provides a list of annotations filtered by the given parameters.
-
-        :param int network_id: Primary identifier of the network in the PyBEL database. This can be obtained with the
-                           get_networks function.
-        :param int offset_start: The starting point of the offset (position in database)
-        :param int offset_end: The end point of the offset (position in database)
-        :param bool name_list: Flag that identifies if a list of all names in a namespace should be created.
-        :param str keyword: The keyword used to identify a specific namespace. This is only used if name_list is True.
-        :return: List of dictionaries that describe all namespaces.
-        """
-        result = []
-
-        if network_id:
-            network = self.manager.get_network_by_id(network_id)
-            result = [annotation.data for annotation in network.annotations[offset_start:offset_end]]
-
-        if name_list:
-            if name_list and keyword:
-                keyword_url_dict = dict(self.manager.session.query(Annotation.keyword, Annotation.url).all())
-                url = keyword_url_dict[keyword]
-                self.manager.ensure_annotation(url=url)
-                annotation = self.manager.session.query(Annotation).filter_by(url=url).one_or_none()
-                annotation_data = annotation.to_json()
-
-                result = {
-                    'annotation_definition': annotation_data,
-                    'annotations': self.manager.annotation_cache[url]
-                }
-
-        if len(result) == 0:
-            result = [
-                definition.to_json()
-                for definition in self.manager.session.query(Annotation).all()
-            ]
-
-        return result
-
-    def query_citations(self, network_id=None, author=None, offset_start=0, offset_end=500):
-        """
-
-        :param int network_id: Database identifier of the network in the PyBEL database
-        :param str author: The name of an author that participated in creation of the citation.
-        :param int offset_start: The starting point of the offset (position in database)
-        :param int offset_end: The end point of the offset (position in database)
-        :return:
-        """
-        result = []
-
-        if network_id:
-            network = self.manager.get_network_by_id(network_id)
-            result = [
-                citation.to_json()
-                for citation in network.citations[offset_start:offset_end]
-            ]
-
-        if author:
-            result = self.manager.query_citations(author=author, as_dict_list=True)
-
-        if len(result) == 0:
-            result = self.manager.query_citations(as_dict_list=True)
-
-        return result
-
     def get_edges_by_network_id(self, network_id, offset_start=0, offset_end=500):
         network = self.manager.get_network_by_id(network_id)
 
@@ -374,11 +266,7 @@ class DatabaseService(QueryService):
             log.info('tried re-adding graph [%s]', network_id)
             return self.networks[network_id]
 
-        try:
-            graph = self.manager.get_graph_by_id(network_id)
-        except:
-            log.exception("couldn't load from bytes [%s]", network_id)
-            return
+        graph = self.manager.get_graph_by_id(network_id)
 
         t = time.time()
 
@@ -514,6 +402,7 @@ class DatabaseService(QueryService):
         :return: A PyBEL node tuple
         :rtype: tuple
         """
+        # TODO try lookup in databse if not already cached
         return self.hash_to_node_cache.get(node_hash)
 
     def get_nodes_by_hashes(self, node_hashes):
@@ -637,7 +526,7 @@ class DatabaseService(QueryService):
 
         :param int network_id: The network database identifier
         :return: A dictionary from {int network_id: float similarity} for this network to all other networks
-        :rtype: collections.Counter[int, float]
+        :rtype: collections.Counter[int,float]
         """
         t = time.time()
 
@@ -676,7 +565,7 @@ class DatabaseService(QueryService):
         """Gets annotation/value pairs for values for whom the search string is a substring
 
         :param str keyword: Search for annotations whose values have this as a substring
-        :rtype: list[dict[str,str]
+        :rtype: list[dict[str,str]]
         """
         return get_annotations_containing_keyword(self.universe, keyword)
 
