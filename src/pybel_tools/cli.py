@@ -40,6 +40,7 @@ from pybel_tools.resources import deploy_directory
 from .constants import GENE_FAMILIES, NAMED_COMPLEXES, DEFAULT_SERVICE_URL
 from .definition_utils import (
     write_namespace,
+    write_annotation,
     export_namespaces,
     hash_names,
     get_bel_resource_hash,
@@ -298,6 +299,21 @@ def history(namespace):
     for path in get_namespace_history(namespace):
         h = get_bel_resource_hash(path.as_posix())
         click.echo('{}\t{}'.format(path, h))
+
+
+@namespace.command()
+@click.option('-f', '--file', type=click.File('r'), default=sys.stdin, help="Path to input BEL Namespace file")
+@click.option('-o', '--output', type=click.File('w'), default=sys.stdout,
+              help="Path to output converted BEL Annotation file")
+def convert_to_annotation(file, output):
+    """Convert a namespace file to an annotation file"""
+    resource = parse_bel_resource(file)
+    write_annotation(
+        keyword=resource['Namespace']['Keyword'],
+        values={k: '' for k in resource['Values']},
+        citation_name=resource['Citation']['NameString'],
+        file=output
+    )
 
 
 @main.group()
