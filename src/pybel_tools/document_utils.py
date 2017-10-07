@@ -5,12 +5,12 @@
 from __future__ import print_function
 
 import logging
-import os
 import sys
 import time
 from itertools import islice
 from xml.etree import ElementTree
 
+import os
 import requests
 
 from .constants import title_url_fmt, citation_format, abstract_url_fmt, evidence_format
@@ -159,6 +159,7 @@ def make_document_namespaces(namespace_dict=None, namespace_patterns=None):
     yield '#' * 80
     yield '# Namespaces'
     yield '#' * 80 + '\n'
+
     yield '# Enumerated Namespaces\n'
 
     for name, url in sorted(namespace_dict.items()):
@@ -183,12 +184,14 @@ def make_document_annotations(annotation_dict=None, annotation_patterns=None):
     """
     annotation_dict = default_annotations if annotation_dict is None else annotation_dict
 
-    yield '#' * 80
-    yield '# Annotations'
-    yield '#' * 80 + '\n'
+    if annotation_dict or annotation_patterns:
+        yield '#' * 80
+        yield '# Annotations'
+        yield '#' * 80 + '\n'
 
-    for name, url in sorted(annotation_dict.items()):
-        yield ANNOTATION_URL_FMT.format(name, url)
+    if annotation_dict:
+        for name, url in sorted(annotation_dict.items()):
+            yield ANNOTATION_URL_FMT.format(name, url)
 
     if annotation_patterns:
         for name, pattern in sorted(annotation_patterns.items()):
@@ -269,7 +272,7 @@ def write_boilerplate(document_name, contact, description, authors, version=None
     :param str contact: The email address of the maintainer
     :param str description: A description of the contents of this document
     :param str authors: The authors of this document
-    :param str version: The version. Defaults to current date in format YYYYMMDD.
+    :param str version: The version. Defaults to current date in format ``YYYYMMDD``.
     :param str copyright: Copyright information about this document
     :param str licenses: The license applied to this document
     
