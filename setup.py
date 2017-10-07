@@ -32,7 +32,7 @@ INSTALL_REQUIRES = [
     'numpy',
     'artifactory',
     'jinja2',
-    'ols_client==0.0.7',
+    'ols_client==0.0.8',
 ]
 EXTRAS_REQUIRE = {
     'obonet': [

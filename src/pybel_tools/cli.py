@@ -49,6 +49,7 @@ from .definition_utils import (
 from .document_utils import write_boilerplate
 from .ioutils import upload_recursive, to_pybel_web, convert_paths
 from .mutation.metadata import enrich_pubmed_citations
+from .ols_utils import OlsNamespaceOntology
 from .resources import get_namespace_history, get_annotation_history, get_knowledge_history
 from .summary import get_pubmed_identifiers
 from .utils import enable_cool_mode
@@ -316,6 +317,18 @@ def convert_to_annotation(file, output):
     )
 
 
+@namespace.command()
+@click.argument('ontology')
+@click.argument('domain')
+@click.argument('function')
+@click.option('-b', '--ols-base')
+@click.option('-o', '--output', type=click.File('w'), default=sys.stdout)
+def from_ols(ontology, domain, function, ols_base, output):
+    """Creates a namespace from the ontology lookup service"""
+    ont = OlsNamespaceOntology(ontology, domain, function, ols_base=ols_base)
+    ont.write_namespace(output)
+
+
 @main.group()
 def annotation():
     """Annotation file utilities"""
@@ -340,6 +353,18 @@ def semhash(file):
 @main.group()
 def document():
     """BEL document utilities"""
+
+
+@document.command()
+@click.argument('ontology')
+@click.argument('domain')
+@click.argument('function')
+@click.option('-b', '--ols-base')
+@click.option('-o', '--output', type=click.File('w'), default=sys.stdout)
+def from_ols(ontology, domain, function, ols_base, output):
+    """Creates a hierarchy from the ontology lookup service"""
+    ont = OlsNamespaceOntology(ontology, domain, function, ols_base=ols_base)
+    ont.write_hierarchy(output)
 
 
 @document.command()
