@@ -8,6 +8,6 @@ scipy==0.19.1
 numpy==1.13.3
 artifactory
 jinja2==2.9.6
-ols_client==0.0.7
+ols_client==0.0.8
 configparser
 six==1.11.0

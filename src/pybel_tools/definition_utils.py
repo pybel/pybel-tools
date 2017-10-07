@@ -588,7 +588,7 @@ def hash_names(names, hash_function=None):
     """Returns the hash of an iterable of strings, or a dict if multiple hash functions given.
 
     :param iter[str] names: An iterable of strings
-    :param hash_function: A hash function or list of hash functions, like :func:`hashlib.md5` or :code:`hashlib.sha512`
+    :param hash_function: A hash function or list of hash functions, like :func:`hashlib.md5` or :func:`hashlib.sha512`
     :rtype: str
     """
     names_bytes = names_to_bytes(names)
