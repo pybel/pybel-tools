@@ -134,6 +134,9 @@ class Query:
                     subgraph.number_of_edges()
                 )
 
+                if subgraph is None:
+                    continue
+
                 subgraphs.append(subgraph)
 
             graph = union(subgraphs)

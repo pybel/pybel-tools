@@ -124,7 +124,7 @@ def get_subgraph_by_node_filter(graph, node_filters):
 
 @pipeline.mutator
 def get_subgraph_by_neighborhood(graph, nodes):
-    """Gets a BEL graph around the neighborhoods of the given nodes
+    """Gets a BEL graph around the neighborhoods of the given nodes. Returns none if no nodes are in the graph
 
     :param pybel.BELGraph graph: A BEL graph
     :param iter[tuple] nodes: An iterable of BEL nodes
@@ -135,9 +135,8 @@ def get_subgraph_by_neighborhood(graph, nodes):
 
     node_set = set(nodes)
 
-    for node in node_set:
-        if node not in graph:
-            raise IndexError('{} not in graph'.format(node))
+    if all(node not in graph for node in node_set):
+        return None
 
     safe_add_edges(result, graph.in_edges_iter(nodes, keys=True, data=True))
     safe_add_edges(result, graph.out_edges_iter(nodes, keys=True, data=True))
@@ -372,6 +371,9 @@ def get_subgraph(graph, seed_method=None, seed_data=None, expand_nodes=None, rem
         raise ValueError('Invalid seed method: {}'.format(seed_method))
 
     log.debug('original graph has (%s nodes / %s edges)', result.number_of_nodes(), result.number_of_edges())
+
+    if result is None:
+        return
 
     # Expand around the given nodes
     if expand_nodes:
