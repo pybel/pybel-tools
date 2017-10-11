@@ -28,13 +28,13 @@ from .mutation.metadata import (
 )
 from .summary.edge_summary import (
     count_pathologies,
-    get_annotations_containing_keyword
+    get_annotations_containing_keyword,
 )
 from .summary.provenance import (
     get_authors,
     get_pmid_by_keyword,
     get_authors_by_keyword,
-    get_pubmed_identifiers
+    get_pubmed_identifiers,
 )
 from .utils import (
     min_tanimoto_set_similarity,
@@ -395,27 +395,6 @@ class DatabaseService(QueryService):
 
         return union(self.get_graphs_by_ids(network_ids))
 
-    def get_node_tuple_by_hash(self, node_hash):
-        """Returns the node tuple based on the node id
-
-        :param node_hash: The node's identifier
-        :return: A PyBEL node tuple
-        :rtype: tuple
-        """
-        # TODO try lookup in databse if not already cached
-        return self.hash_to_node_cache.get(node_hash)
-
-    def get_nodes_by_hashes(self, node_hashes):
-        """Gets a list of node tuples from a list of ids
-
-        :param list node_hashes: A list of node identifiers
-        :rtype: list[tuple]
-        """
-        return [
-            self.get_node_tuple_by_hash(node_hash)
-            for node_hash in node_hashes
-        ]
-
     def get_nodes_containing_keyword(self, keyword):
         """Gets a list with all cnames that contain a certain keyword adding to the duplicates their function
 
@@ -473,7 +452,7 @@ class DatabaseService(QueryService):
         :param node_hash: A BEL node identifier
         :rtype: str
         """
-        node = self.get_node_tuple_by_hash(node_hash)
+        node = self.manager.get_node_tuple_by_hash(node_hash)
         return self.get_cname(node)
 
     def get_cname(self, node):
