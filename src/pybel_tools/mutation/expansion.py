@@ -448,7 +448,7 @@ def expand_node_predecessors(universe, graph, node):
     ensure_node_from_universe(universe, graph, node)
 
     skip_successors = set()
-    for successor in universe.successors_iter(node):
+    for successor in universe.successors_iter(node): # TODO switch to node bunch
         if successor in graph:
             skip_successors.add(successor)
             continue
@@ -472,7 +472,7 @@ def expand_node_successors(universe, graph, node):
     ensure_node_from_universe(universe, graph, node)
 
     skip_predecessors = set()
-    for predecessor in universe.predecessors_iter(node):
+    for predecessor in universe.predecessors_iter(node): # TODO switch to node bunch
         if predecessor in graph:
             skip_predecessors.add(predecessor)
             continue

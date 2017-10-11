@@ -100,9 +100,12 @@ class Query:
         :param  manager: A cache manager
         :type manager: pybel.manager.Manager or pybel_tools.api.DatabaseService
         :return: The result of this query
-        :rtype: pybel.BELGraph
+        :rtype: Optional[pybel.BELGraph]
         """
         log.debug('query universe consists of networks: %s', self.network_ids)
+
+        if not self.network_ids:
+            return
 
         query_universe = manager.get_graph_by_ids(self.network_ids)
 
@@ -115,31 +118,34 @@ class Query:
         # parse seeding stuff
 
         if not self.seeds:
-            graph = query_universe
-        else:
-            subgraphs = []
-            for seed in self.seeds:
-                subgraph = get_subgraph(
-                    query_universe,
-                    seed_method=seed[SEED_TYPE_KEY],
-                    seed_data=seed[SEED_DATA_KEY]
-                )
+            return self.pipeline.run(query_universe, universe=query_universe)
 
-                # TODO streamline this logging... maybe put in get_subgraph function
-                log.debug(
-                    'Subgraph coming from %s (seed type) %s (data) contains %d nodes and %d edges',
-                    seed[SEED_DATA_KEY],
-                    seed[SEED_TYPE_KEY],
-                    subgraph.number_of_nodes(),
-                    subgraph.number_of_edges()
-                )
+        subgraphs = []
+        for seed in self.seeds:
+            subgraph = get_subgraph(
+                query_universe,
+                seed_method=seed[SEED_TYPE_KEY],
+                seed_data=seed[SEED_DATA_KEY]
+            )
 
-                if subgraph is None:
-                    continue
+            # TODO streamline this logging... maybe put in get_subgraph function
+            log.debug(
+                'Subgraph coming from %s (seed type) %s (data) contains %d nodes and %d edges',
+                seed[SEED_DATA_KEY],
+                seed[SEED_TYPE_KEY],
+                subgraph.number_of_nodes(),
+                subgraph.number_of_edges()
+            )
 
-                subgraphs.append(subgraph)
+            if subgraph is None:
+                continue
 
-            graph = union(subgraphs)
+            subgraphs.append(subgraph)
+
+        if not subgraphs:
+            return
+
+        graph = union(subgraphs)
 
         log.debug(
             'Number of nodes/edges in query before running pipeline: %d nodes, %d edges )',

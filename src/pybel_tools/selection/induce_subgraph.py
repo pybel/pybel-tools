@@ -331,8 +331,7 @@ def get_subgraph(graph, seed_method=None, seed_data=None, expand_nodes=None, rem
     :param seed_data: The argument to pass to the get_subgraph function
     :param list[tuple] expand_nodes: Add the neighborhoods around all of these nodes
     :param list[tuple] remove_nodes: Remove these nodes and all of their in/out edges
-    :return: A BEL Graph
-    :rtype: pybel.BELGraph
+    :rtype: Optional[pybel.BELGraph]
     """
 
     # Seed by the given function
@@ -384,7 +383,7 @@ def get_subgraph(graph, seed_method=None, seed_data=None, expand_nodes=None, rem
     if remove_nodes:
         for node in remove_nodes:
             if node not in result:
-                log.warning('%s is not in graph %s', node, graph.name)
+                log.debug('%s is not in graph %s', node, graph.name)
                 continue
             result.remove_node(node)
         log.debug('graph contracted to (%s nodes / %s edges)', result.number_of_nodes(), result.number_of_edges())
