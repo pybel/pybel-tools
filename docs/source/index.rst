@@ -52,12 +52,6 @@ Links
    pipeline
 
 .. toctree::
-   :caption: Services
-   :name: services
-
-   databaseservice
-
-.. toctree::
    :caption: Other Utilities
    :name: utilities
 

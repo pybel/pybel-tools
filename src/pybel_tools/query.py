@@ -8,9 +8,7 @@ from pybel.utils import list2tuple
 from .pipeline import Pipeline
 from .selection import get_subgraph
 from .selection.induce_subgraph import (
-    NONNODE_SEED_TYPES,
-    SEED_TYPE_INDUCTION,
-    SEED_TYPE_ANNOTATION,
+    NONNODE_SEED_TYPES, SEED_TYPE_ANNOTATION, SEED_TYPE_INDUCTION,
     SEED_TYPE_NEIGHBORS,
 )
 
@@ -87,19 +85,15 @@ class Query:
         """Adds an entry to the pipeline
 
         :param str name: The name of the function
-        :param args: The positional arguments to call in the function
-        :param kwargs: The keyword arguments to call in the function
         :return: This pipeline for fluid query building
         :rtype: Pipeline
         """
         return self.pipeline.append(name, *args, **kwargs)
 
     def run(self, manager):
-        """Runs this query
+        """Runs this query and returns the resulting BEL graph
 
-        :param  manager: A cache manager
-        :type manager: pybel.manager.Manager or pybel_tools.api.DatabaseService
-        :return: The result of this query
+        :param pybel.manager.Manager manager: A cache manager
         :rtype: Optional[pybel.BELGraph]
         """
         log.debug('query universe consists of networks: %s', self.network_ids)
