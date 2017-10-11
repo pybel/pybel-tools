@@ -19,6 +19,7 @@ from pybel.manager.models import Network, Annotation, Author
 from pybel.struct import left_full_join, union
 from pybel.utils import hash_node
 from .constants import CNAME
+
 from .mutation.inference import infer_central_dogma
 from .mutation.metadata import (
     parse_authors,
@@ -183,12 +184,6 @@ class DatabaseService(QueryService):
         #: dictionary of {node hash: BEL}
         self.id_bel = {}
 
-        #: The complete graph of all knowledge stored in the cache
-        self.universe = BELGraph()
-
-        self.universe_pmids = set()
-        self.universe_authors = set()
-
         #: A dictionary from {int id: {tuple node: int degree}}
         self.node_degrees = {}
 
@@ -253,15 +248,16 @@ class DatabaseService(QueryService):
         """
         return self._relabel_nodes_to_identifiers_helper(graph.copy() if copy else graph)
 
-    def _add_network(self, network_id, force_reload=False, eager=False, maintain_universe=True, infer_origin=False):
+    def _add_network(self, network_id, force_reload=False, eager=False, infer_origin=False):
         """Adds a network to the module-level cache from the underlying database
 
         :param int network_id: The identifier for the graph
         :param bool force_reload: Should the graphs be reloaded even if it has already been cached?
         :param bool eager: Should data be calculated/loaded eagerly?
-        :param bool maintain_universe:
         :param bool infer_origin: Should the central dogma be inferred for proteins, RNA, and miRNA?
         """
+        log.debug('caching network [%s]', network_id)
+
         if network_id in self.networks and not force_reload:
             log.info('tried re-adding graph [%s]', network_id)
             return self.networks[network_id]
@@ -277,15 +273,8 @@ class DatabaseService(QueryService):
             graph.version,
         )
 
-        log.debug('parsing authors')
-        parse_authors(graph)
-
         log.debug('adding canonical names')
         add_canonical_names(graph)
-
-        if infer_origin:
-            log.debug('inferring central dogma')
-            infer_central_dogma(graph)
 
         log.debug('updating graph node/edge indexes')
         self._update_indexes(graph)
@@ -293,22 +282,11 @@ class DatabaseService(QueryService):
         log.debug('calculating node degrees')
         self.node_degrees[network_id] = Counter(graph.degree())
 
-        log.debug('caching PubMed identifiers')
-        self.universe_pmids |= get_pubmed_identifiers(graph)
-
         if eager:
             log.debug('enriching citations')
             t = time.time()
             enrich_pubmed_citations(graph, manager=self.manager)
             log.debug('done enriching citations in %.2f seconds', time.time() - t)
-
-        authors = get_authors(graph)
-        log.debug('caching %d authors', len(authors))
-        self.universe_authors |= authors
-
-        if maintain_universe:
-            log.debug('adding to the universe')
-            left_full_join(self.universe, graph)
 
         self.networks[network_id] = graph
 
@@ -321,12 +299,11 @@ class DatabaseService(QueryService):
 
         return graph
 
-    def cache_networks(self, force_reload=False, eager=False, maintain_universe=True, infer_origin=False):
+    def cache_networks(self, force_reload=False, eager=False, infer_origin=False):
         """This function needs to get all networks from the graph cache manager and make a dictionary
 
         :param bool force_reload: Should all graphs be reloaded even if they have already been cached?
         :param bool eager: Should difficult to preload features be calculated?
-        :param bool maintain_universe:
         :param bool infer_origin: Should the central dogma be inferred for proteins, RNA, and miRNA?
         """
         query = self.manager.session.query(Network).group_by(Network.name)
@@ -339,36 +316,25 @@ class DatabaseService(QueryService):
                 network.id,
                 force_reload=force_reload,
                 eager=eager,
-                maintain_universe=maintain_universe,
                 infer_origin=infer_origin,
             )
 
-        if maintain_universe:
-            log.info(
-                'universe has (%s nodes, %s edges)',
-                self.universe.number_of_nodes(),
-                self.universe.number_of_edges()
-            )
+        log.info(
+            'The database has %d networks, %s nodes, %s edges',
+            self.manager.count_networks(),
+            self.manager.count_nodes(),
+            self.manager.count_edges()
+        )
 
     # Graph selection functions
 
-    def get_graph_by_id(self, network_id=None):
+    def get_graph_by_id(self, network_id):
         """Gets a network by its ID or super network if identifier is not specified
 
         :param int network_id: The internal ID of the network to get
-        :return: A BEL Graph
         :rtype: pybel.BELGraph
         """
-        if network_id is None:
-            log.debug(
-                'got universe (%s nodes, %s edges)',
-                self.universe.number_of_nodes(),
-                self.universe.number_of_edges()
-            )
-            return self.universe
-
         if network_id not in self.networks:
-            log.debug('caching network [%s]', network_id)
             self._add_network(network_id)
 
         return self.networks[network_id]
@@ -407,66 +373,6 @@ class DatabaseService(QueryService):
             if keyword.lower() in bel.lower()
         ]
 
-    def get_pubmed_containing_keyword(self, keyword):
-        """Gets a list of PubMed identifiers that contain a certain keyword
-
-        :param str keyword: Search for PubMed identifiers who have this as a substring
-        :rtype: list[str]
-        """
-        return list(get_pmid_by_keyword(keyword, pubmed_identifiers=self.universe_pmids))
-
-    def get_authors_containing_keyword(self, keyword, use_cache=True):
-        """Gets a list with authors that contain a certain keyword
-
-        :param str keyword: Search for authors whose names have this as a substring
-        :param bool use_cache: If true, look up by cache, else look up in database
-        :rtype: list[str]
-        """
-        if use_cache:
-            return self._get_authors_containing_keyword_cached(keyword)
-
-        return self._get_authors_containing_keyword_database(keyword)
-
-    def _get_authors_containing_keyword_cached(self, keyword):
-        """Gets a list with authors that contain a certain keyword
-
-        :param str keyword: Search for authors whose names have this as a substring
-        :rtype: list[str]
-        """
-        return get_authors_by_keyword(keyword, authors=self.universe_authors)
-
-    def _get_authors_containing_keyword_database(self, keyword):
-        """Gets a list with authors that contain a certain keyword
-
-        :param str keyword: Search for authors whose names have this as a substring
-        :rtype: list[str]
-        """
-        return [
-            name
-            for name, in self.manager.session.query(Author.name).filter(Author.name.like(keyword)).all()
-        ]
-
-    def get_cname_by_node_hash(self, node_hash):
-        """Gets the canonical name of a node
-
-        :param node_hash: A BEL node identifier
-        :rtype: str
-        """
-        node = self.manager.get_node_tuple_by_hash(node_hash)
-        return self.get_cname(node)
-
-    def get_cname(self, node):
-        """Gets the canonical name of a node
-
-        :param tuple node: A BEL node
-        :rtype: str
-        """
-        if CNAME in self.universe.node[node]:
-            return self.universe.node[node][CNAME]
-
-        self.universe.node[node][CNAME] = calculate_canonical_name(self.universe, node)
-        return self.universe.node[node][CNAME]
-
     def get_top_degree(self, network_id, count=20):
         """Gets the nodes with the highest degrees
 
@@ -474,13 +380,16 @@ class DatabaseService(QueryService):
         :param int count: The number of top degree nodes to get
         :rtype: dict[str,int]
         """
+
+        graph = self.get_graph_by_id(network_id)
+
         if network_id not in self.node_degrees:
             log.info('lazy loading degrees for [%s]', network_id)
-            graph = self.get_graph_by_id(network_id)
+
             self.node_degrees[network_id] = Counter(graph.degree())
 
         return {
-            self.get_cname(node): v
+            calculate_canonical_name(graph, node): v
             for node, v in self.node_degrees[network_id].most_common(count)
         }
 
@@ -496,7 +405,7 @@ class DatabaseService(QueryService):
         cm = count_pathologies(graph)
 
         return {
-            self.get_cname(node): v
+            calculate_canonical_name(graph, node): v
             for node, v in cm.most_common(count)
         }
 
@@ -539,14 +448,6 @@ class DatabaseService(QueryService):
         log.debug('Cached node overlaps for %s in %.2f seconds', graph, time.time() - t)
 
         return Counter(self.overlap_cache[network_id])
-
-    def get_annotations_containing_keyword(self, keyword):
-        """Gets annotation/value pairs for values for whom the search string is a substring
-
-        :param str keyword: Search for annotations whose values have this as a substring
-        :rtype: list[dict[str,str]]
-        """
-        return get_annotations_containing_keyword(self.universe, keyword)
 
     def forget_network(self, network_id):
         """Removes all cached data from the given network id"""
