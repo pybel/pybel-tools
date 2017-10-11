@@ -70,9 +70,9 @@ def iterate_pubmed_identifiers(graph):
     :rtype: iter[str]
     """
     return (
-        d[CITATION][CITATION_REFERENCE].strip()
-        for d in graph_edge_data_iter(graph)
-        if has_pubmed_citation(d)
+        data[CITATION][CITATION_REFERENCE].strip()
+        for data in graph_edge_data_iter(graph)
+        if has_pubmed_citation(data)
     )
 
 
@@ -162,7 +162,7 @@ def count_citations(graph, **annotations):
     return counter
 
 
-def count_citations_by_annotation(graph, annotation='Subgraph'):
+def count_citations_by_annotation(graph, annotation):
     """Groups the citation counters by subgraphs induced by the annotation
 
     :param pybel.BELGraph graph: A BEL graph
@@ -170,13 +170,13 @@ def count_citations_by_annotation(graph, annotation='Subgraph'):
     :return: A dictionary of Counters {subgraph name: Counter from {citation: frequency}}
     """
     citations = defaultdict(lambda: defaultdict(set))
-    for u, v, d in graph.edges_iter(data=True):
-        if not check_has_annotation(d, annotation) or CITATION not in d:
+    for u, v, data in graph.edges_iter(data=True):
+        if not check_has_annotation(data, annotation) or CITATION not in data:
             continue
 
-        k = d[ANNOTATIONS][annotation]
+        k = data[ANNOTATIONS][annotation]
 
-        citations[k][u, v].add((d[CITATION][CITATION_TYPE], d[CITATION][CITATION_REFERENCE].strip()))
+        citations[k][u, v].add((data[CITATION][CITATION_TYPE], data[CITATION][CITATION_REFERENCE].strip()))
 
     return {k: Counter(itt.chain.from_iterable(v.values())) for k, v in citations.items()}
 
