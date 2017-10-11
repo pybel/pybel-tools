@@ -6,37 +6,13 @@ This module contains all of the services necessary through the PyBEL API Definit
 
 import logging
 import time
-
-import networkx as nx
 from collections import Counter, defaultdict
-from functools import lru_cache
+
 from sqlalchemy import func
 
-from pybel import BELGraph
-from pybel.canonicalize import node_to_bel, calculate_canonical_name
-from pybel.constants import ID
-from pybel.manager.models import Network, Annotation, Author
-from pybel.struct import left_full_join, union
-from pybel.utils import hash_node
-from .constants import CNAME
-
-from .mutation.inference import infer_central_dogma
-from .mutation.metadata import (
-    parse_authors,
-    add_canonical_names,
-    enrich_pubmed_citations,
-    add_identifiers,
-)
-from .summary.edge_summary import (
-    count_pathologies,
-    get_annotations_containing_keyword,
-)
-from .summary.provenance import (
-    get_authors,
-    get_pmid_by_keyword,
-    get_authors_by_keyword,
-    get_pubmed_identifiers,
-)
+from pybel.manager.models import Network
+from pybel.struct import union
+from .mutation.metadata import add_canonical_names, add_identifiers, enrich_pubmed_citations
 from .utils import (
     min_tanimoto_set_similarity,
 )
@@ -175,23 +151,8 @@ class DatabaseService(QueryService):
         #: dictionary of {int id: BELGraph graph}
         self.networks = {}
 
-        #: dictionary of {node hash: tuple node}
-        self.hash_to_node_cache = {}
-
-        #: dictionary of {str BEL: node hash}
-        self.bel_id = {}
-
-        #: dictionary of {node hash: BEL}
-        self.id_bel = {}
-
-        #: A dictionary from {int id: {tuple node: int degree}}
-        self.node_degrees = {}
-
         #: A dictionary from {int network_id: {int network_id: float tanimoto node overlap}}
         self.overlap_cache = defaultdict(dict)
-
-        self.eid_edge = {}
-        self.edge_tuple_eid = {}
 
         if autocache:
             self.cache_networks()
@@ -213,40 +174,6 @@ class DatabaseService(QueryService):
             if isinstance(node, int):
                 log.warning('nodes already converted to ids')
                 return
-
-            node_hash = data[ID]
-            self.hash_to_node_cache[node_hash] = node
-
-            bel = node_to_bel(graph, node)
-            self.id_bel[node_hash] = bel
-            self.bel_id[bel] = node_hash
-
-    def _relabel_nodes_to_identifiers_helper(self, graph):
-        if 'PYBEL_RELABELED' in graph.graph:
-            log.warning('%s has already been relabeled', graph.name)
-            return graph
-
-        mapping = {}
-        for node in graph:
-            nh = hash_node(node)
-            self.hash_to_node_cache[nh] = node
-            mapping[node] = nh
-
-        nx.relabel.relabel_nodes(graph, mapping, copy=False)
-
-        graph.graph['PYBEL_RELABELED'] = True
-
-        return graph
-
-    def relabel_nodes_to_identifiers(self, graph, copy=True):
-        """Relabels all nodes by their identifiers, in place. This function is a thin wrapper around
-        :func:`networkx.relabel.relabel_nodes`
-
-        :param pybel.BELGraph graph: A BEL Graph
-        :param bool copy: Copy the graph first?
-        :rtype: pybel.BELGraph
-        """
-        return self._relabel_nodes_to_identifiers_helper(graph.copy() if copy else graph)
 
     def _add_network(self, network_id, force_reload=False, eager=False, infer_origin=False):
         """Adds a network to the module-level cache from the underlying database
@@ -278,9 +205,6 @@ class DatabaseService(QueryService):
 
         log.debug('updating graph node/edge indexes')
         self._update_indexes(graph)
-
-        log.debug('calculating node degrees')
-        self.node_degrees[network_id] = Counter(graph.degree())
 
         if eager:
             log.debug('enriching citations')
@@ -361,54 +285,6 @@ class DatabaseService(QueryService):
 
         return union(self.get_graphs_by_ids(network_ids))
 
-    def get_nodes_containing_keyword(self, keyword):
-        """Gets a list with all cnames that contain a certain keyword adding to the duplicates their function
-
-        :param str keyword: Search for nodes whose cnames have this as a substring
-        :rtype: list[dict]
-        """
-        return [
-            {"text": bel, "id": str(nid)}
-            for bel, nid in self.bel_id.items()
-            if keyword.lower() in bel.lower()
-        ]
-
-    def get_top_degree(self, network_id, count=20):
-        """Gets the nodes with the highest degrees
-
-        :param int network_id: The network database identifier
-        :param int count: The number of top degree nodes to get
-        :rtype: dict[str,int]
-        """
-
-        graph = self.get_graph_by_id(network_id)
-
-        if network_id not in self.node_degrees:
-            log.info('lazy loading degrees for [%s]', network_id)
-
-            self.node_degrees[network_id] = Counter(graph.degree())
-
-        return {
-            calculate_canonical_name(graph, node): v
-            for node, v in self.node_degrees[network_id].most_common(count)
-        }
-
-    @lru_cache(maxsize=32)
-    def get_top_pathologies(self, network_id, count=20):
-        """Gets the top most frequent pathologies mentioned in a graph
-
-        :param int network_id: The network database identifier
-        :param int count: The number of most frequently mentioned pathologies to get
-        :rtype: dict[str,int]
-        """
-        graph = self.get_graph_by_id(network_id)
-        cm = count_pathologies(graph)
-
-        return {
-            calculate_canonical_name(graph, node): v
-            for node, v in cm.most_common(count)
-        }
-
     def get_node_overlap(self, network_id):
         """Calculates overlaps to all other networks in the database
 
@@ -428,7 +304,7 @@ class DatabaseService(QueryService):
             return Counter(self.overlap_cache[network_id])
 
         graph = self.get_graph_by_id(network_id)
-        nodes = set(graph.nodes_iter())
+        nodes = set(graph)
 
         for other_network_id in other_network_ids:
             if other_network_id == network_id:
@@ -438,7 +314,7 @@ class DatabaseService(QueryService):
                 continue
 
             other_network = self.get_graph_by_id(other_network_id)
-            other_network_nodes = set(other_network.nodes_iter())
+            other_network_nodes = set(other_network)
 
             overlap = min_tanimoto_set_similarity(nodes, other_network_nodes)
 
@@ -453,9 +329,6 @@ class DatabaseService(QueryService):
         """Removes all cached data from the given network id"""
         if network_id in self.networks:
             del self.networks[network_id]
-
-        if network_id in self.node_degrees:
-            del self.node_degrees[network_id]
 
         if network_id in self.overlap_cache:
             del self.overlap_cache[network_id]

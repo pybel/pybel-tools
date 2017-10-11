@@ -11,7 +11,7 @@ from .selection.induce_subgraph import (
     NONNODE_SEED_TYPES,
     SEED_TYPE_INDUCTION,
     SEED_TYPE_ANNOTATION,
-    SEED_TYPE_NEIGHBORS
+    SEED_TYPE_NEIGHBORS,
 )
 
 log = logging.getLogger(__name__)

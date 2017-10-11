@@ -13,6 +13,7 @@ from pybel.constants import *
 from pybel_tools.api import DatabaseService
 from pybel_tools.mutation import *
 from pybel_tools.pipeline import Pipeline
+from pybel.struct.utils import relabel_nodes_to_hashes
 from pybel_tools.query import Query
 from pybel_tools.selection import *
 from tests.constants import ExampleNetworkMixin, ManagerMixin
@@ -110,7 +111,7 @@ class QueryTest(ExampleNetworkMixin, ManagerMixin):
         query.add_seed_neighbors([node_1, node_2])
 
         result_graph = query.run(api)
-        result_graph = api.relabel_nodes_to_identifiers(result_graph)
+        result_graph = relabel_nodes_to_hashes(result_graph)
 
         self.assertEqual(4, result_graph.number_of_nodes())
         # TODO: discuss this with Charlie. It would be cool to infer the edge between b and a
