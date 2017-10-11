@@ -62,23 +62,31 @@ def rank_path(graph, path, edge_ranking=None):
     return sum(max(edge_ranking[d[RELATION]] for d in graph.edge[u][v].values()) for u, v in pairwise(path))
 
 
+def _get_nodes_in_all_shortest_paths_helper(graph, nodes, weight=None):
+    for u, v in product(nodes, repeat=2):
+        try:
+            paths = all_shortest_paths(graph, u, v, weight=weight)
+
+            for path in paths:
+                yield path
+
+        except nx.exception.NetworkXNoPath:
+            continue
+
+
 def get_nodes_in_all_shortest_paths(graph, nodes, weight=None):
     """Gets all shortest paths from all nodes to all other nodes in the given list and returns the set of all nodes 
     contained in those paths using :func:`networkx.all_shortest_paths`.
 
     :param pybel.BELGraph graph: A BEL graph
     :param iter[tuple] nodes: The list of nodes to use to use to find all shortest paths
-    :param int cutoff:  Depth to stop the search. Only paths of length <= cutoff are returned.
     :param str weight: Edge data key corresponding to the edge weight. If none, uses unweighted search.
     :return: A set of nodes appearing in the shortest paths between nodes in the BEL graph
-    :rtype: set
+    :rtype: set[tuple]
 
     .. note:: This can be trivially parallelized using :func:`networkx.single_source_shortest_path`
     """
-    return {node
-            for u, v in product(nodes, repeat=2)
-            for path in all_shortest_paths(graph, u, v, weight=weight)
-            for node in path}
+    return set(itt.chain.from_iterable(_get_nodes_in_all_shortest_paths_helper(graph, nodes, weight=weight)))
 
 
 # TODO consider all shortest paths?
@@ -86,18 +94,15 @@ def _get_shortest__path_between_subgraphs_helper(graph, a, b):
     """Calculate the shortest path that occurs between two disconnected subgraphs A and B going through nodes in
     the source graph
 
-    :param graph: A graph
-    :type graph: nx.MultiGraph
-    :param a: A subgraph of :code:`graph`, disjoint from :code:`b`
-    :type a: nx.MultiGraph
-    :param b: A subgraph of :code:`graph`, disjoint from :code:`a`
-    :type b: nx.MultiGraph
+    :param nx.MultiGraph graph: A graph
+    :param nx.MultiGraph a: A subgraph of :code:`graph`, disjoint from :code:`b`
+    :param nx.MultiGraph b: A subgraph of :code:`graph`, disjoint from :code:`a`
     :return: A list of the shortest paths between the two subgraphs
     :rtype: list
     """
     shortest_paths = []
 
-    for na, nb in itt.product(a.nodes_iter(), b.nodes_iter()):
+    for na, nb in itt.product(a, b):
         a_b_shortest_path = nx.shortest_path(graph, na, nb)
         shortest_paths.append(a_b_shortest_path)
 

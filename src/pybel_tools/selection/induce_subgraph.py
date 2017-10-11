@@ -103,9 +103,12 @@ def get_subgraph_by_induction(graph, nodes):
 
     :param pybel.BELGraph graph: A BEL graph
     :param iter[tuple] nodes: A list of BEL nodes in the graph
-    :return: A subgraph induced over the given nodes
-    :rtype: pybel.BELGraph
+    :return: A sub-graph induced over the given nodes
+    :rtype: Optional[pybel.BELGraph]
     """
+    if all(node not in graph for node in nodes):
+        return
+
     return graph.subgraph(nodes)
 
 
@@ -129,7 +132,7 @@ def get_subgraph_by_neighborhood(graph, nodes):
     :param pybel.BELGraph graph: A BEL graph
     :param iter[tuple] nodes: An iterable of BEL nodes
     :return: A BEL graph induced around the neighborhoods of the given nodes
-    :rtype: pybel.BELGraph
+    :rtype: Optional[pybel.BELGraph]
     """
     result = BELGraph()
 
@@ -154,9 +157,13 @@ def get_subgraph_by_second_neighbors(graph, nodes, filter_pathologies=False):
     :param iter[tuple] nodes: An iterable of BEL nodes
     :param bool filter_pathologies: Should expansion take place around pathologies?
     :return: A BEL graph induced around the neighborhoods of the given nodes
-    :rtype: pybel.BELGraph
+    :rtype: Optional[pybel.BELGraph]
     """
     result = get_subgraph_by_neighborhood(graph, nodes)
+
+    if result is None:
+        return
+
     expand_all_node_neighborhoods(graph, result, filter_pathologies=filter_pathologies)
     return result
 
@@ -170,9 +177,22 @@ def get_subgraph_by_all_shortest_paths(graph, nodes, cutoff=None, weight=None):
     :param int cutoff:  Depth to stop the shortest path search. Only paths of length <= cutoff are returned.
     :param str weight: Edge data key corresponding to the edge weight. If None, performs unweighted search
     :return: A BEL graph induced over the nodes appearing in the shortest paths between the given nodes
-    :rtype: pybel.BELGraph
+    :rtype: Optional[pybel.BELGraph]
     """
-    return graph.subgraph(get_nodes_in_all_shortest_paths(graph, nodes, weight=weight))
+    query_nodes = []
+
+    for node in nodes:
+        if node not in graph:
+            log.debug('%s not in %s', node, graph)
+            continue
+        query_nodes.append(node)
+
+    if not query_nodes:
+        return
+
+    nodes = get_nodes_in_all_shortest_paths(graph, query_nodes, weight=weight)
+
+    return graph.subgraph(nodes)
 
 
 @pipeline.mutator
@@ -369,10 +389,11 @@ def get_subgraph(graph, seed_method=None, seed_data=None, expand_nodes=None, rem
     else:
         raise ValueError('Invalid seed method: {}'.format(seed_method))
 
-    log.debug('original graph has (%s nodes / %s edges)', result.number_of_nodes(), result.number_of_edges())
-
     if result is None:
+        log.debug('query returned no results')
         return
+
+    log.debug('original graph has (%s nodes / %s edges)', result.number_of_nodes(), result.number_of_edges())
 
     # Expand around the given nodes
     if expand_nodes:
@@ -392,14 +413,14 @@ def get_subgraph(graph, seed_method=None, seed_data=None, expand_nodes=None, rem
 
 
 @pipeline.mutator
-def get_subgraph_by_pubmed(graph, pmids):
+def get_subgraph_by_pubmed(graph, pubmed_identifiers):
     """Induces a subgraph over the edges retrieved from the given PubMed identifier(s)
 
     :param pybel.BELGraph graph: A BEL graph
-    :param str or list[str] pmids: A PubMed identifier or list of PubMed identifiers
+    :param str or list[str] pubmed_identifiers: A PubMed identifier or list of PubMed identifiers
     :rtype: pybel.BELGraph
     """
-    return get_subgraph_by_edge_filter(graph, build_pmid_inclusion_filter(pmids))
+    return get_subgraph_by_edge_filter(graph, build_pmid_inclusion_filter(pubmed_identifiers))
 
 
 @pipeline.mutator

@@ -128,6 +128,10 @@ class Query:
                 seed_data=seed[SEED_DATA_KEY]
             )
 
+            if subgraph is None:
+                log.debug('Seed returned empty graph: %s %s', seed)
+                continue
+
             # TODO streamline this logging... maybe put in get_subgraph function
             log.debug(
                 'Subgraph coming from %s (seed type) %s (data) contains %d nodes and %d edges',
@@ -136,9 +140,6 @@ class Query:
                 subgraph.number_of_nodes(),
                 subgraph.number_of_edges()
             )
-
-            if subgraph is None:
-                continue
 
             subgraphs.append(subgraph)
 

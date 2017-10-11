@@ -21,7 +21,7 @@ def ensure_node_from_universe(universe, graph, node, raise_for_missing=False):
     :param bool raise_for_missing: Should an error be thrown if the given node is not in the universe?
     """
     if raise_for_missing and node not in universe:
-        raise ValueError('{} not in {}'.format(node, universe.name))
+        raise IndexError('{} not in {}'.format(node, universe.name))
 
     if node not in graph:
         graph.add_node(node, attr_dict=universe.node[node])
@@ -44,5 +44,7 @@ def update_node_helper(universe, graph):
     :param pybel.BELGraph universe: The universe of all knowledge
     :param pybel.BELGraph graph: The target BEL graph
     """
-    for node in graph.nodes_iter():
+    for node in graph:
+        if node not in universe:
+            continue
         graph.node[node].update(universe.node[node])
