@@ -369,7 +369,7 @@ def collapse_consistent_edges(graph):
         graph.add_edge(u, v, attr_dict={RELATION: relation})
 
 
-@pipeline.in_place_mutator
+@pipeline.mutator
 def collapse_to_protein_interactions(graph):
     """Collapses to a graph made of only causal gene/protein edges
 
