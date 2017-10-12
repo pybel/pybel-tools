@@ -192,6 +192,9 @@ def get_subgraph_by_all_shortest_paths(graph, nodes, cutoff=None, weight=None):
 
     nodes = get_nodes_in_all_shortest_paths(graph, query_nodes, weight=weight)
 
+    if not nodes:
+        return
+
     return graph.subgraph(nodes)
 
 
