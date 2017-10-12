@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 
 import logging
+
 from collections import defaultdict
 
 from pybel.constants import *
-from pybel_tools.filters.edge_filters import build_inverse_filter, edge_has_polarity
-from pybel_tools.filters.node_filters import function_inclusion_filter_builder
+from pybel.struct.filters import filter_edges, get_nodes
+from pybel_tools.filters.edge_filters import edge_has_polarity, build_inverse_filter
 from pybel_tools.mutation.deletion import remove_filtered_edges
+from pybel_tools.filters.node_filters import function_inclusion_filter_builder
 from .deletion import prune_central_dogma
 from .inference import infer_central_dogma
 from .. import pipeline
-from ..selection import get_subgraph_by_node_filter
 from ..summary.edge_summary import pair_is_consistent
 from ..utils import all_edges_iter
 
@@ -373,12 +374,12 @@ def collapse_to_protein_interactions(graph):
     """Collapses to a graph made of only causal gene/protein edges
 
     :param pybel.BELGraph graph: A BEL Graph
-    :rtype: pybel.BELGraph
     """
+
     collapse_by_central_dogma_to_genes(graph)
 
     remove_filtered_edges(graph, build_inverse_filter(edge_has_polarity))
 
-    filtered_graph = get_subgraph_by_node_filter(graph, function_inclusion_filter_builder(GENE))
+    filtered_graph = graph.subgraph(get_nodes(graph, node_filters=function_inclusion_filter_builder(GENE)))
 
     return filtered_graph
