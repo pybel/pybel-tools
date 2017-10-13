@@ -25,32 +25,22 @@ import click
 import hashlib
 import os
 
-from pybel import from_pickle, to_database, from_lines, from_url
-from pybel.constants import (
-    PYBEL_CONNECTION,
-    SMALL_CORPUS_URL,
-    LARGE_CORPUS_URL,
-    get_cache_connection
-)
+from pybel import from_lines, from_pickle, from_url, to_database
+from pybel.constants import LARGE_CORPUS_URL, PYBEL_CONNECTION, SMALL_CORPUS_URL, get_cache_connection
 from pybel.manager import Manager
-from pybel.utils import get_version as pybel_version
-from pybel.utils import parse_bel_resource
+from pybel.utils import get_version as pybel_version, parse_bel_resource
 from pybel_tools.ioutils import get_paths_recursive
 from pybel_tools.resources import deploy_directory
-from .constants import GENE_FAMILIES, NAMED_COMPLEXES, DEFAULT_SERVICE_URL
+from .constants import DEFAULT_SERVICE_URL, GENE_FAMILIES, NAMED_COMPLEXES
 from .definition_utils import (
-    write_namespace,
-    write_annotation,
-    export_namespaces,
-    hash_names,
-    get_bel_resource_hash,
-    get_bel_knowledge_hash,
+    export_namespaces, get_bel_knowledge_hash, get_bel_resource_hash, hash_names,
+    write_annotation, write_namespace,
 )
 from .document_utils import write_boilerplate
-from .ioutils import upload_recursive, to_pybel_web, convert_paths
+from .ioutils import convert_paths, to_pybel_web, upload_recursive
 from .mutation.metadata import enrich_pubmed_citations
 from .ols_utils import OlsNamespaceOntology
-from .resources import get_namespace_history, get_annotation_history, get_knowledge_history
+from .resources import get_annotation_history, get_knowledge_history, get_namespace_history
 from .summary import get_pubmed_identifiers
 from .utils import enable_cool_mode
 
@@ -313,6 +303,7 @@ def convert_to_annotation(file, output):
         keyword=resource['Namespace']['Keyword'],
         values={k: '' for k in resource['Values']},
         citation_name=resource['Citation']['NameString'],
+        description=resource['Namespace']['DescriptionString'],
         file=output
     )
 
