@@ -139,7 +139,7 @@ def get_subgraph_by_neighborhood(graph, nodes):
     node_set = set(nodes)
 
     if all(node not in graph for node in node_set):
-        return None
+        return
 
     safe_add_edges(result, graph.in_edges_iter(nodes, keys=True, data=True))
     safe_add_edges(result, graph.out_edges_iter(nodes, keys=True, data=True))
@@ -169,12 +169,11 @@ def get_subgraph_by_second_neighbors(graph, nodes, filter_pathologies=False):
 
 
 @pipeline.mutator
-def get_subgraph_by_all_shortest_paths(graph, nodes, cutoff=None, weight=None):
+def get_subgraph_by_all_shortest_paths(graph, nodes, weight=None):
     """Induces a subgraph over the nodes in the pairwise shortest paths between all of the nodes in the given list
 
     :param pybel.BELGraph graph: A BEL graph
     :param set[tuple] nodes: A set of nodes over which to calculate shortest paths
-    :param int cutoff:  Depth to stop the shortest path search. Only paths of length <= cutoff are returned.
     :param str weight: Edge data key corresponding to the edge weight. If None, performs unweighted search
     :return: A BEL graph induced over the nodes appearing in the shortest paths between the given nodes
     :rtype: Optional[pybel.BELGraph]
@@ -190,12 +189,12 @@ def get_subgraph_by_all_shortest_paths(graph, nodes, cutoff=None, weight=None):
     if not query_nodes:
         return
 
-    nodes = get_nodes_in_all_shortest_paths(graph, query_nodes, weight=weight)
+    induced_nodes = get_nodes_in_all_shortest_paths(graph, query_nodes, weight=weight)
 
-    if not nodes:
+    if not induced_nodes:
         return
 
-    return graph.subgraph(nodes)
+    return graph.subgraph(induced_nodes)
 
 
 @pipeline.mutator
