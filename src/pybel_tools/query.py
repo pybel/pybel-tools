@@ -123,7 +123,7 @@ class Query:
             )
 
             if subgraph is None:
-                log.debug('Seed returned empty graph: %s %s', seed)
+                log.debug('Seed returned empty graph: %s', seed)
                 continue
 
             # TODO streamline this logging... maybe put in get_subgraph function
