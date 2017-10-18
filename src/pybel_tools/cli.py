@@ -26,7 +26,10 @@ import hashlib
 import os
 
 from pybel import from_lines, from_pickle, from_url, to_database
-from pybel.constants import LARGE_CORPUS_URL, PYBEL_CONNECTION, SMALL_CORPUS_URL, get_cache_connection
+from pybel.constants import (
+    LARGE_CORPUS_URL, PYBEL_CONNECTION, SMALL_CORPUS_URL, get_cache_connection,
+    NAMESPACE_DOMAIN_OTHER,
+)
 from pybel.manager import Manager
 from pybel.utils import get_version as pybel_version, parse_bel_resource
 from pybel_tools.ioutils import get_paths_recursive
@@ -339,6 +342,25 @@ def history(annotation):
 def semhash(file):
     """Semantic hash a BEL annotation"""
     _hash_helper(file)
+
+
+@annotation.command()
+@click.option('-f', '--file', type=click.File('r'), default=sys.stdin, help="Path to input BEL Namespace file")
+@click.option('-o', '--output', type=click.File('w'), default=sys.stdout,
+              help="Path to output converted BEL Namespace file")
+def convert_to_namespace(file, output):
+    """Convert an annotation file to a namespace file"""
+    resource = parse_bel_resource(file)
+    write_namespace(
+        namespace_keyword=resource['AnnotationDefinition']['Keyword'],
+        namespace_name=resource['AnnotationDefinition']['Keyword'],
+        namespace_description=resource['AnnotationDefinition']['DescriptionString'],
+        author_name='Charles Tapley Hoyt',
+        namespace_domain=NAMESPACE_DOMAIN_OTHER,
+        values=resource['Values'],
+        citation_name=resource['Citation']['NameString'],
+        file=output
+    )
 
 
 @main.group()
