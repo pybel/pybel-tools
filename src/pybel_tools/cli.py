@@ -348,11 +348,12 @@ def semhash(file):
 @click.option('-f', '--file', type=click.File('r'), default=sys.stdin, help="Path to input BEL Namespace file")
 @click.option('-o', '--output', type=click.File('w'), default=sys.stdout,
               help="Path to output converted BEL Namespace file")
-def convert_to_namespace(file, output):
+@click.option('--keyword', help="Set custom keyword. useful if the annotion keyword is too long")
+def convert_to_namespace(file, output, keyword):
     """Convert an annotation file to a namespace file"""
     resource = parse_bel_resource(file)
     write_namespace(
-        namespace_keyword=resource['AnnotationDefinition']['Keyword'],
+        namespace_keyword=(keyword or resource['AnnotationDefinition']['Keyword']),
         namespace_name=resource['AnnotationDefinition']['Keyword'],
         namespace_description=resource['AnnotationDefinition']['DescriptionString'],
         author_name='Charles Tapley Hoyt',
