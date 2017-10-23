@@ -43,7 +43,7 @@ def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=Fa
     :rtype: dict[str,dict]
     """
     pmids = {str(pmid).strip() for pmid in pmids}
-    log.info('Getting %d PubMed identifiers', len(pmids))
+    log.info('Ensuring %d PubMed identifiers', len(pmids))
 
     manager = Manager.ensure(manager)
 
@@ -67,7 +67,7 @@ def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=Fa
         return (result, set()) if return_errors else result
 
     total_unresolved_count = len(unresolved_pmids)
-    log.debug('Querying PubMed for %d identifiers', total_unresolved_count)
+    log.info('Querying PubMed for %d identifiers', total_unresolved_count)
 
     errors = set()
     t = time.time()
