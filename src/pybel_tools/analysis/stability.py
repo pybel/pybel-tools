@@ -333,7 +333,7 @@ def _get_disregulated_triplets_helper(graph, relation_set):
     """
     :param pybel.BELGraph graph: A BEL graph
     :param set[str] relation_set: A set of relations to keep 
-    :return: 
+    :rtype: iter[tuple]
     """
     result = DiGraph()
 
@@ -344,7 +344,10 @@ def _get_disregulated_triplets_helper(graph, relation_set):
     for node in result.nodes_iter():
         result.node[node].update(graph.node[node])
 
-    return get_triangles(result)
+    for a, b, c in get_triangles(result):
+        if a == b == c:
+            continue
+        yield a, b, c
 
 
 def get_chaotic_triplets(graph):
@@ -375,7 +378,6 @@ def summarize_stability(graph):
     :param pybel.BELGraph graph: A BEL graph
     :rtype: dict
     """
-
     regulatory_pairs = get_regulatory_pairs(graph)
     chaotic_pairs = get_chaotic_pairs(graph)
     dampened_pairs = get_dampened_pairs(graph)

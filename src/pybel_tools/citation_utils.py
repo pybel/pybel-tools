@@ -72,9 +72,11 @@ def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=Fa
     errors = set()
     t = time.time()
 
-    for pmid_list in grouper(group_size, unresolved_pmids):
+    for pmid_group_index, pmid_list in enumerate(grouper(group_size, unresolved_pmids)):
+        log.info('Getting group %d of %d PubMed identifiers', pmid_group_index, group_size)
         url = EUTILS_URL_FMT.format(','.join(pmid for pmid in pmid_list if pmid))
-        response = requests.get(url).json()
+        response_raw = requests.get(url)
+        response = response_raw.json()
 
         for pmid in response['result']['uids']:
             p = response['result'][pmid]
@@ -102,12 +104,15 @@ def get_citations_by_pmids(pmids, group_size=200, sleep_time=1, return_errors=Fa
             citation.issue = result[pmid]['issue']
             citation.pages = result[pmid]['pages']
             citation.first = manager.get_or_create_author(result[pmid]['first'])
+            manager.session.flush()
             citation.last = manager.get_or_create_author(result[pmid]['last'])
+            manager.session.flush()
 
             if 'authors' in p:
                 result[pmid][CITATION_AUTHORS] = [author['name'] for author in p['authors']]
                 for author in result[pmid][CITATION_AUTHORS]:
                     author_model = manager.get_or_create_author(author)
+                    manager.session.flush()
                     if author_model not in citation.authors:
                         citation.authors.append(author_model)
 

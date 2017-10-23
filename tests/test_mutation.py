@@ -6,11 +6,14 @@ from pybel import BELGraph
 from pybel.constants import *
 from pybel.constants import unqualified_edge_code
 from pybel_tools.mutation import collapse_by_central_dogma, collapse_nodes
+from pybel_tools.mutation.collapse import  collapse_to_protein_interactions
 from pybel_tools.mutation.inference import infer_central_dogmatic_transcriptions, infer_central_dogmatic_translations
 from pybel_tools.selection import get_subgraph_by_data
 from tests.constants import ExampleNetworkMixin
 
 HGNC = 'HGNC'
+GOBP = 'GOBP'
+CHEBI = 'CHEBI'
 
 g1 = GENE, HGNC, '1'
 r1 = RNA, HGNC, '1'
@@ -26,6 +29,9 @@ p3 = PROTEIN, HGNC, '3'
 
 g4 = GENE, HGNC, '4'
 m4 = MIRNA, HGNC, '4'
+
+a5 = ABUNDANCE, CHEBI, '5'
+p5 = PATHOLOGY, GOBP, '5'
 
 
 class TestCollapseDownstream(unittest.TestCase):
@@ -181,3 +187,46 @@ class TestGetSubgraphByData(ExampleNetworkMixin):
         self.assertIn(('Protein', 'HGNC', 'a'), filtered_network)
         self.assertIn(('Protein', 'HGNC', 'b'), filtered_network)
         self.assertIn(('RNA', 'HGNC', 'd'), filtered_network)
+
+
+class TestCollapseProteinInteractions(unittest.TestCase):
+    def test_protein_interaction_1(self):
+        graph = BELGraph()
+
+        graph.add_simple_node(*p1)
+        graph.add_simple_node(*p2)
+        graph.add_simple_node(*a5)
+        graph.add_simple_node(*p5)
+
+        graph.add_edge(p1, p2, **{RELATION: POSITIVE_CORRELATION})
+        graph.add_edge(p1, p2, **{RELATION: INCREASES})
+        graph.add_edge(a5, p5, **{RELATION: DIRECTLY_INCREASES})
+        graph.add_edge(p1, a5, **{RELATION: DECREASES})
+
+        collapsed_graph = collapse_to_protein_interactions(graph)
+
+        self.assertEqual(2, collapsed_graph.number_of_nodes())
+        self.assertEqual(2, collapsed_graph.number_of_edges())
+        self.assertIn(('Gene', 'HGNC', '1'), collapsed_graph)
+        self.assertIn(('Gene', 'HGNC', '2'), collapsed_graph)
+
+
+    def test_protein_interaction_2(self):
+        graph = BELGraph()
+
+        graph.add_simple_node(*p1)
+        graph.add_simple_node(*p2)
+        graph.add_simple_node(*a5)
+        graph.add_simple_node(*p5)
+
+        graph.add_edge(p1, p2, **{RELATION: POSITIVE_CORRELATION})
+        graph.add_edge(p1, p2, **{RELATION: ASSOCIATION})
+        graph.add_edge(a5, p5, **{RELATION: DIRECTLY_INCREASES})
+        graph.add_edge(p1, a5, **{RELATION: DECREASES})
+
+        collapsed_graph = collapse_to_protein_interactions(graph)
+
+        self.assertEqual(2, collapsed_graph.number_of_nodes())
+        self.assertEqual(1, collapsed_graph.number_of_edges())
+        self.assertIn(('Gene', 'HGNC', '1'), collapsed_graph)
+        self.assertIn(('Gene', 'HGNC', '2'), collapsed_graph)

@@ -448,16 +448,16 @@ def expand_node_predecessors(universe, graph, node):
     ensure_node_from_universe(universe, graph, node)
 
     skip_successors = set()
-    for successor in universe.successors_iter(node):
+    for successor in universe.successors_iter(node):  # TODO switch to node bunch
         if successor in graph:
             skip_successors.add(successor)
             continue
         graph.add_node(successor, attr_dict=universe.node[successor])
 
-    for _, successor, k, d in universe.out_edges_iter(node, data=True, keys=True):
+    for source, successor, key, data in universe.out_edges_iter(node, data=True, keys=True):
         if successor in skip_successors:
             continue
-        safe_add_edge(graph, node, successor, k, d)
+        safe_add_edge(graph, source, successor, key, data)
 
 
 @pipeline.uni_in_place_mutator
@@ -472,16 +472,16 @@ def expand_node_successors(universe, graph, node):
     ensure_node_from_universe(universe, graph, node)
 
     skip_predecessors = set()
-    for predecessor in universe.predecessors_iter(node):
+    for predecessor in universe.predecessors_iter(node):  # TODO switch to node bunch
         if predecessor in graph:
             skip_predecessors.add(predecessor)
             continue
         graph.add_node(predecessor, attr_dict=universe.node[predecessor])
 
-    for predecessor, _, k, d in universe.in_edges_iter(node, data=True, keys=True):
+    for predecessor, target, key, data in universe.in_edges_iter(node, data=True, keys=True):
         if predecessor in skip_predecessors:
             continue
-        safe_add_edge(graph, predecessor, node, k, d)
+        safe_add_edge(graph, predecessor, target, key, data)
 
 
 @pipeline.uni_in_place_mutator
@@ -518,7 +518,7 @@ def expand_all_node_neighborhoods(universe, graph, filter_pathologies=False):
     :param pybel.BELGraph  graph: The graph to add stuff to
     :param bool filter_pathologies: Should expansion take place around pathologies?
     """
-    for node in graph.nodes():
+    for node in list(graph):
         if filter_pathologies and exclude_pathology_filter(graph, node):
             continue
 

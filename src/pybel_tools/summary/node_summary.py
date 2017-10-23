@@ -41,6 +41,14 @@ def get_functions(graph):
     return set(count_functions(graph))
 
 
+def _iterate_namespaces(graph):
+    return (
+        data[NAMESPACE]
+        for _, data in graph.nodes_iter(data=True)
+        if NAMESPACE in data
+    )
+
+
 def count_namespaces(graph):
     """Counts the frequency of each namespace across all nodes (that have namespaces)
 
@@ -48,11 +56,7 @@ def count_namespaces(graph):
     :return: A Counter from {namespace: frequency}
     :rtype: collections.Counter
     """
-    return Counter(
-        data[NAMESPACE]
-        for _, data in graph.nodes_iter(data=True)
-        if NAMESPACE in data
-    )
+    return Counter(_iterate_namespaces(graph))
 
 
 def get_namespaces(graph):
@@ -62,7 +66,7 @@ def get_namespaces(graph):
     :return: A set of namespaces
     :rtype: set[str]
     """
-    return set(count_namespaces(graph))
+    return set(_iterate_namespaces(graph))
 
 
 def get_unused_namespaces(graph):

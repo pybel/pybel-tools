@@ -16,7 +16,7 @@ from pybel.utils import get_version as get_pybel_version
 from .constants import DEFAULT_SERVICE_URL
 from .integration import HGNCAnnotator
 from .mutation import opening_on_central_dogma
-from .mutation.metadata import enrich_pubmed_citations
+from .mutation.metadata import enrich_pubmed_citations, add_canonical_names
 from .selection import get_subgraph_by_annotation_value
 from .summary import get_annotation_values
 
@@ -88,8 +88,9 @@ def get_paths_recursive(directory, extension='.bel', exclude_directory_pattern=N
                 yield os.path.join(root, file)
 
 
-def convert_paths(paths, connection=None, upload=False, pickle=False, infer_central_dogma=True, enrich_citations=False,
-                  enrich_genes=False, enrich_go=False, send=False, version_in_path=False, **kwargs):
+def convert_paths(paths, connection=None, upload=False, pickle=False, canonicalize=True, infer_central_dogma=True,
+                  enrich_citations=False, enrich_genes=False, enrich_go=False, send=False, version_in_path=False,
+                  **kwargs):
     """Recursively parses and either uploads/pickles graphs in a given set of files
 
     :param iter[str] paths: The paths to convert
@@ -97,6 +98,7 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, infer_cent
     :type connection: None or str or pybel.manager.Manager
     :param bool upload: Should the networks be uploaded to the cache?
     :param bool pickle: Should the networks be saved as pickles?
+    :param bool canonicalize: Calculate canonical nodes?
     :param bool infer_central_dogma: Should the central dogma be inferred for all proteins, RNAs, and miRNAs
     :param bool enrich_citations: Should the citations be enriched using Entrez Utils?
     :param bool enrich_genes: Should the genes' descriptions be downloaded from Gene Cards?
@@ -121,6 +123,9 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, infer_cent
             log.exception('Problem parsing %s', path)
             failures.append((path, e))
             continue
+
+        if canonicalize:
+            add_canonical_names(network)
 
         if infer_central_dogma:
             opening_on_central_dogma(network)
@@ -153,7 +158,7 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, infer_cent
     return failures
 
 
-def convert_directory(directory, connection=None, upload=False, pickle=False,
+def convert_directory(directory, connection=None, upload=False, pickle=False, canonicalize=True,
                       infer_central_dogma=True, enrich_citations=False, enrich_genes=False, enrich_go=False, send=False,
                       exclude_directory_pattern=None, version_in_path=False, **kwargs):
     """Recursively parses and either uploads/pickles graphs in a given directory and sub-directories
@@ -180,6 +185,7 @@ def convert_directory(directory, connection=None, upload=False, pickle=False,
         connection=connection,
         upload=upload,
         pickle=pickle,
+        canonicalize= canonicalize,
         infer_central_dogma=infer_central_dogma,
         enrich_citations=enrich_citations,
         enrich_genes=enrich_genes,

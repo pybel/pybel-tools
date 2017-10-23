@@ -9,8 +9,10 @@ Reference for testing Flask
 
 import logging
 
+import networkx as nx
+
 from pybel.constants import *
-from pybel_tools.api import DatabaseService
+from pybel.utils import hash_node
 from pybel_tools.mutation import *
 from pybel_tools.pipeline import Pipeline
 from pybel_tools.query import Query
@@ -21,6 +23,28 @@ HGNC = 'HGNC'
 
 log = logging.getLogger(__name__)
 log.setLevel(10)
+
+
+def relabel_nodes_to_hashes(graph, copy=False):
+    """Relabels nodes to hashes in the graph
+
+    :param pybel.BELGraph graph:
+    :param bool copy: Copy the graph?
+    :rtype: pybel.BELGraph
+    """
+    if 'PYBEL_RELABELED' in graph.graph:
+        log.warning('%s has already been relabeled', graph.name)
+        return graph
+
+    mapping = {}
+    for node in graph:
+        mapping[node] = hash_node(node)
+
+    nx.relabel.relabel_nodes(graph, mapping, copy=copy)
+
+    graph.graph['PYBEL_RELABELED'] = True
+
+    return graph
 
 
 class QueryTest(ExampleNetworkMixin, ManagerMixin):
@@ -90,9 +114,6 @@ class QueryTest(ExampleNetworkMixin, ManagerMixin):
         test_network_1 = self.manager.insert_graph(self.network1)
         test_network_2 = self.manager.insert_graph(self.network2)
 
-        api = DatabaseService(self.manager)
-        api.cache_networks(infer_origin=True)
-
         pipeline = Pipeline()
         pipeline.append(get_subgraph_by_annotation_value, 'Annotation', 'foo')
         pipeline.append(collapse_by_central_dogma_to_genes)
@@ -109,8 +130,8 @@ class QueryTest(ExampleNetworkMixin, ManagerMixin):
         )
         query.add_seed_neighbors([node_1, node_2])
 
-        result_graph = query.run(api)
-        result_graph = api.relabel_nodes_to_identifiers(result_graph)
+        result_graph = query.run(self.manager)
+        result_graph = relabel_nodes_to_hashes(result_graph)
 
         self.assertEqual(4, result_graph.number_of_nodes())
         # TODO: discuss this with Charlie. It would be cool to infer the edge between b and a

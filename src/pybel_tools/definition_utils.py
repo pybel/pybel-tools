@@ -345,7 +345,7 @@ def make_annotation_header(keyword, description=None, usage=None, version=None, 
         yield 'UsageString={}'.format(usage.strip().replace('\n', ''))
 
 
-def write_annotation(keyword, values, citation_name, description=None, usage=None, version=None, created=None,
+def write_annotation(keyword, values, citation_name, description, usage=None, version=None, created=None,
                      author_name=None, author_copyright=None, author_contact=None, case_sensitive=True, delimiter='|',
                      cacheable=True, file=None, value_prefix=''):
     """Writes a BEL annotation (BELANNO) to a file

@@ -67,6 +67,20 @@ def edge_is_causal(graph, u, v, k, d):
     return graph.edge[u][v][k][RELATION] in CAUSAL_RELATIONS
 
 
+def edge_has_polarity(graph, u, v, k, d):
+    """Only passes on polarized edges, belonging to the set :data:`pybel.constants.CAUSAL_RELATIONS` or
+
+    :param pybel.BELGraph graph: A BEL Graph
+    :param tuple u: A BEL node
+    :param tuple v: A BEL node
+    :param int k: The edge key between the given nodes
+    :param dict d: The edge data dictionary
+    :return: If the edge is a polar edge
+    :rtype: bool
+    """
+    return graph.edge[u][v][k][RELATION] in CAUSAL_RELATIONS | CORRELATIVE_RELATIONS
+
+
 def edge_has_author_annotation(graph, u, v, k, d):
     """Passes for edges that have citations with authors
 
