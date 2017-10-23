@@ -124,7 +124,7 @@ def enrich_pubmed_citations(graph, stringify_authors=False, manager=None):
         pmid = d[CITATION][CITATION_REFERENCE].strip()
 
         if pmid not in pmid_data:
-            log.warning('Missing data for PubMed identifier: %s', pmid)
+            log.debug('Missing data for PubMed identifier: %s', pmid)
             errors.add(pmid)
             continue
 
