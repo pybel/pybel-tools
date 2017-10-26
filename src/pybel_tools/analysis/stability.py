@@ -296,9 +296,9 @@ def _get_mismatch_triplets_helper(graph, relation_set):
     """
     for node in graph.nodes_iter():
         children = {
-            v
-            for _, v, d in graph.out_edges_iter(node, data=True)
-            if d[RELATION] in relation_set
+            target
+            for _, target, data in graph.out_edges_iter(node, data=True)
+            if data[RELATION] in relation_set
         }
 
         for a, b in itt.combinations(children, 2):
