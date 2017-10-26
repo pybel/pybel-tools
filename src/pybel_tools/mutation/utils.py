@@ -41,8 +41,8 @@ def remove_isolated_nodes(graph):
 def update_node_helper(universe, graph):
     """Updates the nodes' data dictionaries from the universe
 
-    :param pybel.BELGraph universe: The universe of all knowledge
-    :param pybel.BELGraph graph: The target BEL graph
+    :param nx.Graph universe: The universe of all knowledge
+    :param nx.Graph graph: The target BEL graph
     """
     for node in graph:
         if node not in universe:
