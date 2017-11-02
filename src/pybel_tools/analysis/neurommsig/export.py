@@ -123,11 +123,13 @@ munge_snp = partial(munge_cell, validators=[SNPpattern, SNPspatternSpaceComma])
 mesh_alzheimer = "Alzheimer Disease"  # Death to the eponym!
 mesh_parkinson = "Parkinson Disease"
 
-pathway_column = 'Pathway Name (Daniel & Apurva)'
+pathway_column = 'Subgraph Name'
 columns = [
-    'Genes (Daniel & Apurva)',
+    'Genes',
+    'PMIDs',
     'SNPs from Literature (Aybuge)',
     'Genome wide associated SNPs (Mufassra)',
+    'LD block analysis (Mufassra)',
     'Imaging Features (Anandhi)',
     'SNP_Image Feature (Mufassra & Anandhi)',
 ]
