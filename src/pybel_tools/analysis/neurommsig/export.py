@@ -201,7 +201,8 @@ def write_neurommsig_bel(file, df, disease, nift_values):
     for pathway, pathway_df in df.groupby(pathway_column):
         print('SET Subgraph = "{}"'.format(pathway), file=file)
 
-        for _, gene, lit_snps, gwas_snps, clinical_features, clinical_snp in pathway_df[columns].itertuples():
+        for _, gene, pubmeds, lit_snps, gwas_snps, ld_block_snps, clinical_features, clinical_snp in pathway_df[
+            columns].itertuples():
             gene = ensure_quotes(gene)
 
             if lit_snps is None:
