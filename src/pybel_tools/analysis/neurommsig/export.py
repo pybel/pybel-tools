@@ -208,13 +208,20 @@ def write_neurommsig_bel(file, df, disease, nift_values):
             if lit_snps is None:
                 lit_snps = []
 
+            # TODO: Stick PubMeds into the evidence somehow
+            if pubmeds is None:
+                pubmeds = []
+
+            if ld_block_snps is None:
+                ld_block_snps = []
+
             if gwas_snps is None:
                 gwas_snps = []
 
             if clinical_snp is None:
                 clinical_snp = []
 
-            for snp in itt.chain(lit_snps, gwas_snps, clinical_snp):
+            for snp in itt.chain(lit_snps, gwas_snps,ld_block_snps, clinical_snp):
                 if not snp.strip():
                     continue
                 print('g(HGNC:{}) -- g(dbSNP:{})'.format(gene, snp), file=file)
