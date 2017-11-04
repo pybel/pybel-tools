@@ -6,14 +6,14 @@ from pybel.canonicalize import calculate_canonical_name
 from pybel.constants import CITATION, CITATION_AUTHORS, CITATION_REFERENCE, ID
 from pybel.parser.canonicalize import node_to_tuple
 from pybel.struct.filters import filter_edges
+from pybel.summary.node_summary import get_namespaces
 from pybel.utils import hash_edge, hash_node
 from .. import pipeline
 from ..citation_utils import get_citations_by_pmids
 from ..constants import CNAME
 from ..filters.edge_filters import edge_has_author_annotation, edge_has_pubmed_citation
-from ..filters.node_filters import node_missing_cname, filter_nodes
+from ..filters.node_filters import filter_nodes, node_missing_cname
 from ..summary.edge_summary import get_annotations
-from ..summary.node_summary import get_namespaces
 from ..summary.provenance import get_pubmed_identifiers
 
 __all__ = [

@@ -5,8 +5,9 @@
 import logging
 
 from pybel.constants import NAME
+from pybel.struct.filters import filter_nodes
 from .. import pipeline
-from ..filters.node_filters import filter_nodes, function_namespace_inclusion_builder
+from ..filters.node_filters import function_namespace_inclusion_builder
 
 __all__ = [
     'overlay_data',

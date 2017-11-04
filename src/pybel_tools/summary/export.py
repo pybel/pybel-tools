@@ -14,9 +14,9 @@ import logging
 import networkx as nx
 import pandas as pd
 
+from pybel.summary.node_summary import count_functions
 from .edge_summary import count_relations
-from .node_summary import count_functions
-from .provenance import count_unique_citations, count_unique_authors
+from .provenance import count_unique_authors, count_unique_citations
 
 __all__ = [
     'plot_summary_axes',

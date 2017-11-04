@@ -5,13 +5,14 @@ from collections import defaultdict
 from ols_client import OlsClient
 from pybel.constants import CITATION_TYPE_URL, IS_A, belns_encodings
 from pybel.parser.language import rev_abundance_labels
+from pybel.resources.arty import (
+    get_latest_arty_namespace, get_today_arty_annotation, get_today_arty_knowledge,
+    get_today_arty_namespace,
+)
+from pybel.resources.deploy import deploy_annotation, deploy_knowledge, deploy_namespace
 from pybel.utils import ensure_quotes
 from pybel_tools.definition_utils import write_annotation, write_namespace
 from pybel_tools.document_utils import write_boilerplate
-from pybel_tools.resources import (
-    deploy_annotation, deploy_knowledge, deploy_namespace, get_latest_arty_namespace,
-    get_today_arty_annotation, get_today_arty_knowledge, get_today_arty_namespace,
-)
 
 function_to_encoding = defaultdict(list)
 for encoding, functions in belns_encodings.items():
@@ -122,14 +123,14 @@ class OlsNamespaceOntology:
 
     def _write_hierarchy_header(self, file=None):
         write_boilerplate(
-            document_name=self.title,
+            name=self.title,
             description=self.description,
             authors='Charles Tapley Hoyt',
             contact='charles.hoyt@scai.fraunhofer.de',
             version=self.version,
-            namespace_dict={self.preferred_prefix: get_latest_arty_namespace(self.ontology)},
-            annotations_dict={},
-            annotations_patterns={},
+            namespace_url={self.preferred_prefix: get_latest_arty_namespace(self.ontology)},
+            annotation_url={},
+            annotation_patterns={},
             namespace_patterns={},
             file=file
         )

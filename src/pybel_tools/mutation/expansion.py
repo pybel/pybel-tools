@@ -2,14 +2,14 @@
 
 import itertools as itt
 import logging
-
 from collections import Counter, defaultdict
 
 from pybel import BELGraph
 from pybel.constants import *
 from pybel.struct import left_full_join
-from pybel.struct.filters import keep_edge_permissive, keep_node_permissive, concatenate_node_filters, \
-    concatenate_edge_filters
+from pybel.struct.filters import concatenate_edge_filters, concatenate_node_filters
+from pybel.struct.filters.edge_predicates import keep_edge_permissive
+from pybel.struct.filters.node_predicates import keep_node_permissive
 from .utils import ensure_node_from_universe, update_node_helper
 from .. import pipeline
 from ..filters.edge_filters import edge_is_causal
@@ -216,8 +216,8 @@ def get_subgraph_peripheral_nodes(graph, subgraph, node_filters=None, edge_filte
     >>>           len(p[node]['predecessor']),
     >>>           len(set(p[node]['successor']) | set(p[node]['predecessor'])))
     """
-    node_filter = concatenate_node_filters(node_filters)
-    edge_filter = concatenate_edge_filters(edge_filters)
+    node_filter = concatenate_node_filters(node_filters=node_filters)
+    edge_filter = concatenate_edge_filters(edge_filters=edge_filters)
 
     result = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
 

@@ -2,7 +2,8 @@
 
 from __future__ import print_function
 
-from pybel.constants import HAS_PRODUCT, HAS_REACTANT, HAS_VARIANT, HAS_COMPONENT, TRANSCRIBED_TO, TRANSLATED_TO
+from pybel.constants import HAS_COMPONENT, HAS_PRODUCT, HAS_REACTANT, HAS_VARIANT, TRANSCRIBED_TO, TRANSLATED_TO
+from pybel.resources.constants import citation_format, evidence_format
 
 IS_PRODUCT_OF = 'isProductOf'
 IS_REACTANT_OF = 'isReactantOf'
@@ -24,28 +25,6 @@ abstract_url_fmt = "http://togows.dbcls.jp/entry/ncbi-pubmed/{}/abstract"
 title_url_fmt = "http://togows.dbcls.jp/entry/ncbi-pubmed/{}/title"
 #: SO gives short citation information
 so_url_fmt = "http://togows.dbcls.jp/entry/ncbi-pubmed/{}/so"
-citation_format = 'SET Citation = {{"PubMed","{}","{}"}}'
-evidence_format = 'SET Evidence = "{}"'
-
-
-def pubmed(name, identifier):
-    return citation_format.format(name.replace('\n', ''), identifier)
-
-
-def print_set_pubmed(pmid, title=None, file=None):
-    if title:
-        print(pubmed(title, pmid), file=file)
-    else:
-        print('SET Citation = {{"PubMed","{}"}}'.format(pmid), file=file)
-
-
-def print_set_evidence(evidence, file=None):
-    print(evidence_format.format(evidence), file=file)
-
-
-def print_set_confidence(confidence, file=None):
-    print('SET Confidence = "{}"'.format(confidence), file=file)
-
 
 CNAME = 'cname'
 DATA_WEIGHT = 'weight'
