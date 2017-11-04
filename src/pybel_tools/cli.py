@@ -27,8 +27,8 @@ import os
 
 from pybel import from_lines, from_pickle, from_url, to_database
 from pybel.constants import (
-    LARGE_CORPUS_URL, PYBEL_CONNECTION, SMALL_CORPUS_URL, get_cache_connection,
-    NAMESPACE_DOMAIN_OTHER,
+    LARGE_CORPUS_URL, NAMESPACE_DOMAIN_OTHER, PYBEL_CONNECTION, SMALL_CORPUS_URL,
+    get_cache_connection,
 )
 from pybel.manager import Manager
 from pybel.utils import get_version as pybel_version, parse_bel_resource
@@ -45,7 +45,7 @@ from .mutation.metadata import enrich_pubmed_citations
 from .ols_utils import OlsNamespaceOntology
 from .resources import get_annotation_history, get_knowledge_history, get_namespace_history
 from .summary import get_pubmed_identifiers
-from .utils import enable_cool_mode
+from .utils import enable_cool_mode, get_version
 
 log = logging.getLogger(__name__)
 
@@ -71,7 +71,8 @@ def set_debug_param(debug):
         set_debug(10)
 
 
-@click.group(help="PyBEL-Tools Command Line Interface on {}\n with PyBEL v{}".format(sys.executable, pybel_version()))
+@click.group(help="PyBEL-Tools v{} Command Line Interface on {}\n with PyBEL v{}".format(get_version(), sys.executable,
+                                                                                         pybel_version()))
 @click.version_option()
 def main():
     """PyBEL Tools Command Line Interface"""
