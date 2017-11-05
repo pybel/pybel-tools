@@ -4,6 +4,13 @@ PyBEL Tools |develop_build| |develop_coverage| |develop_documentation| |zenodo|
 `PyBEL <https://pybel.readthedocs.io>`_ to facilitate data management, integration, and analysis. For further examples,
 see the `PyBEL Notebooks <https://github.com/pybel/pybel-notebooks>`_ repository.
 
+Citation
+--------
+If you use PyBEL in your work, we ask that you please cite:
+
+Hoyt et al., 2017. PyBEL: a computational framework for Biological Expression Language. Bioinformatics, btx660, https://doi.org/10.1093/bioinformatics/btx660
+
+
 Installation |pypi_version| |python_versions| |pypi_license|
 ------------------------------------------------------------
 PyBEL Tools can be installed easily from PyPI_ with the following code in

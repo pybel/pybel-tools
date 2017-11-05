@@ -31,8 +31,10 @@ from pybel.constants import (
 )
 from pybel.manager import Manager
 from pybel.resources.arty import get_annotation_history, get_knowledge_history, get_namespace_history
-from pybel.resources.definitions import get_bel_resource_hash, hash_names, parse_bel_resource
-from pybel.resources.definitions_write import write_annotation, write_namespace
+from pybel.resources.definitions import (
+    get_bel_resource_hash, hash_names, parse_bel_resource, write_annotation,
+    write_namespace,
+)
 from pybel.resources.deploy import deploy_directory
 from pybel.resources.document import get_bel_knowledge_hash
 from pybel.utils import get_version as pybel_version

@@ -167,8 +167,8 @@ texinfo_documents = [
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
-    'pybel': ('http://pybel.readthedocs.io/en/latest/', None),
-    'pandas': ('http://pandas-docs.github.io/pandas-docs-travis/', None)
+    'pybel': ('https://pybel.readthedocs.io/en/latest/', None),
+    'pandas': ('https://pandas-docs.github.io/pandas-docs-travis/', None)
 }
 
 autodoc_member_order = 'bysource'
