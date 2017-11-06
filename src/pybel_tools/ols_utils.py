@@ -9,9 +9,9 @@ from pybel.resources.arty import (
     get_latest_arty_namespace, get_today_arty_annotation, get_today_arty_knowledge,
     get_today_arty_namespace,
 )
+from pybel.resources.definitions import write_annotation, write_namespace
 from pybel.resources.deploy import deploy_annotation, deploy_knowledge, deploy_namespace
 from pybel.utils import ensure_quotes
-from pybel_tools.definition_utils import write_annotation, write_namespace
 from pybel_tools.document_utils import write_boilerplate
 
 function_to_encoding = defaultdict(list)
