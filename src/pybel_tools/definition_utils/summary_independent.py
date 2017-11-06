@@ -6,8 +6,7 @@ from __future__ import print_function
 
 import logging
 
-from pybel.resources.definitions import get_bel_resource
-from pybel.resources.definitions import write_namespace
+from pybel.resources.definitions import get_bel_resource, write_namespace
 
 __all__ = [
     'get_merged_namespace_names',

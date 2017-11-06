@@ -14,7 +14,7 @@ import logging
 import networkx as nx
 import pandas as pd
 
-from pybel.summary.node_summary import count_functions
+from pybel.struct.summary.node_summary import count_functions
 from .edge_summary import count_relations
 from .provenance import count_unique_authors, count_unique_citations
 

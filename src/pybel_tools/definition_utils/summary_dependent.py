@@ -5,7 +5,7 @@ import os
 
 from pybel.constants import *
 from pybel.resources.definitions import write_namespace
-from pybel.summary.node_summary import get_names_by_namespace
+from pybel.struct.summary.node_summary import get_names_by_namespace
 from ..summary.error_summary import get_incorrect_names_by_namespace, get_undefined_namespace_names
 
 log = logging.getLogger(__name__)

@@ -6,7 +6,7 @@ import warnings
 
 import pandas as pd
 
-from pybel.summary.node_summary import get_names_by_namespace
+from pybel.struct.summary.node_summary import get_names_by_namespace
 from .node_annotator import NodeAnnotator
 from ...document_utils import get_entrez_gene_data
 from ...utils import grouper
