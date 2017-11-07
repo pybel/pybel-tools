@@ -1,5 +1,5 @@
-Cookbook
-========
+Command Line Interface
+======================
 
 Pickling lots of BEL scripts
 ----------------------------
@@ -8,8 +8,7 @@ following command (add :code:`-d` to specify a different directory)
 
 .. code-block:: sh
 
-    $ python3 -m pybel_tools io convert -d ~/bms/aetionomy/
-
+    $ pybel-tools io convert -d ~/bms/aetionomy/
 
 Getting Data in to the Cache
 ----------------------------
@@ -27,13 +26,13 @@ Small Corpus
 ************
 .. code-block:: sh
 
-    $ python3 -m pybel_tools ensure small_corpus -v
+    $ pybel-tools ensure small_corpus -v
 
 Large Corpus
 ************
 .. code-block:: sh
 
-    $ python3 -m pybel_tools ensure large_corpus -v
+    $ pybel-tools ensure large_corpus -v
 
 Loading Other Resources
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -41,17 +40,13 @@ Gene Families
 *************
 .. code-block:: sh
 
-    $ python3 -m pybel_tools ensure gene_families -v
+    $ pybel-tools ensure gene_families -v
 
 Named Protein Complexes
 ***********************
 .. code-block:: sh
 
-    $ python3 -m pybel_tools ensure named_complexes -v
-
-Orthology Relations
-*******************
-Coming soon!
+    $ pybel-tools ensure named_complexes -v
 
 Uploading Precompiled BEL
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -59,7 +54,7 @@ A single network stored as a PyBEL gpickle can quickly be uploaded using the fol
 
 .. code-block:: sh
 
-    $ python3 -m pybel_tools io upload -p /path/to/my_network.gpickle
+    $ pybel-tools io upload -p /path/to/my_network.gpickle
 
 Uploading Multiple Networks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -67,4 +62,19 @@ Multiple networks in a given directory and sub-directories can be uploaded by ad
 
 .. code::
 
-    $ python3 -m pybel_tools io upload -p ~/bms/aetionomy/ -r
+    $ pybel-tools io upload -p ~/bms/aetionomy/ -r
+
+Building Resources via OLS
+--------------------------
+Namespaces, annotations, and hierarchies can be created by querying the ontologies stored in the EBI Ontology Lookup
+Service.
+
+Namespace
+~~~~~~~~~
+In order to convert UBERON to a namespace, the keyword inside the OLS, ``uberon`` is used as well as specifying the
+encoding type and the applicabiltiy domain. The ``-o`` option can be used to specify which file to write the output
+to.
+
+.. code::
+
+    $ pybel-tools namespace from_ols uberon --domain "Other" --encoding "A"

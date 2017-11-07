@@ -46,13 +46,16 @@ This example shows how the results from multiple pipelines can be combine.
 
 from __future__ import print_function
 
-import inspect
 import json
 import logging
-
 from functools import wraps
 
 from pybel.struct.operations import union
+
+try:
+    from inspect import signature
+except ImportError:
+    from funcsigs import signature
 
 __all__ = [
     'Pipeline',
@@ -106,7 +109,7 @@ def _register(universe, in_place, **kwargs):
         else:
             out_place_map[f.__name__] = f
 
-        z = inspect.signature(f)
+        z = signature(f)
         if (universe and 3 <= len(z.parameters)) or (not universe and 2 <= len(z.parameters)):
             has_arguments_map[f.__name__] = f
         else:

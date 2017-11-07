@@ -16,36 +16,38 @@ Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 
 from __future__ import print_function
 
+import hashlib
 import json
 import logging
+import os
 import sys
 from getpass import getuser
 
 import click
-import hashlib
-import os
 
+from ols_client.constants import BASE_URL
 from pybel import from_lines, from_pickle, from_url, to_database
 from pybel.constants import (
-    LARGE_CORPUS_URL, PYBEL_CONNECTION, SMALL_CORPUS_URL, get_cache_connection,
-    NAMESPACE_DOMAIN_OTHER,
+    BELNS_ENCODING_STR, LARGE_CORPUS_URL, NAMESPACE_DOMAIN_OTHER, NAMESPACE_DOMAIN_TYPES,
+    PYBEL_CONNECTION, SMALL_CORPUS_URL, get_cache_connection,
 )
 from pybel.manager import Manager
-from pybel.utils import get_version as pybel_version, parse_bel_resource
-from pybel_tools.ioutils import get_paths_recursive
-from pybel_tools.resources import deploy_directory
-from .constants import DEFAULT_SERVICE_URL, GENE_FAMILIES, NAMED_COMPLEXES
-from .definition_utils import (
-    export_namespaces, get_bel_knowledge_hash, get_bel_resource_hash, hash_names,
-    write_annotation, write_namespace,
+from pybel.resources.arty import get_annotation_history, get_knowledge_history, get_namespace_history
+from pybel.resources.definitions import (
+    get_bel_resource_hash, hash_names, parse_bel_resource, write_annotation,
+    write_namespace,
 )
+from pybel.resources.deploy import deploy_directory
+from pybel.resources.document import get_bel_knowledge_hash
+from pybel.utils import get_version as pybel_version
+from .constants import DEFAULT_SERVICE_URL, GENE_FAMILIES, NAMED_COMPLEXES
+from .definition_utils import export_namespaces
 from .document_utils import write_boilerplate
-from .ioutils import convert_paths, to_pybel_web, upload_recursive
+from .ioutils import convert_paths, get_paths_recursive, to_pybel_web, upload_recursive
 from .mutation.metadata import enrich_pubmed_citations
 from .ols_utils import OlsNamespaceOntology
-from .resources import get_annotation_history, get_knowledge_history, get_namespace_history
 from .summary import get_pubmed_identifiers
-from .utils import enable_cool_mode
+from .utils import enable_cool_mode, get_version
 
 log = logging.getLogger(__name__)
 
@@ -71,7 +73,8 @@ def set_debug_param(debug):
         set_debug(10)
 
 
-@click.group(help="PyBEL-Tools Command Line Interface on {}\n with PyBEL v{}".format(sys.executable, pybel_version()))
+@click.group(help="PyBEL-Tools v{} Command Line Interface on {}\n with PyBEL v{}".format(get_version(), sys.executable,
+                                                                                         pybel_version()))
 @click.version_option()
 def main():
     """PyBEL Tools Command Line Interface"""
@@ -313,13 +316,14 @@ def convert_to_annotation(file, output):
 
 @namespace.command()
 @click.argument('ontology')
-@click.argument('domain')
-@click.argument('function')
-@click.option('-b', '--ols-base')
-@click.option('-o', '--output', type=click.File('w'), default=sys.stdout)
-def from_ols(ontology, domain, function, ols_base, output):
-    """Creates a namespace from the ontology lookup service"""
-    ont = OlsNamespaceOntology(ontology, domain, function, ols_base=ols_base)
+@click.option('-e', '--encoding', default=BELNS_ENCODING_STR)
+@click.option('-d', '--domain', type=click.Choice(NAMESPACE_DOMAIN_TYPES), default=NAMESPACE_DOMAIN_OTHER)
+@click.option('-b', '--ols-base-url', default=BASE_URL, help='Default: {}'.format(BASE_URL))
+@click.option('-o', '--output', type=click.File('w'), default=sys.stdout,
+              help='The file to output to. Defaults to standard out.')
+def from_ols(ontology, domain, encoding, ols_base_url, output):
+    """Creates a namespace from the ontology lookup service given the internal ontology keyword"""
+    ont = OlsNamespaceOntology(ontology, domain, encoding=encoding, ols_base=ols_base_url)
     ont.write_namespace(output)
 
 
@@ -377,7 +381,7 @@ def document():
 @click.option('-o', '--output', type=click.File('w'), default=sys.stdout)
 def from_ols(ontology, domain, function, ols_base, output):
     """Creates a hierarchy from the ontology lookup service"""
-    ont = OlsNamespaceOntology(ontology, domain, function, ols_base=ols_base)
+    ont = OlsNamespaceOntology(ontology, domain, bel_function=function, ols_base=ols_base)
     ont.write_hierarchy(output)
 
 
@@ -391,7 +395,7 @@ def history(name):
 
 
 @document.command()
-@click.argument('document-name')
+@click.argument('name')
 @click.argument('contact')
 @click.argument('description')
 @click.argument('pmids', nargs=-1)
@@ -399,17 +403,19 @@ def history(name):
 @click.option('--copyright')
 @click.option('--authors')
 @click.option('--licenses')
+@click.option('--disclaimer')
 @click.option('--output', type=click.File('wb'), default=sys.stdout)
-def boilerplate(document_name, contact, description, pmids, version, copyright, authors, licenses, output):
+def boilerplate(name, contact, description, pmids, version, copyright, authors, licenses, disclaimer, output):
     """Builds a template BEL document with the given PubMed identifiers"""
     write_boilerplate(
-        document_name,
-        contact,
-        description,
-        version,
-        copyright,
-        authors,
-        licenses,
+        name=name,
+        version=version,
+        description=description,
+        authors=authors,
+        contact=contact,
+        copyright=copyright,
+        licenses=licenses,
+        disclaimer=disclaimer,
         pmids=pmids,
         file=output
     )

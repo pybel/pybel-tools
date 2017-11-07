@@ -10,9 +10,12 @@ A metapath can be defined with two levels of granularity:
 
 """
 
-from functools import lru_cache
-
 from pybel.constants import FUNCTION
+
+try:
+    from functools import lru_cache
+except:
+    from functools32 import lru_cache
 
 __all__ = [
     'convert_path_to_metapath',

@@ -19,7 +19,7 @@ Links
    :name: springboard
 
    installation
-   cookbook
+   cli
 
 .. toctree::
    :maxdepth: 2
@@ -57,7 +57,6 @@ Links
 
    ioutils
    documentutils
-   resourceutils
    utilities
    lexer
 

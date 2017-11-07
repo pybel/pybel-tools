@@ -3,20 +3,14 @@
 """This module contains functions that provide summaries of the edges in a graph"""
 
 import itertools as itt
-
 from collections import Counter, defaultdict
 
 from pybel.constants import (
-    RELATION,
-    ANNOTATIONS,
-    FUNCTION,
-    PATHOLOGY,
-    CAUSAL_INCREASE_RELATIONS,
-    CAUSAL_DECREASE_RELATIONS,
-    CAUSES_NO_CHANGE,
+    ANNOTATIONS, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, CAUSES_NO_CHANGE,
+    FUNCTION, PATHOLOGY, RELATION,
 )
-from pybel.struct.filters.node_filters import keep_node_permissive
-from ..utils import get_value_sets, check_has_annotation, graph_edge_data_iter
+from pybel.struct.filters.node_predicates import keep_node_permissive
+from ..utils import check_has_annotation, get_value_sets
 
 __all__ = [
     'count_relations',
@@ -87,7 +81,7 @@ def count_annotations(graph):
     """
     return Counter(
         key
-        for data in graph_edge_data_iter(graph)
+        for _, _, data in graph.edges_iter(data=True)
         if ANNOTATIONS in data
         for key in data[ANNOTATIONS]
     )
@@ -110,9 +104,7 @@ def get_unused_annotations(graph):
     :return: A set of annotations
     :rtype: set[str] 
     """
-    defined_annotations = set(graph.annotation_pattern) | set(graph.annotation_url) | set(graph.annotation_owl) | set(
-        graph.annotation_list)
-    return defined_annotations - get_annotations(graph)
+    return graph.defined_annotation_keywords - get_annotations(graph)
 
 
 def get_unused_list_annotation_values(graph):
@@ -140,7 +132,7 @@ def _get_annotation_values_by_annotation_helper(graph):
     """
     result = defaultdict(set)
 
-    for data in graph_edge_data_iter(graph):
+    for _, _, data in graph.edges_iter(data=True):
         if ANNOTATIONS not in data:
             continue
 

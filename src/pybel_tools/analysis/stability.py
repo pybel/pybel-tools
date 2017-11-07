@@ -6,6 +6,7 @@ import logging
 from networkx import DiGraph, Graph
 
 from pybel.constants import *
+from ..mutation import update_node_helper
 from ..selection import get_causal_subgraph
 from ..summary import get_all_relations, relation_set_has_contradictions
 
@@ -296,9 +297,9 @@ def _get_mismatch_triplets_helper(graph, relation_set):
     """
     for node in graph.nodes_iter():
         children = {
-            v
-            for _, v, d in graph.out_edges_iter(node, data=True)
-            if d[RELATION] in relation_set
+            target
+            for _, target, data in graph.out_edges_iter(node, data=True)
+            if data[RELATION] in relation_set
         }
 
         for a, b in itt.combinations(children, 2):
@@ -341,8 +342,7 @@ def _get_disregulated_triplets_helper(graph, relation_set):
         if d[RELATION] in relation_set:
             result.add_edge(u, v)
 
-    for node in result.nodes_iter():
-        result.node[node].update(graph.node[node])
+    update_node_helper(graph, result)
 
     for a, b, c in get_triangles(result):
         if a == b == c:

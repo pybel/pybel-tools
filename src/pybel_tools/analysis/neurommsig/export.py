@@ -6,15 +6,16 @@ To run, type :code:`python3 -m pybel_tools.analysis.neurommsig.export` in the co
 
 import itertools as itt
 import logging
-
 import os
-import pandas as pd
 import re
 from functools import partial
 
-from pybel.utils import ensure_quotes, get_bel_resource
+import pandas as pd
+
+from pybel.resources.defaults import DBSNP_PATTERN, HGNC_HUMAN_GENES, MESHD, NEUROMMSIG, NIFT
+from pybel.resources.definitions import get_bel_resource
+from pybel.utils import ensure_quotes
 from ...document_utils import write_boilerplate
-from ...resources import DBSNP_PATTERN, NIFT, HGNC_HUMAN_GENES, NEUROMMSIG, MESHD
 
 log = logging.getLogger(__name__)
 
@@ -123,11 +124,13 @@ munge_snp = partial(munge_cell, validators=[SNPpattern, SNPspatternSpaceComma])
 mesh_alzheimer = "Alzheimer Disease"  # Death to the eponym!
 mesh_parkinson = "Parkinson Disease"
 
-pathway_column = 'Pathway Name (Daniel & Apurva)'
+pathway_column = 'Subgraph Name'
 columns = [
-    'Genes (Daniel & Apurva)',
+    'Genes',
+    'PMIDs',
     'SNPs from Literature (Aybuge)',
     'Genome wide associated SNPs (Mufassra)',
+    'LD block analysis (Mufassra)',
     'Imaging Features (Anandhi)',
     'SNP_Image Feature (Mufassra & Anandhi)',
 ]
@@ -170,18 +173,18 @@ def write_neurommsig_bel(file, df, disease, nift_values):
     :param dict nift_values: a dictionary of lowercased to normal names in NIFT
     """
     write_boilerplate(
-        document_name='NeuroMMSigDB for {}'.format(disease),
+        name='NeuroMMSigDB for {}'.format(disease),
         description='SNP and Clinical Features for Subgraphs in {}'.format(disease),
         authors='Daniel Domingo, Charles Tapley Hoyt, Mufassra Naz, Aybuge Altay, Anandhi Iyappan',
         contact='charles.hoyt@scai.fraunhofer.de',
-        namespace_dict={
+        namespace_url={
             'NIFT': NIFT,
             'HGNC': HGNC_HUMAN_GENES,
         },
         namespace_patterns={
             'dbSNP': DBSNP_PATTERN
         },
-        annotations_dict={
+        annotation_url={
             'Subgraph': NEUROMMSIG,
             'MeSHDisease': MESHD
         },
@@ -199,11 +202,19 @@ def write_neurommsig_bel(file, df, disease, nift_values):
     for pathway, pathway_df in df.groupby(pathway_column):
         print('SET Subgraph = "{}"'.format(pathway), file=file)
 
-        for _, gene, lit_snps, gwas_snps, clinical_features, clinical_snp in pathway_df[columns].itertuples():
+        for _, gene, pubmeds, lit_snps, gwas_snps, ld_block_snps, clinical_features, clinical_snp in pathway_df[
+            columns].itertuples():
             gene = ensure_quotes(gene)
 
             if lit_snps is None:
                 lit_snps = []
+
+            # TODO: Stick PubMeds into the evidence somehow
+            if pubmeds is None:
+                pubmeds = []
+
+            if ld_block_snps is None:
+                ld_block_snps = []
 
             if gwas_snps is None:
                 gwas_snps = []
@@ -211,7 +222,7 @@ def write_neurommsig_bel(file, df, disease, nift_values):
             if clinical_snp is None:
                 clinical_snp = []
 
-            for snp in itt.chain(lit_snps, gwas_snps, clinical_snp):
+            for snp in itt.chain(lit_snps, gwas_snps, ld_block_snps, clinical_snp):
                 if not snp.strip():
                     continue
                 print('g(HGNC:{}) -- g(dbSNP:{})'.format(gene, snp), file=file)

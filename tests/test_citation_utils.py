@@ -4,10 +4,7 @@ import unittest
 
 from pybel import BELGraph
 from pybel.constants import *
-from pybel.manager.models import Citation
-from pybel_tools.citation_utils import get_citations_by_pmids
 from pybel_tools.mutation import enrich_pubmed_citations
-from pybel_tools.summary.provenance import get_pubmed_identifiers
 from tests.constants import ManagerMixin
 
 
@@ -30,31 +27,6 @@ class TestCitations(ManagerMixin):
         })
 
         self.graph = g
-
-    def test_enrich(self):
-        pmids = get_pubmed_identifiers(self.graph)
-
-        stored_citations = self.manager.session.query(Citation).all()
-
-        self.assertEqual(0, len(stored_citations))
-
-        get_citations_by_pmids(pmids, manager=self.manager)
-
-        stored_citations = self.manager.session.query(Citation).all()
-        self.assertEqual(1, len(stored_citations))
-
-    def test_enrich_list(self):
-        pmids = [
-            '25818332',
-            '27003210',
-            '26438529',
-            '26649137',
-        ]
-
-        get_citations_by_pmids(pmids, manager=self.manager)
-
-        citation = self.manager.get_or_create_citation(type=CITATION_TYPE_PUBMED, reference='25818332')
-        self.assertIsNotNone(citation)
 
     def test_enrich_overwrite(self):
         citation = self.manager.get_or_create_citation(type=CITATION_TYPE_PUBMED, reference=self.pmid)

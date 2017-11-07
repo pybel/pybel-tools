@@ -6,7 +6,7 @@ from collections import Counter, defaultdict
 
 from pybel.constants import ANNOTATIONS
 from pybel.parser.parse_exceptions import *
-from .node_summary import get_namespaces, get_names_by_namespace
+from pybel.struct.summary.node_summary import get_names_by_namespace, get_namespaces
 from ..utils import check_has_annotation, count_dict_values
 
 __all__ = [

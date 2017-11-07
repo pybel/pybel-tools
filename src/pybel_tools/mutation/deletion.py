@@ -2,8 +2,11 @@
 
 """This module contains convenient functions for removing nodes/edges that are returned from selection functions"""
 
+from pybel.constants import PATHOLOGY
+from pybel.struct.filters import get_nodes
 from pybel.struct.filters.edge_filters import filter_edges
 from .. import pipeline
+from ..filters.node_selection import function_inclusion_filter_builder
 from ..selection.leaves import get_gene_leaves, get_rna_leaves
 from ..selection.utils import get_leaves_by_type
 from ..summary.edge_summary import get_inconsistent_edges
@@ -73,3 +76,13 @@ def remove_inconsistent_edges(graph):
     for u, v in get_inconsistent_edges(graph):
         edges = list(all_edges_iter(graph, u, v))
         graph.remove_edges_from(edges)
+
+
+@pipeline.in_place_mutator
+def remove_pathologies(graph):
+    """Remove pathology nodes
+
+    :param pybel.BELGraph graph: A BEL graph
+    """
+    nodes = get_nodes(graph, function_inclusion_filter_builder(PATHOLOGY))
+    graph.remove_nodes_from(nodes)

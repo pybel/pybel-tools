@@ -3,6 +3,7 @@
 import codecs
 import os
 import re
+import sys
 
 import setuptools
 
@@ -19,13 +20,15 @@ CLASSIFIERS = [
     'Operating System :: OS Independent',
     'Programming Language :: Python',
     'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.5',
+    'Programming Language :: Python :: 3.4',
     'Topic :: Scientific/Engineering :: Bio-Informatics'
 ]
 INSTALL_REQUIRES = [
     'requests',
     'sqlalchemy',
     'networkx==1.11',
-    'pybel>=0.9.1',
+    'pybel>=0.9.5',
     'click',
     'pandas',
     'scipy',
@@ -34,6 +37,12 @@ INSTALL_REQUIRES = [
     'jinja2',
     'ols_client==0.0.8',
 ]
+
+if sys.version_info < (3,):
+    INSTALL_REQUIRES.append('funcsigs')
+    INSTALL_REQUIRES.append('functools32')
+    INSTALL_REQUIRES.append('enum')
+
 EXTRAS_REQUIRE = {
     'obonet': [
         'obonet',  # Enables GO integration
@@ -42,7 +51,7 @@ EXTRAS_REQUIRE = {
         'pygments',
     ],
     'ipython': [
-        'ipython', # Enable inline viewing in Jupyter notebooks
+        'ipython',  # Enable inline viewing in Jupyter notebooks
     ]
 }
 TESTS_REQUIRE = []
