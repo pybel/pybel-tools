@@ -34,7 +34,7 @@ INSTALL_REQUIRES = [
     'numpy',
     'artifactory',
     'jinja2',
-    'ols_client==0.0.8',
+    'ols_client>=0.0.8',
 ]
 
 if sys.version_info < (3,):
