@@ -25,9 +25,11 @@ from getpass import getuser
 
 import click
 
+from ols_client.constants import BASE_URL
 from pybel import from_lines, from_pickle, from_url, to_database
 from pybel.constants import (
-    LARGE_CORPUS_URL, NAMESPACE_DOMAIN_OTHER, PYBEL_CONNECTION, SMALL_CORPUS_URL, get_cache_connection,
+    BELNS_ENCODING_STR, LARGE_CORPUS_URL, NAMESPACE_DOMAIN_OTHER, NAMESPACE_DOMAIN_TYPES,
+    PYBEL_CONNECTION, SMALL_CORPUS_URL, get_cache_connection,
 )
 from pybel.manager import Manager
 from pybel.resources.arty import get_annotation_history, get_knowledge_history, get_namespace_history
@@ -314,13 +316,14 @@ def convert_to_annotation(file, output):
 
 @namespace.command()
 @click.argument('ontology')
-@click.argument('domain')
-@click.argument('function')
-@click.option('-b', '--ols-base')
-@click.option('-o', '--output', type=click.File('w'), default=sys.stdout)
-def from_ols(ontology, domain, function, ols_base, output):
-    """Creates a namespace from the ontology lookup service"""
-    ont = OlsNamespaceOntology(ontology, domain, function, ols_base=ols_base)
+@click.option('-e', '--encoding', default=BELNS_ENCODING_STR)
+@click.option('-d', '--domain', type=click.Choice(NAMESPACE_DOMAIN_TYPES), default=NAMESPACE_DOMAIN_OTHER)
+@click.option('-b', '--ols-base-url', default=BASE_URL, help='Default: {}'.format(BASE_URL))
+@click.option('-o', '--output', type=click.File('w'), default=sys.stdout,
+              help='The file to output to. Defaults to standard out.')
+def from_ols(ontology, domain, encoding, ols_base_url, output):
+    """Creates a namespace from the ontology lookup service given the internal ontology keyword"""
+    ont = OlsNamespaceOntology(ontology, domain, encoding=encoding, ols_base=ols_base_url)
     ont.write_namespace(output)
 
 
@@ -378,7 +381,7 @@ def document():
 @click.option('-o', '--output', type=click.File('w'), default=sys.stdout)
 def from_ols(ontology, domain, function, ols_base, output):
     """Creates a hierarchy from the ontology lookup service"""
-    ont = OlsNamespaceOntology(ontology, domain, function, ols_base=ols_base)
+    ont = OlsNamespaceOntology(ontology, domain, bel_function=function, ols_base=ols_base)
     ont.write_hierarchy(output)
 
 

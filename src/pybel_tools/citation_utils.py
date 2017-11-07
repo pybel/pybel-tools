@@ -9,7 +9,8 @@ from pybel.manager.citation_utils import get_citations_by_pmids
 from pybel.parser.parse_control import set_citation_stub, set_tag
 
 __all__ = (
-    'get_citations_by_pmids',
+    'PubMedAnnotator',
+    'rewrite_path_with_citations',
 )
 
 log = logging.getLogger(__name__)

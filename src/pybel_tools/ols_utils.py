@@ -15,15 +15,15 @@ from pybel.utils import ensure_quotes
 from pybel_tools.document_utils import write_boilerplate
 
 function_to_encoding = defaultdict(list)
-for encoding, functions in belns_encodings.items():
+for enc, functions in belns_encodings.items():
     for fn in functions:
-        function_to_encoding[fn].append(encoding)
+        function_to_encoding[fn].append(enc)
 
 
 class OlsNamespaceOntology:
     """Wraps the functions needed to use the OLS to generate and deploy BEL namespaces"""
 
-    def __init__(self, ontology, namespace_domain, bel_function, ols_base=None, auth=None):
+    def __init__(self, ontology, namespace_domain, *, bel_function=None, encoding=None, ols_base=None, auth=None):
         """
         :param str ontology: The name of the ontology. Ex: ``uberon``, ``go``, etc.
         :param str namespace_domain: One of: :data:`pybel.constants.NAMESPACE_DOMAIN_BIOPROCESS`,
@@ -37,9 +37,13 @@ class OlsNamespaceOntology:
                                     constructor of :class:`artifactory.ArtifactoryPath`. Defaults to the result of
                                     :func:`pybel_tools.resources.get_arty_auth`.
         """
+        if bel_function is None and encoding is None:
+            raise ValueError('either bel_function or encoding must be specified')
+
         self.ontology = ontology
         self.namespace_domain = namespace_domain
         self._bel_function = bel_function
+        self._encoding = encoding
         self.ols_client = OlsClient(ols_base=ols_base)
         self.auth = auth
 
@@ -51,6 +55,10 @@ class OlsNamespaceOntology:
 
     @property
     def encodings(self):
+        """The encodings that should be used when outputting as a BEL namespace"""
+        if self._encoding:
+            return self._encoding
+
         return function_to_encoding[self._bel_function]
 
     @property
@@ -217,7 +225,8 @@ class OlsNamespaceOntology:
 class OlsConstrainedNamespaceOntology(OlsNamespaceOntology):
     """Specifies that only the hierarchy under a certain term should be followed"""
 
-    def __init__(self, ontology, namespace_domain, bel_function, base_term_iri, ols_base=None, auth=None):
+    def __init__(self, ontology, namespace_domain, base_term_iri, *, bel_function=None, encoding=None, ols_base=None,
+                 auth=None):
         """
         :param str ontology: The name of the ontology. Ex: ``uberon``, ``go``, etc.
         :param str namespace_domain: One of: :data:`pybel.constants.NAMESPACE_DOMAIN_BIOPROCESS`,
@@ -234,6 +243,7 @@ class OlsConstrainedNamespaceOntology(OlsNamespaceOntology):
             ontology=ontology,
             namespace_domain=namespace_domain,
             bel_function=bel_function,
+            encoding=encoding,
             ols_base=ols_base,
             auth=auth
         )

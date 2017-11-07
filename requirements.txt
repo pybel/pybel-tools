@@ -1,9 +1,9 @@
 sqlalchemy==1.1.14
 requests==2.18.4
 networkx==1.11
-pybel>=0.9.1
+pybel>=0.9.5
 click==6.7
-pandas==0.20.3
+pandas
 scipy
 numpy
 artifactory
