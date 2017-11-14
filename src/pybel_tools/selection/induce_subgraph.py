@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import random
+from collections import defaultdict
 
 import networkx as nx
 import numpy as np
-from collections import defaultdict
-from random import choice, shuffle
 
 from pybel import BELGraph
 from pybel.constants import ANNOTATIONS
@@ -14,25 +14,18 @@ from .paths import get_nodes_in_all_shortest_paths
 from .search import search_node_names
 from .. import pipeline
 from ..filters.edge_filters import (
-    build_pmid_inclusion_filter,
-    build_author_inclusion_filter,
+    build_annotation_dict_all_filter, build_annotation_dict_any_filter,
+    build_annotation_value_filter, build_author_inclusion_filter, build_edge_data_filter, build_pmid_inclusion_filter,
     edge_is_causal,
-    build_annotation_value_filter,
-    build_edge_data_filter,
-    build_annotation_dict_all_filter,
-    build_annotation_dict_any_filter,
 )
 from ..filters.node_filters import filter_nodes
 from ..mutation.expansion import (
-    expand_nodes_neighborhoods,
-    expand_all_node_neighborhoods,
+    expand_all_node_neighborhoods, expand_downstream_causal_subgraph,
+    expand_nodes_neighborhoods, expand_upstream_causal_subgraph, get_downstream_causal_subgraph,
     get_upstream_causal_subgraph,
-    expand_upstream_causal_subgraph,
-    get_downstream_causal_subgraph,
-    expand_downstream_causal_subgraph,
 )
-from ..mutation.utils import update_node_helper, remove_isolated_nodes
-from ..utils import safe_add_edge, safe_add_edges, check_has_annotation
+from ..mutation.utils import remove_isolated_nodes, update_node_helper
+from ..utils import check_has_annotation, safe_add_edge, safe_add_edges
 
 log = logging.getLogger(__name__)
 
@@ -392,7 +385,8 @@ def get_subgraph(graph, seed_method=None, seed_data=None, expand_nodes=None, rem
         result = get_random_subgraph(
             graph,
             number_edges=seed_data.get('number_edges'),
-            number_seed_nodes=seed_data.get('number_seed_nodes')
+            number_seed_nodes=seed_data.get('number_seed_nodes'),
+            seed=seed_data.get('seed')
         )
 
     elif not seed_method:  # Otherwise, don't seed a subgraph
@@ -421,6 +415,14 @@ def get_subgraph(graph, seed_method=None, seed_data=None, expand_nodes=None, rem
                 continue
             result.remove_node(node)
         log.debug('graph contracted to (%s nodes / %s edges)', result.number_of_nodes(), result.number_of_edges())
+
+    log.debug(
+        'Subgraph coming from %s (seed type) %s (data) contains %d nodes and %d edges',
+        seed_method,
+        seed_data,
+        result.number_of_nodes(),
+        result.number_of_edges()
+    )
 
     return result
 
@@ -459,7 +461,7 @@ def get_largest_component(graph):
 
 
 @pipeline.mutator
-def get_random_subgraph(graph, number_edges=None, number_seed_nodes=None):
+def get_random_subgraph(graph, number_edges=None, number_seed_nodes=None, seed=None):
     """Randomly picks a node from the graph, and performs a weighted random walk to sample the given number of edges
     around it
 
@@ -467,24 +469,25 @@ def get_random_subgraph(graph, number_edges=None, number_seed_nodes=None):
     :param int number_edges: Maximum number of edges. Defaults to 250.
     :param int number_seed_nodes: Number of nodes to start with (which likely results in different components in large
                                     graphs). Defaults to 5.
+    :param Optional[int] seed: A seed for the random state
     :rtype: pybel.BELGraph
     """
     result = BELGraph()
 
     number_edges = number_edges or 250
     number_seed_nodes = number_seed_nodes or 5
-
+    random_state = np.random.RandomState(seed=seed)
+    random.seed(seed)
     position = 0
     universe_nodes = graph.nodes()
-    shuffle(universe_nodes)
+    no_grow = set()
 
+    random.shuffle(universe_nodes)
     for _ in range(number_seed_nodes):
         result.add_node(universe_nodes[position])
         position += 1
 
-    grow_node = choice(universe_nodes[:number_seed_nodes])
-
-    no_grow = set()
+    grow_node = random.choice(universe_nodes[:number_seed_nodes])
 
     def randomly_select_weighted():
         """Chooses a node from the graph to expand upon"""
@@ -496,10 +499,10 @@ def get_random_subgraph(graph, number_edges=None, number_seed_nodes=None):
         inv_degrees = [1 / (1 + d) for d in degrees]
         ds = sum(inv_degrees)
         norm_inv_degrees = [d / ds for d in inv_degrees]
-        nci = np.random.choice(len(nodes), p=norm_inv_degrees)
+        nci = random_state.choice(len(nodes), p=norm_inv_degrees)
         return nodes[nci]
 
-    for i in range(number_edges):
+    for _ in range(number_edges):
 
         while True:
 
@@ -513,9 +516,9 @@ def get_random_subgraph(graph, number_edges=None, number_seed_nodes=None):
             no_grow.add(grow_node)
             grow_node = randomly_select_weighted()
 
-        target = choice(list(dif))
+        target = random.choice(list(dif))
 
-        k, attr_dict = choice(list(graph.edge[grow_node][target].items()))
+        k, attr_dict = random.choice(list(graph.edge[grow_node][target].items()))
 
         result.add_edge(grow_node, target, attr_dict=attr_dict)
 

@@ -3,6 +3,8 @@
 import json
 import logging
 
+import numpy as np
+
 from pybel.struct import union
 from pybel.utils import list2tuple
 from .pipeline import Pipeline
@@ -27,7 +29,7 @@ class Query:
         :param Pipeline pipeline: Instance of a pipeline
         """
         self.network_ids = []
-        self.seeds = []
+        self.seeding = []
 
         if isinstance(network_ids, int):
             self.append_network(network_ids)
@@ -37,7 +39,7 @@ class Query:
             raise TypeError(network_ids)
 
         if seed_list:
-            self.seeds.extend(seed_list)
+            self.seeding.extend(seed_list)
 
         self.pipeline = pipeline if pipeline is not None else Pipeline()
 
@@ -49,7 +51,7 @@ class Query:
         self.network_ids.append(network_id)
 
     def add_seed(self, seed_type, data):
-        self.seeds.append({
+        self.seeding.append({
             SEED_TYPE_KEY: seed_type,
             SEED_DATA_KEY: data
         })
@@ -80,12 +82,14 @@ class Query:
             }
         })
 
-    def add_seed_sample(self, **kwargs):
+    def add_seed_sample(self):
         """Adds seed induction methods.
 
         Kwargs can have ``number_edges`` or ``number_seed_nodes``.
         """
-        self.add_seed(SEED_TYPE_SAMPLE, kwargs)
+        self.add_seed(SEED_TYPE_SAMPLE, {
+            'seed': np.random.randint(0, np.iinfo('i').max)
+        })
 
     def append_pipeline(self, name, *args, **kwargs):
         """Adds an entry to the pipeline
@@ -117,11 +121,11 @@ class Query:
 
         # parse seeding stuff
 
-        if not self.seeds:
+        if not self.seeding:
             return self.pipeline.run(query_universe, universe=query_universe)
 
         subgraphs = []
-        for seed in self.seeds:
+        for seed in self.seeding:
             subgraph = get_subgraph(
                 query_universe,
                 seed_method=seed[SEED_TYPE_KEY],
@@ -132,27 +136,12 @@ class Query:
                 log.debug('Seed returned empty graph: %s', seed)
                 continue
 
-            # TODO streamline this logging... maybe put in get_subgraph function
-            log.debug(
-                'Subgraph coming from %s (seed type) %s (data) contains %d nodes and %d edges',
-                seed[SEED_DATA_KEY],
-                seed[SEED_TYPE_KEY],
-                subgraph.number_of_nodes(),
-                subgraph.number_of_edges()
-            )
-
             subgraphs.append(subgraph)
 
         if not subgraphs:
             return
 
         graph = union(subgraphs)
-
-        log.debug(
-            'Number of nodes/edges in query before running pipeline: %d nodes, %d edges )',
-            graph.number_of_nodes(),
-            graph.number_of_edges(),
-        )
 
         return self.pipeline.run(graph, universe=query_universe)
 
@@ -161,13 +150,7 @@ class Query:
 
         :rtype: list[dict]
         """
-        return [
-            {
-                SEED_TYPE_KEY: seed[SEED_TYPE_KEY],
-                SEED_DATA_KEY: seed[SEED_DATA_KEY]
-            }
-            for seed in self.seeds
-        ]
+        return self.seeding
 
     def seeding_to_jsons(self):
         """Returns seeding JSON as a string
