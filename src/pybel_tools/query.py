@@ -8,8 +8,7 @@ from pybel.utils import list2tuple
 from .pipeline import Pipeline
 from .selection import get_subgraph
 from .selection.induce_subgraph import (
-    NONNODE_SEED_TYPES, SEED_TYPE_ANNOTATION, SEED_TYPE_INDUCTION,
-    SEED_TYPE_NEIGHBORS,
+    NONNODE_SEED_TYPES, SEED_TYPE_ANNOTATION, SEED_TYPE_INDUCTION, SEED_TYPE_NEIGHBORS, SEED_TYPE_SAMPLE,
 )
 
 log = logging.getLogger(__name__)
@@ -80,6 +79,13 @@ class Query:
                 annotation: values
             }
         })
+
+    def add_seed_sample(self, **kwargs):
+        """Adds seed induction methods.
+
+        Kwargs can have ``number_edges`` or ``number_seed_nodes``.
+        """
+        self.add_seed(SEED_TYPE_SAMPLE, kwargs)
 
     def append_pipeline(self, name, *args, **kwargs):
         """Adds an entry to the pipeline

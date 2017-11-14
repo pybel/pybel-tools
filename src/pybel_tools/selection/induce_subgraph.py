@@ -75,6 +75,8 @@ SEED_TYPE_UPSTREAM = 'upstream'
 SEED_TYPE_DOWNSTREAM = 'downstream'
 #: Induce a subgraph over the edges matching the given annotations
 SEED_TYPE_ANNOTATION = 'annotation'
+#: Induce a subgraph over a random set of (hopefully) connected edges
+SEED_TYPE_SAMPLE = 'sample'
 
 #: A set of the allowed seed type strings, as defined above
 SEED_TYPES = {
@@ -86,14 +88,16 @@ SEED_TYPES = {
     SEED_TYPE_DOWNSTREAM,
     SEED_TYPE_PUBMED,
     SEED_TYPE_AUTHOR,
-    SEED_TYPE_ANNOTATION
+    SEED_TYPE_ANNOTATION,
+    SEED_TYPE_SAMPLE
 }
 
 #: Seed types that don't take node lists as their arguments
 NONNODE_SEED_TYPES = {
     SEED_TYPE_ANNOTATION,
     SEED_TYPE_AUTHOR,
-    SEED_TYPE_PUBMED
+    SEED_TYPE_PUBMED,
+    SEED_TYPE_SAMPLE,
 }
 
 
@@ -384,6 +388,13 @@ def get_subgraph(graph, seed_method=None, seed_data=None, expand_nodes=None, rem
     elif seed_method == SEED_TYPE_ANNOTATION:
         result = get_subgraph_by_annotations(graph, seed_data['annotations'], or_=seed_data.get('or'))
 
+    elif seed_method == SEED_TYPE_SAMPLE:
+        result = get_random_subgraph(
+            graph,
+            number_edges=seed_data.get('number_edges'),
+            number_seed_nodes=seed_data.get('number_seed_nodes')
+        )
+
     elif not seed_method:  # Otherwise, don't seed a subgraph
         result = graph.copy()
         log.debug('no seed function - using full network: %s', result.name)
@@ -448,17 +459,20 @@ def get_largest_component(graph):
 
 
 @pipeline.mutator
-def get_random_subgraph(graph, number_edges=250, number_seed_nodes=5):
+def get_random_subgraph(graph, number_edges=None, number_seed_nodes=None):
     """Randomly picks a node from the graph, and performs a weighted random walk to sample the given number of edges
     around it
 
     :param pybel.BELGraph graph:
-    :param int number_edges: Maximum number of edges
+    :param int number_edges: Maximum number of edges. Defaults to 250.
     :param int number_seed_nodes: Number of nodes to start with (which likely results in different components in large
-                                    graphs)
+                                    graphs). Defaults to 5.
     :rtype: pybel.BELGraph
     """
     result = BELGraph()
+
+    number_edges = number_edges or 250
+    number_seed_nodes = number_seed_nodes or 5
 
     position = 0
     universe_nodes = graph.nodes()
