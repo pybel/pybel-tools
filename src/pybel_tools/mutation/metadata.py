@@ -3,7 +3,7 @@
 import logging
 
 from pybel.canonicalize import calculate_canonical_name
-from pybel.constants import CITATION, CITATION_AUTHORS, CITATION_REFERENCE, ID
+from pybel.constants import CITATION, CITATION_AUTHORS, CITATION_REFERENCE, HASH
 from pybel.parser.canonicalize import node_to_tuple
 from pybel.struct.filters import filter_edges
 from pybel.struct.summary.node_summary import get_namespaces
@@ -177,7 +177,7 @@ def add_identifiers(graph):
     for node, data in graph.nodes_iter(data=True):
         canonical_node_tuple = node_to_tuple(data)
         canonical_node_hash = hash_node(canonical_node_tuple)
-        graph.node[node][ID] = canonical_node_hash
+        graph.node[node][HASH] = canonical_node_hash
 
     for u, v, k, d in graph.edges_iter(keys=True, data=True):
-        graph.edge[u][v][k][ID] = hash_edge(u, v, k, d)
+        graph.edge[u][v][k][HASH] = hash_edge(u, v, k, d)
