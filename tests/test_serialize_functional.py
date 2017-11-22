@@ -34,7 +34,8 @@ class TestFunctionalize(unittest.TestCase):
                 MODIFIER: ACTIVITY,
                 TARGET: {
                     FUNCTION: PROTEIN,
-                    IDENTIFIER: {NAMESPACE: 'HGNC', NAME: 'HMGCR'}
+                    NAMESPACE: 'HGNC',
+                    NAME: 'HMGCR'
                 },
                 EFFECT: {
                     NAME: 'cat',
@@ -44,7 +45,8 @@ class TestFunctionalize(unittest.TestCase):
             RELATION: 'rateLimitingStepOf',
             OBJECT: {
                 FUNCTION: BIOPROCESS,
-                IDENTIFIER: {NAMESPACE: 'GOBP', NAME: 'cholesterol biosynthetic process'}
+                NAMESPACE: 'GOBP',
+                NAME: 'cholesterol biosynthetic process'
             }
         }
 
