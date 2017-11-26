@@ -90,9 +90,6 @@ def _register(universe, in_place, **kwargs):
         :param f: A function
         :return: The same function, with additional properties added
         """
-
-        f.wrap_universe = universe
-        f.wrap_in_place = in_place
         f.__dict__.update(kwargs)
 
         if universe:
