@@ -33,12 +33,12 @@ class Query:
             self.network_ids = []
         else:
             if not isinstance(network_ids, Iterable):
-                raise TypeError
+                raise TypeError('network identifiers is not list: {}'.format(network_ids))
 
             network_ids = list(network_ids)
 
             if any(not isinstance(entry, int) for entry in network_ids):
-                raise TypeError
+                raise TypeError('network identifiers entry is not int: {}'.format(network_ids))
 
             self.network_ids = network_ids
 
