@@ -164,13 +164,13 @@ class Pipeline:
         """
         f = mapped[name]
 
-        if f.wrap_universe and f.wrap_in_place:
+        if name in universe_map and name in in_place_map:
             return self.wrap_in_place(self.wrap_universe(f))
 
-        if f.wrap_universe:
+        if name in universe_map:
             return self.wrap_universe(f)
 
-        if f.wrap_in_place:
+        if name in in_place_map:
             return self.wrap_in_place(f)
 
         return f
