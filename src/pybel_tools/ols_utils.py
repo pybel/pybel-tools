@@ -3,7 +3,7 @@
 from collections import defaultdict
 
 from ols_client import OlsClient
-from pybel.constants import CITATION_TYPE_URL, IS_A, belns_encodings
+from pybel.constants import CITATION_TYPE_URL, IS_A, belns_encodings,NAMESPACE_DOMAIN_TYPES
 from pybel.parser.language import rev_abundance_labels
 from pybel.resources.arty import (
     get_latest_arty_namespace, get_today_arty_annotation, get_today_arty_knowledge,
@@ -39,6 +39,9 @@ class OlsNamespaceOntology:
         """
         if bel_function is None and encoding is None:
             raise ValueError('either bel_function or encoding must be specified')
+
+        if namespace_domain not in NAMESPACE_DOMAIN_TYPES:
+            raise ValueError('{} is not valid. Should be one of {}'.format(namespace_domain, NAMESPACE_DOMAIN_TYPES))
 
         self.ontology = ontology
         self.namespace_domain = namespace_domain

@@ -316,7 +316,7 @@ def convert_to_annotation(file, output):
 
 @namespace.command()
 @click.argument('ontology')
-@click.option('-e', '--encoding', default=BELNS_ENCODING_STR)
+@click.option('-e', '--encoding', default=BELNS_ENCODING_STR, help='The BEL Namespace encoding')
 @click.option('-d', '--domain', type=click.Choice(NAMESPACE_DOMAIN_TYPES), default=NAMESPACE_DOMAIN_OTHER)
 @click.option('-b', '--ols-base-url', default=BASE_URL, help='Default: {}'.format(BASE_URL))
 @click.option('-o', '--output', type=click.File('w'), default=sys.stdout,

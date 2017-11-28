@@ -72,15 +72,15 @@ Service.
 Namespace
 ~~~~~~~~~
 In order to convert UBERON to a namespace, the keyword inside the OLS, ``uberon`` is used as well as specifying the
-encoding type and the applicabiltiy domain. The ``-o`` option can be used to specify which file to write the output
+encoding type and the applicability domain. The ``-o`` option can be used to specify which file to write the output
 to.
 
-.. code::
+.. code-block:: bash
 
     $ pybel-tools namespace from_ols uberon --domain Other --encoding A
 
 Alternatively, the '-b' option can be used to specify an alternate OLS instance
 
-.. code::
+.. code-block:: bash
 
     $ pybel-tools namespace from_ols uberon --domain Other --encoding A -b https://localhost/ols
