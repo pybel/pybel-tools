@@ -137,6 +137,17 @@ def splitter(f):
     return f
 
 
+def function_is_registered(name):
+    """Checks if a function is a valid pipeline function
+
+    :param str or types.FunctionType name: The name of the function
+    :rtype: bool
+    """
+    if not isinstance(name, str):
+        return name.__name__ in mapped
+
+    return name in mapped
+
 class Pipeline:
     """Builds and runs analytical pipelines on BEL graphs"""
 
@@ -147,14 +158,6 @@ class Pipeline:
         """
         self.universe = universe
         self.protocol = [] if protocol is None else protocol
-
-    def has_function(self, name):
-        """Checks if a function is a valid pipeline function
-
-        :param str name: The name of the function
-        :rtype: bool
-        """
-        return name in mapped
 
     def get_function(self, name):
         """Wraps a function with the universe and in-place
@@ -187,7 +190,7 @@ class Pipeline:
         if not isinstance(name, str):
             return self.append(name.__name__, *args, **kwargs)
 
-        if not self.has_function(name):
+        if not function_is_registered(name):
             raise KeyError(name)
 
         av = {
