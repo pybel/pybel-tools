@@ -24,8 +24,8 @@ import sys
 from getpass import getuser
 
 import click
-
 from ols_client.constants import BASE_URL
+
 from pybel import from_lines, from_pickle, from_url, to_database
 from pybel.constants import (
     BELNS_ENCODING_STR, LARGE_CORPUS_URL, NAMESPACE_DOMAIN_OTHER, NAMESPACE_DOMAIN_TYPES,
@@ -376,12 +376,13 @@ def document():
 @document.command()
 @click.argument('ontology')
 @click.argument('domain')
-@click.argument('function')
+@click.option('--function')
+@click.option('--encoding')
 @click.option('-b', '--ols-base')
 @click.option('-o', '--output', type=click.File('w'), default=sys.stdout)
-def from_ols(ontology, domain, function, ols_base, output):
+def from_ols(ontology, domain, function, encoding, ols_base, output):
     """Creates a hierarchy from the ontology lookup service"""
-    ont = OlsNamespaceOntology(ontology, domain, bel_function=function, ols_base=ols_base)
+    ont = OlsNamespaceOntology(ontology, domain, bel_function=function, encoding=encoding, ols_base=ols_base)
     ont.write_hierarchy(output)
 
 
