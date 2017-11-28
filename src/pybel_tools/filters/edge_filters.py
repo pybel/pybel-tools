@@ -21,6 +21,7 @@ from ..utils import check_has_annotation
 __all__ = [
     'summarize_edge_filter',
     'edge_is_causal',
+    'edge_is_associative',
     'edge_has_author_annotation',
     'edge_has_pubmed_citation',
     'build_inverse_filter',
@@ -66,6 +67,19 @@ def edge_is_causal(graph, u, v, k, d):
     """
     return graph.edge[u][v][k][RELATION] in CAUSAL_RELATIONS
 
+
+def edge_is_associative(graph, u, v, k, d):
+    """Only passes on associative edges
+
+    :param pybel.BELGraph graph: A BEL Graph
+    :param tuple u: A BEL node
+    :param tuple v: A BEL node
+    :param int k: The edge key between the given nodes
+    :param dict d: The edge data dictionary
+    :return: If the edge is a causal edge
+    :rtype: bool
+    """
+    return graph.edge[u][v][k][RELATION] == ASSOCIATION
 
 def edge_has_polarity(graph, u, v, k, d):
     """Only passes on polarized edges, belonging to the set :data:`pybel.constants.CAUSAL_RELATIONS` or
