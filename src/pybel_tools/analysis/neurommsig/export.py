@@ -8,6 +8,7 @@ import itertools as itt
 import logging
 import os
 import re
+import time
 from functools import partial
 
 import pandas as pd
@@ -118,6 +119,7 @@ munge_snp = partial(munge_cell, validators=[SNPpattern, SNPspatternSpaceComma])
 mesh_alzheimer = "Alzheimer Disease"  # Death to the eponym!
 mesh_parkinson = "Parkinson Disease"
 
+pathway_column = 'Subgraph Name'
 genes_column = 'Genes'
 pmids_column = 'PMIDs'
 snp_from_literature_column = 'SNPs from Literature (Aybuge)'
@@ -126,7 +128,6 @@ snp_from_ld_block_column = 'LD block analysis (Mufassra)'
 clinical_features_column = 'Imaging Features (Anandhi)'
 snp_from_imaging_column = 'SNP_Image Feature (Mufassra & Anandhi)'
 
-pathway_column = 'Subgraph Name'
 columns = [
     genes_column,
     pmids_column,
@@ -142,7 +143,6 @@ def preprocess(path):
     """
 
     :param str path:
-    :return:
     :rtype: pandas.DataFrame
     """
     df = preprocessing_excel(path)
@@ -175,6 +175,7 @@ def write_neurommsig_biolerplate(disease, file):
         description='SNP and Clinical Features for Subgraphs in {}'.format(disease),
         authors='Daniel Domingo, Charles Tapley Hoyt, Mufassra Naz, Aybuge Altay, Anandhi Iyappan',
         contact='charles.hoyt@scai.fraunhofer.de',
+        version=time.strftime('%Y%m%d'),
         namespace_url={
             'NIFT': NIFT,
             'HGNC': HGNC_HUMAN_GENES,
@@ -261,7 +262,7 @@ def write_neurommsig_bel(file, df, disease, nift_values):
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     log.setLevel(logging.INFO)
-    
+
     bms_base = os.environ['BMS_BASE']
     neurommsig_base = os.environ['NEUROMMSIG_BASE']
     neurommsig_excel_dir = os.path.join(neurommsig_base, 'resources', 'excels', 'neurommsig')
