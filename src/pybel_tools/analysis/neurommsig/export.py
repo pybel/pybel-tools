@@ -32,18 +32,12 @@ miRNAspattern = re.compile("^(MIR.*),((MIR.*$),)*(MIR.*$)$")
 
 
 def preprocessing_excel(path):
-    """Preprocessing of the excel file.
+    """Preprocess the excel sheet
 
-    Parameters
-    ----------
-    path : Filepath of the excel sheet
-
-    Returns
-    -------
-    dataframe : Preprocessed pandas dataframe
-
+    :param filepath: filepath of the excel data
+    :return: df: pandas dataframe with excel data
+    :rtype: pandas.DataFrame
     """
-
     if not os.path.exists(path):
         raise ValueError("Error: %s file not found" % path)
 
@@ -56,19 +50,19 @@ def preprocessing_excel(path):
     # Starting from 4: Pathway Name
 
     # Fill Pathway cells that are merged and are 'NaN' after deleting rows where there is no genes
-    df.iloc[:, 4] = pd.Series(df.iloc[:, 4]).fillna(method='ffill')
+    df.iloc[:, 0] = pd.Series(df.iloc[:, 0]).fillna(method='ffill')
 
     # Number of gaps
     # log.info(df.ix[:,6].isnull().sum())
 
-    df = df[df.ix[:, 6].notnull()]
+    df = df[df.ix[:, 1].notnull()]
     df = df.reset_index(drop=True)
 
     # Fill NaN to ceros in PubmedID column
-    df.ix[:, 7].fillna(0, inplace=True)
+    df.ix[:, 2].fillna(0, inplace=True)
 
     # Number of gaps in the gene column should be already zero
-    if (df.ix[:, 6].isnull().sum()) != 0:
+    if (df.ix[:, 1].isnull().sum()) != 0:
         raise ValueError("Error: Empty cells in the gene column")
 
     # Check current state
@@ -124,15 +118,23 @@ munge_snp = partial(munge_cell, validators=[SNPpattern, SNPspatternSpaceComma])
 mesh_alzheimer = "Alzheimer Disease"  # Death to the eponym!
 mesh_parkinson = "Parkinson Disease"
 
+genes_column = 'Genes'
+pmids_column = 'PMIDs'
+snp_from_literature_column = 'SNPs from Literature (Aybuge)'
+snp_from_gwas_column = 'Genome wide associated SNPs (Mufassra)'
+snp_from_ld_block_column = 'LD block analysis (Mufassra)'
+clinical_features_column = 'Imaging Features (Anandhi)'
+snp_from_imaging_column = 'SNP_Image Feature (Mufassra & Anandhi)'
+
 pathway_column = 'Subgraph Name'
 columns = [
-    'Genes',
-    'PMIDs',
-    'SNPs from Literature (Aybuge)',
-    'Genome wide associated SNPs (Mufassra)',
-    'LD block analysis (Mufassra)',
-    'Imaging Features (Anandhi)',
-    'SNP_Image Feature (Mufassra & Anandhi)',
+    genes_column,
+    pmids_column,
+    snp_from_literature_column,
+    snp_from_gwas_column,
+    snp_from_ld_block_column,
+    clinical_features_column,
+    snp_from_imaging_column,
 ]
 
 
@@ -144,13 +146,13 @@ def preprocess(path):
     :rtype: pandas.DataFrame
     """
     df = preprocessing_excel(path)
-    df['SNPs from Literature (Aybuge)'] = df['SNPs from Literature (Aybuge)'].map(munge_snp)
-    df['Genome wide associated SNPs (Mufassra)'] = df['Genome wide associated SNPs (Mufassra)'].map(munge_snp)
-    df['LD block analysis (Mufassra)'] = df['LD block analysis (Mufassra)'].map(munge_snp)
-    df['Imaging Features (Anandhi)'] = df['Imaging Features (Anandhi)'].map(munge_cell)
-    df['Imaging Features (Anandhi)'] = df['Imaging Features (Anandhi)'].map(
+    df[snp_from_literature_column] = df[snp_from_literature_column].map(munge_snp)
+    df[snp_from_gwas_column] = df[snp_from_gwas_column].map(munge_snp)
+    df[snp_from_ld_block_column] = df[snp_from_ld_block_column].map(munge_snp)
+    df[clinical_features_column] = df[clinical_features_column].map(munge_cell)
+    df[clinical_features_column] = df[clinical_features_column].map(
         lambda c: None if c is not None and c[0] == 'No' else c)
-    df['SNP_Image Feature (Mufassra & Anandhi)'] = df['SNP_Image Feature (Mufassra & Anandhi)'].map(munge_snp)
+    df[snp_from_imaging_column] = df[snp_from_imaging_column].map(munge_snp)
     return df
 
 
@@ -191,6 +193,7 @@ def write_neurommsig_biolerplate(disease, file):
     print('SET Evidence = "Serialized from NeuroMMSigDB"', file=file)
     print('SET MeSHDisease = "{}"\n'.format(disease), file=file)
 
+
 def write_neurommsig_bel(file, df, disease, nift_values):
     """Writes the NeuroMMSigDB excel sheet to BEL
 
@@ -208,23 +211,13 @@ def write_neurommsig_bel(file, df, disease, nift_values):
     for pathway, pathway_df in df.groupby(pathway_column):
         print('SET Subgraph = "{}"'.format(pathway), file=file)
 
-        for _, gene, pubmeds, lit_snps, gwas_snps, ld_block_snps, clinical_features, clinical_snps in pathway_df[
-            columns].itertuples():
+        sorted_pathway_df = pathway_df.sort_values(genes_column)
+        sliced_df = sorted_pathway_df[columns].itertuples()
+
+        for _, gene, pubmeds, lit_snps, gwas_snps, ld_block_snps, clinical_features, clinical_snps in sliced_df:
             gene = ensure_quotes(gene)
 
-            if lit_snps is None:
-                lit_snps = []
-
-            if ld_block_snps is None:
-                ld_block_snps = []
-
-            if gwas_snps is None:
-                gwas_snps = []
-
-            if clinical_snps is None:
-                clinical_snps = []
-
-            for snp in itt.chain(lit_snps, gwas_snps, ld_block_snps, clinical_snps):
+            for snp in itt.chain(lit_snps or [], gwas_snps or [], ld_block_snps or [], clinical_snps or []):
                 if not snp.strip():
                     continue
                 print('g(HGNC:{}) -- g(dbSNP:{})'.format(gene, snp), file=file)
@@ -266,16 +259,23 @@ def write_neurommsig_bel(file, df, disease, nift_values):
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
+    log.setLevel(logging.INFO)
+    
     bms_base = os.environ['BMS_BASE']
     neurommsig_base = os.environ['NEUROMMSIG_BASE']
     neurommsig_excel_dir = os.path.join(neurommsig_base, 'resources', 'excels', 'neurommsig')
 
     nift_values = get_nift_values()
 
+    log.info('Starting Alzheimers')
+
     ad_path = os.path.join(neurommsig_excel_dir, 'alzheimers', 'alzheimers.xlsx')
     ad_df = preprocess(ad_path)
     with open(os.path.join(bms_base, 'aetionomy', 'alzheimers', 'neurommsigdb_ad.bel'), 'w') as ad_file:
         write_neurommsig_bel(ad_file, ad_df, mesh_alzheimer, nift_values)
+
+    log.info('Starting Parkinsons')
 
     pd_path = os.path.join(neurommsig_excel_dir, 'parkinsons', 'parkinsons.xlsx')
     pd_df = preprocess(pd_path)
