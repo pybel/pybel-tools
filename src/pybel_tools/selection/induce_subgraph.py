@@ -166,12 +166,13 @@ def get_subgraph_by_second_neighbors(graph, nodes, filter_pathologies=False):
 
 
 @pipeline.mutator
-def get_subgraph_by_all_shortest_paths(graph, nodes, weight=None):
+def get_subgraph_by_all_shortest_paths(graph, nodes, weight=None, remove_pathologies=True):
     """Induces a subgraph over the nodes in the pairwise shortest paths between all of the nodes in the given list
 
     :param pybel.BELGraph graph: A BEL graph
     :param set[tuple] nodes: A set of nodes over which to calculate shortest paths
     :param str weight: Edge data key corresponding to the edge weight. If None, performs unweighted search
+    :param bool remove_pathologies: Should the pathology nodes be deleted before getting shortest paths?
     :return: A BEL graph induced over the nodes appearing in the shortest paths between the given nodes
     :rtype: Optional[pybel.BELGraph]
     """
@@ -186,12 +187,12 @@ def get_subgraph_by_all_shortest_paths(graph, nodes, weight=None):
     if not query_nodes:
         return
 
-    induced_nodes = get_nodes_in_all_shortest_paths(graph, query_nodes, weight=weight)
+    induced_nodes = get_nodes_in_all_shortest_paths(graph, query_nodes, weight=weight, remove_pathologies=remove_pathologies)
 
     if not induced_nodes:
         return
 
-    return graph.subgraph(induced_nodes)
+    return get_subgraph_by_induction(graph, induced_nodes)
 
 
 @pipeline.mutator
