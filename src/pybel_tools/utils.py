@@ -94,9 +94,9 @@ def get_value_sets(dict_of_iterables):
     """Takes a dictionary of lists/iterables/counters and gets the sets of the values
 
     :param dict_of_iterables: A dictionary of lists
-    :type dict_of_iterables: dict or collections.defaultdict
+    :type dict_of_iterables: dict[A,iter[B]] or collections.defaultdict[A,iter[B]]
     :return: A dictionary of {key: set of values}
-    :rtype: dict
+    :rtype: dict[A,set[B]]
     """
     return {
         k: set(v)
@@ -356,7 +356,7 @@ def safe_add_edges(graph, edges):
     """Adds an iterable of edges to the graph
 
     :param pybel.BELGraph graph: A BEL Graph
-    :param iter[tuple edges: An iterable of 4-tuples of (source, target, key, data)
+    :param iter[tuple,tuple,Any,dict] edges: An iterable of 4-tuples of (source, target, key, data)
     """
     for source, target, key, attr_dict in edges:
         safe_add_edge(graph, source, target, key=key, attr_dict=attr_dict)

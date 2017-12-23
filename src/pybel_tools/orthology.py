@@ -177,7 +177,7 @@ def collapse_orthologies(graph):
     orthologs = []
 
     # TODO rewrite with collapsing functions
-    for hgnc, ortholog, _, _ in list(filter_edges(graph, ortholog_filter)):
+    for hgnc, ortholog, _ in list(filter_edges(graph, ortholog_filter)):
 
         for u, _, k, d in graph.in_edges_iter(ortholog, data=True, keys=True):
             if d[RELATION] == ORTHOLOGOUS:

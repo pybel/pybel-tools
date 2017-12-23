@@ -27,7 +27,7 @@ INSTALL_REQUIRES = [
     'requests',
     'sqlalchemy',
     'networkx==1.11',
-    'pybel>=0.9.7',
+    'pybel>=0.10.0',
     'click',
     'pandas',
     'scipy',

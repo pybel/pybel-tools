@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from ..filters.node_filters import filter_nodes, build_node_name_search, build_node_cname_search
+from pybel.struct.filters import filter_nodes
+from ..filters.node_filters import build_node_cname_search, build_node_name_search
 
 __all__ = [
     'search_node_names',

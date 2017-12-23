@@ -4,18 +4,17 @@
 
 import itertools as itt
 import logging
+from collections import Counter, defaultdict
 from datetime import datetime
-
-from collections import defaultdict, Counter
 
 from pybel.constants import *
 from pybel.struct.filters import filter_edges
-from ..filters import build_pmid_inclusion_filter, build_edge_data_filter
-from ..utils import graph_edge_data_iter, count_defaultdict, check_has_annotation, count_dict_values
+from pybel.struct.summary import iterate_pubmed_identifiers
+from ..filters import build_edge_data_filter, build_pmid_inclusion_filter
+from ..utils import check_has_annotation, count_defaultdict, count_dict_values, graph_edge_data_iter
 
 __all__ = [
     'count_pmids',
-    'get_pubmed_identifiers',
     'get_pmid_by_keyword',
     'count_citations',
     'count_citations_by_annotation',
@@ -40,7 +39,7 @@ def _generate_citation_dict(graph):
 
     :param pybel.BELGraph graph: A BEL graph
     :return: A dictionary of {citation type: {(reference, name) -> {set of (source node, target node)}}}
-    :rtype: dict
+    :rtype: dict[str,dict[tuple[tuple,tuple],str]]
     """
     results = defaultdict(lambda: defaultdict(set))
 
@@ -50,40 +49,6 @@ def _generate_citation_dict(graph):
         results[data[CITATION][CITATION_TYPE]][u, v].add(data[CITATION][CITATION_REFERENCE].strip())
 
     return dict(results)
-
-
-def has_pubmed_citation(data):
-    """Checks if the edge data dictionary has a PubMed citation
-
-    :param dict data: A PyBEL edge data dictionary from a :class:`pybel.BELGraph`
-    :return: Does the edge data dictionary has a PubMed citation?
-    :rtype: bool
-    """
-    return CITATION in data and CITATION_TYPE_PUBMED == data[CITATION][CITATION_TYPE]
-
-
-def iterate_pubmed_identifiers(graph):
-    """Iterates over all PubMed identifiers in a graph
-
-    :param pybel.BELGraph graph: A BEL graph
-    :return: An iterator over the PubMed identifiers in the graph
-    :rtype: iter[str]
-    """
-    return (
-        data[CITATION][CITATION_REFERENCE].strip()
-        for data in graph_edge_data_iter(graph)
-        if has_pubmed_citation(data)
-    )
-
-
-def get_pubmed_identifiers(graph):
-    """Gets the set of all PubMed identifiers cited in the construction of a graph
-
-    :param pybel.BELGraph graph: A BEL graph
-    :return: A set of all PubMed identifiers cited in the construction of this graph
-    :rtype: set[str]
-    """
-    return set(iterate_pubmed_identifiers(graph))
 
 
 def get_pmid_by_keyword(keyword, graph=None, pubmed_identifiers=None):

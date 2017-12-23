@@ -3,8 +3,9 @@
 from collections import defaultdict
 
 from ols_client import OlsClient
-from pybel.constants import CITATION_TYPE_URL, IS_A, belns_encodings,NAMESPACE_DOMAIN_TYPES
-from pybel.parser.language import rev_abundance_labels
+
+from pybel.constants import CITATION_TYPE_URL, IS_A, NAMESPACE_DOMAIN_TYPES, belns_encodings
+from pybel.language import rev_abundance_labels  # FIXME for pybel 0.10.1
 from pybel.resources.arty import (
     get_latest_arty_namespace, get_today_arty_annotation, get_today_arty_knowledge,
     get_today_arty_namespace,

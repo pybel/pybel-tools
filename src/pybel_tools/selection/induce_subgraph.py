@@ -9,16 +9,15 @@ import numpy as np
 
 from pybel import BELGraph
 from pybel.constants import ANNOTATIONS
-from pybel.struct.filters import filter_edges
+from pybel.struct.filters import filter_edges, filter_nodes
+from pybel.struct.filters.edge_predicates import is_causal_relation
 from .paths import get_nodes_in_all_shortest_paths
 from .search import search_node_names
 from .. import pipeline
 from ..filters.edge_filters import (
     build_annotation_dict_all_filter, build_annotation_dict_any_filter,
     build_annotation_value_filter, build_author_inclusion_filter, build_edge_data_filter, build_pmid_inclusion_filter,
-    edge_is_causal,
 )
-from ..filters.node_filters import filter_nodes
 from ..mutation.expansion import (
     expand_all_node_neighborhoods, expand_downstream_causal_subgraph,
     expand_nodes_neighborhoods, expand_upstream_causal_subgraph, get_downstream_causal_subgraph,
@@ -207,7 +206,11 @@ def get_subgraph_by_edge_filter(graph, edge_filters):
     """
     result = BELGraph()
 
-    safe_add_edges(result, filter_edges(graph, edge_filters))
+    safe_add_edges(result, (
+        (u, v, k, graph.edge[u][v][k])
+        for u, v, k in filter_edges(graph, edge_filters)
+    ))
+
 
     update_node_helper(graph, result)
 
@@ -290,7 +293,7 @@ def get_causal_subgraph(graph):
     :return: A subgraph of the original BEL graph
     :rtype: pybel.BELGraph
     """
-    return get_subgraph_by_edge_filter(graph, edge_is_causal)
+    return get_subgraph_by_edge_filter(graph, is_causal_relation)
 
 
 @pipeline.mutator

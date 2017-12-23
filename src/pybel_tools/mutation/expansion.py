@@ -7,12 +7,12 @@ from collections import Counter, defaultdict
 from pybel import BELGraph
 from pybel.constants import *
 from pybel.struct import left_full_join
-from pybel.struct.filters import concatenate_edge_filters, concatenate_node_filters
+from pybel.struct.filters import and_edge_predicates, concatenate_node_predicates
 from pybel.struct.filters.edge_predicates import keep_edge_permissive
 from pybel.struct.filters.node_predicates import keep_node_permissive
 from .utils import ensure_node_from_universe, update_node_helper
 from .. import pipeline
-from ..filters.edge_filters import edge_is_causal
+from pybel.struct.filters.edge_predicates import is_causal_relation
 from ..filters.node_filters import exclude_pathology_filter
 from ..filters.node_selection import get_nodes_by_function
 from ..utils import check_has_annotation, safe_add_edge
@@ -216,8 +216,8 @@ def get_subgraph_peripheral_nodes(graph, subgraph, node_filters=None, edge_filte
     >>>           len(p[node]['predecessor']),
     >>>           len(set(p[node]['successor']) | set(p[node]['predecessor'])))
     """
-    node_filter = concatenate_node_filters(node_filters=node_filters)
-    edge_filter = concatenate_edge_filters(edge_filters=edge_filters)
+    node_filter = concatenate_node_predicates(node_predicates=node_filters)
+    edge_filter = and_edge_predicates(edge_predicates=edge_filters)
 
     result = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
 
@@ -400,7 +400,7 @@ def expand_internal(universe, graph, edge_filters=None):
     :param edge_filters: Optional list of edge filter functions (graph, node, node, key, data) -> bool
     :type edge_filters: list or lambda
     """
-    edge_filter = concatenate_edge_filters(*edge_filters) if edge_filters else keep_edge_permissive
+    edge_filter = and_edge_predicates(*edge_filters) if edge_filters else keep_edge_permissive
 
     for u, v in itt.product(graph.nodes_iter(), repeat=2):
         if graph.has_edge(u, v) or not universe.has_edge(u, v):
@@ -431,9 +431,10 @@ def expand_internal_causal(universe, graph):
     Equivalent to:
 
     >>> import pybel_tools as pbt
-    >>> pbt.mutation.expand_internal(universe, graph, edge_filters=pbt.filters.edge_is_causal)
+    >>> from pybel.struct.filters.edge_predicates import is_causal_relation
+    >>> pbt.mutation.expand_internal(universe, graph, edge_filters=is_causal_relation)
     """
-    expand_internal(universe, graph, edge_filters=edge_is_causal)
+    expand_internal(universe, graph, edge_filters=is_causal_relation)
 
 
 @pipeline.uni_in_place_mutator

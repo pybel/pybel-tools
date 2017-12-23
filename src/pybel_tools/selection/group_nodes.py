@@ -3,7 +3,7 @@
 from collections import defaultdict
 
 from pybel.constants import *
-from pybel.struct.filters.node_filters import concatenate_node_filters
+from pybel.struct.filters.node_filters import concatenate_node_predicates
 from ..utils import check_has_annotation
 
 __all__ = [
@@ -71,7 +71,7 @@ def group_nodes_by_annotation_filtered(graph, node_filters=None, annotation='Sub
     :return: A dictionary of {annotation value: set of nodes}
     :rtype: dict[str,set[tuple]]
     """
-    node_filter = concatenate_node_filters(node_filters)
+    node_filter = concatenate_node_predicates(node_filters)
     return {
         key: {
             node

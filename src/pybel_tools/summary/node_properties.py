@@ -8,14 +8,16 @@ import networkx as nx
 
 from pybel.constants import *
 from pybel.struct.filters import get_nodes
-from ..filters.node_filters import node_has_molecular_activity, node_is_degraded, node_is_translocated
+from pybel.struct.filters.edge_predicates import is_causal_relation
+from pybel.struct.filters.node_predicates import (
+    has_activity, has_variant, is_causal_central, is_causal_sink,
+    is_causal_source, is_degraded, is_translocated,
+)
 
 __all__ = [
     'is_causal_relation',
     'get_causal_out_edges',
     'get_causal_in_edges',
-    'has_causal_out_edges',
-    'has_causal_in_edges',
     'is_causal_source',
     'is_causal_central',
     'is_causal_sink',
@@ -32,22 +34,17 @@ __all__ = [
 ]
 
 
-def is_causal_relation(graph, u, v, k, d):
-    """Is the given relation causal?"""
-    return d[RELATION] in CAUSAL_RELATIONS
-
-
-def get_causal_out_edges(graph, node):
+def get_causal_out_edges(graph, nbunch):
     """Gets the out-edges to the given node that are causal
 
     :param pybel.BELGraph graph: A BEL graph
-    :param tuple node: A BEL node
+    :param tuple nbunch: A BEL node or iterable of BEL nodes
     :return: A set of (source, target) pairs where the source is the given node
     :rtype: set[tuple]
     """
     return {
         (u, v)
-        for u, v, k, d in graph.out_edges_iter(node, keys=True, data=True)
+        for u, v, k, d in graph.out_edges_iter(nbunch, keys=True, data=True)
         if is_causal_relation(graph, u, v, k, d)
     }
 
@@ -65,76 +62,6 @@ def get_causal_in_edges(graph, node):
         for u, v, k, d in graph.in_edges_iter(node, keys=True, data=True)
         if is_causal_relation(graph, u, v, k, d)
     }
-
-
-def has_causal_out_edges(graph, node):
-    """Does the node have causal out edges?
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param tuple node: A BEL node
-    :return: If the node has causal out edges
-    :rtype: bool
-    """
-    return any(
-        d[RELATION] in CAUSAL_RELATIONS
-        for u, v, d in graph.out_edges_iter(node, data=True)
-    )
-
-
-def has_causal_in_edges(graph, node):
-    """Does the node have causal in edges?
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param tuple node: A BEL node
-    :return: If the node has causal in edges
-    :rtype: bool
-    """
-    return any(
-        d[RELATION] in CAUSAL_RELATIONS
-        for _, _, d in graph.in_edges_iter(node, data=True)
-    )
-
-
-def is_causal_source(graph, node):
-    """Is the node is a causal source?
-
-    - Doesn't have any causal in edge(s)
-    - Does have causal out edge(s)
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param tuple node: A BEL node
-    :return: If the node is a causal source
-    :rtype: bool
-    """
-    return not has_causal_in_edges(graph, node) and has_causal_out_edges(graph, node)
-
-
-def is_causal_sink(graph, node):
-    """Is the node is a causal sink?
-
-    - Does have causal in edge(s)
-    - Doesn't have any causal out edge(s)
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param tuple node: A BEL node
-    :return: If the node is a causal source
-    :rtype: bool
-    """
-    return has_causal_in_edges(graph, node) and not has_causal_out_edges(graph, node)
-
-
-def is_causal_central(graph, node):
-    """Is the node neither a causal sink nor a causal source?
-
-    - Does have causal in edges(s)
-    - Does have causal out edge(s)
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param tuple node: A BEL node
-    :return: If the node is neither a causal sink nor a causal source
-    :rtype: bool
-    """
-    return has_causal_in_edges(graph, node) and has_causal_out_edges(graph, node)
 
 
 def get_causal_source_nodes(graph, function):
@@ -194,7 +121,7 @@ def get_degradations(graph):
     :return: A set of nodes that are degraded
     :rtype: set[tuple]
     """
-    return get_nodes(graph, node_is_degraded)
+    return get_nodes(graph, is_degraded)
 
 
 def get_activities(graph):
@@ -204,7 +131,7 @@ def get_activities(graph):
     :return: A set of nodes that have molecular activities
     :rtype: set[tuple]
     """
-    return get_nodes(graph, node_has_molecular_activity)
+    return get_nodes(graph, has_activity)
 
 
 def get_translocated(graph):
@@ -214,18 +141,7 @@ def get_translocated(graph):
     :return: A set of nodes that are translocated
     :rtype: set[tuple]
     """
-    return get_nodes(graph, node_is_translocated)
-
-
-def node_has_variant(graph, node):
-    """Does the node have variant information?
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param tuple node: A BEL node
-    :return: If the node contains variant information
-    :rtype: bool
-    """
-    return VARIANTS in graph.node[node]
+    return get_nodes(graph, is_translocated)
 
 
 def count_variants(graph):
@@ -233,7 +149,7 @@ def count_variants(graph):
     return Counter(
         variant_data[KIND]
         for node, data in graph.nodes_iter(data=True)
-        if node_has_variant(graph, node)
+        if has_variant(graph, node)
         for variant_data in data[VARIANTS]
     )
 

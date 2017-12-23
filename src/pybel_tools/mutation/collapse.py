@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import logging
-
 from collections import defaultdict
 
 from pybel.constants import *
-from pybel.struct.filters import filter_edges, get_nodes
-from pybel_tools.filters.edge_filters import edge_has_polarity, build_inverse_filter
-from pybel_tools.mutation.deletion import remove_filtered_edges
+from pybel.struct.filters import get_nodes
+from pybel.struct.filters.edge_filters import invert_edge_filter
+from pybel.struct.filters.edge_predicates import has_polarity
 from pybel_tools.filters.node_filters import function_inclusion_filter_builder
+from pybel_tools.mutation.deletion import remove_filtered_edges
 from .deletion import prune_central_dogma
 from .inference import infer_central_dogma
 from .. import pipeline
@@ -375,11 +375,10 @@ def collapse_to_protein_interactions(graph):
 
     :param pybel.BELGraph graph: A BEL Graph
     """
-
     collapse_by_central_dogma_to_genes(graph)
 
-    remove_filtered_edges(graph, build_inverse_filter(edge_has_polarity))
+    remove_filtered_edges(graph, invert_edge_filter(has_polarity))
 
-    filtered_graph = graph.subgraph(get_nodes(graph, node_filters=function_inclusion_filter_builder(GENE)))
+    filtered_graph = graph.subgraph(get_nodes(graph, node_predicates=function_inclusion_filter_builder(GENE)))
 
     return filtered_graph

@@ -116,7 +116,11 @@ def _get_shortest__path_between_subgraphs_helper(graph, a, b):
         shortest_paths.append(b_a_shortest_path)
 
     min_len = min(map(len, shortest_paths))
-    return [p for p in shortest_paths if len(p) == min_len]
+    return [
+        path
+        for path in shortest_paths
+        if len(path) == min_len
+    ]
 
 
 def get_shortest_directed_path_between_subgraphs(graph, a, b):
@@ -124,10 +128,8 @@ def get_shortest_directed_path_between_subgraphs(graph, a, b):
     the source graph
 
     :param pybel.BELGraph graph: A BEL graph
-    :param a: A subgraph of :code:`graph`, disjoint from :code:`b`
-    :type a: pybel.BELGraph
-    :param b: A subgraph of :code:`graph`, disjoint from :code:`a`
-    :type b: pybel.BELGraph
+    :param pybel.BELGraph a: A subgraph of :code:`graph`, disjoint from :code:`b`
+    :param pybel.BELGraph b: A subgraph of :code:`graph`, disjoint from :code:`a`
     :return: A list of the shortest paths between the two subgraphs
     :rtype: list
     """
@@ -138,10 +140,8 @@ def get_shortest_undirected_path_between_subgraphs(graph, a, b):
     """Get the shortest path between two disconnected subgraphs A and B, disregarding directionality of edges in graph
 
     :param pybel.BELGraph graph: A BEL graph
-    :param a: A subgraph of :code:`graph`, disjoint from :code:`b`
-    :type a: pybel.BELGraph
-    :param b: A subgraph of :code:`graph`, disjoint from :code:`a`
-    :type b: pybel.BELGraph
+    :param pybel.BELGraph a: A subgraph of :code:`graph`, disjoint from :code:`b`
+    :param pybel.BELGraph b: A subgraph of :code:`graph`, disjoint from :code:`a`
     :return: A list of the shortest paths between the two subgraphs
     :rtype: list
     """
@@ -154,12 +154,10 @@ def find_root_in_path(graph, path_nodes):
          root is the one with the highest out degree among those with lowest out degree
     
     :param pybel.BELGraph graph: A BEL Graph
-    :param list[tuple] path: A list of nodes in their order in a path
-    :rtype: pybel.BELGraph 
-    :return: graph: graph of the path
-    :rtype: tuple
-    :return: root node
-      """
+    :param list[tuple] path_nodes: A list of nodes in their order in a path
+    :return: A pair of the graph: graph of the path and the root node
+    :rtype: tuple[pybel.BELGraph,tuple]
+    """
     path_graph = graph.subgraph(path_nodes)
 
     # node_in_degree_tuple: list of tuples with (node,in_degree_of_node) in ascending order

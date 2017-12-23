@@ -4,17 +4,18 @@ import logging
 
 from pybel.canonicalize import calculate_canonical_name
 from pybel.constants import CITATION, CITATION_AUTHORS, CITATION_REFERENCE, HASH
-from pybel.parser.canonicalize import node_to_tuple
-from pybel.struct.filters import filter_edges
+from pybel.struct.filters import filter_edges, filter_nodes
+from pybel.struct.filters.edge_predicates import has_authors, has_pubmed
 from pybel.struct.summary.node_summary import get_namespaces
+from pybel.tokens import node_to_tuple
 from pybel.utils import hash_edge, hash_node
 from .. import pipeline
 from ..citation_utils import get_citations_by_pmids
 from ..constants import CNAME
-from ..filters.edge_filters import edge_has_author_annotation, edge_has_pubmed_citation
-from ..filters.node_filters import filter_nodes, node_missing_cname
+from ..filters.node_filters import node_missing_cname
 from ..summary.edge_summary import get_annotations
-from ..summary.provenance import get_pubmed_identifiers
+from pybel.struct.summary import get_pubmed_identifiers
+
 
 __all__ = [
     'parse_authors',
@@ -42,7 +43,7 @@ def parse_authors(graph, force_parse=False):
 
     all_authors = set()
 
-    for u, v, k, d in filter_edges(graph, edge_has_author_annotation):
+    for u, v, k, d in filter_edges(graph, has_authors):
         author_str = d[CITATION][CITATION_AUTHORS]
 
         if isinstance(author_str, list):
@@ -72,7 +73,7 @@ def serialize_authors(graph, force_serialize=False):
         log.warning('Authors have not yet been parsed in %s', graph.name)
         return
 
-    for u, v, k, d in filter_edges(graph, edge_has_author_annotation):
+    for u, v, k, d in filter_edges(graph, has_authors):
         authors = d[CITATION][CITATION_AUTHORS]
 
         if not isinstance(authors, list):
@@ -120,8 +121,8 @@ def enrich_pubmed_citations(graph, stringify_authors=False, manager=None):
     pmids = get_pubmed_identifiers(graph)
     pmid_data, errors = get_citations_by_pmids(pmids, return_errors=True, manager=manager)
 
-    for u, v, k, d in filter_edges(graph, edge_has_pubmed_citation):
-        pmid = d[CITATION][CITATION_REFERENCE].strip()
+    for u, v, k in filter_edges(graph, has_pubmed):
+        pmid = graph.edge[u][v][k][CITATION][CITATION_REFERENCE].strip()
 
         if pmid not in pmid_data:
             log.warning('Missing data for PubMed identifier: %s', pmid)
