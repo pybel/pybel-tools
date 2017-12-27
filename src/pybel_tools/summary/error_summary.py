@@ -6,8 +6,9 @@ from collections import Counter, defaultdict
 
 from pybel.constants import ANNOTATIONS
 from pybel.parser.parse_exceptions import *
+from pybel.struct.filters.edge_predicates import edge_has_annotation
 from pybel.struct.summary.node_summary import get_names_by_namespace, get_namespaces
-from ..utils import check_has_annotation, count_dict_values
+from ..utils import count_dict_values
 
 __all__ = [
     'count_error_types',
@@ -190,7 +191,7 @@ def calculate_error_by_annotation(graph, annotation):
     results = defaultdict(list)
 
     for line_number, line, e, context in graph.warnings:
-        if not context or not check_has_annotation(context, annotation):
+        if not context or not edge_has_annotation(context, annotation):
             continue
 
         values = context[ANNOTATIONS][annotation]

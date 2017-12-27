@@ -10,10 +10,11 @@ import numpy as np
 from pybel import BELGraph
 from pybel.constants import ANNOTATIONS
 from pybel.struct.filters import filter_edges, filter_nodes
-from pybel.struct.filters.edge_predicates import is_causal_relation
+from pybel.struct.filters.edge_predicates import edge_has_annotation, is_causal_relation
 from .paths import get_nodes_in_all_shortest_paths
 from .search import search_node_names
 from .. import pipeline
+from ..constants import SAMPLE_RANDOM_EDGE_COUNT
 from ..filters.edge_filters import (
     build_annotation_dict_all_filter, build_annotation_dict_any_filter,
     build_annotation_value_filter, build_author_inclusion_filter, build_edge_data_filter, build_pmid_inclusion_filter,
@@ -24,7 +25,7 @@ from ..mutation.expansion import (
     get_upstream_causal_subgraph,
 )
 from ..mutation.utils import remove_isolated_nodes, update_node_helper
-from ..utils import check_has_annotation, safe_add_edge, safe_add_edges
+from ..utils import safe_add_edge, safe_add_edges
 
 log = logging.getLogger(__name__)
 
@@ -272,7 +273,7 @@ def get_subgraphs_by_annotation(graph, annotation):
     result = defaultdict(BELGraph)
 
     for source, target, key, data in graph.edges_iter(keys=True, data=True):
-        if not check_has_annotation(data, annotation):
+        if not edge_has_annotation(data, annotation):
             continue
 
         value = data[ANNOTATIONS][annotation]
@@ -464,69 +465,82 @@ def get_largest_component(graph):
     return max(nx.weakly_connected_component_subgraphs(graph), key=len)
 
 
+def _randomly_select_node(graph, no_grow, random_state):
+    """Chooses a node from the graph to expand upon
+
+    :param pybel.BELGraph graph: The graph to filter from
+    :param set[tuple] no_grow: Nodes to filter out
+    :param random_state: The random state
+    """
+    try:
+        nodes, degrees = list(zip(*list(
+            (node, degree)
+            for node, degree in graph.degree_iter()
+            if node not in no_grow
+        )))
+    except ValueError as e:
+        print('nodes')
+        print(*graph.nodes(), sep='\n')
+        print('edges')
+        print(*graph.edges(), sep='\n')
+        raise e
+
+    inv_degrees = [1 / (1 + d) for d in degrees]
+    ds = sum(inv_degrees)
+    norm_inv_degrees = [d / ds for d in inv_degrees]
+    nci = random_state.choice(len(nodes), p=norm_inv_degrees)
+    return nodes[nci]
+
+
 @pipeline.mutator
 def get_random_subgraph(graph, number_edges=None, number_seed_nodes=None, seed=None):
     """Randomly picks a node from the graph, and performs a weighted random walk to sample the given number of edges
     around it
 
     :param pybel.BELGraph graph:
-    :param int number_edges: Maximum number of edges. Defaults to 250.
-    :param int number_seed_nodes: Number of nodes to start with (which likely results in different components in large
-                                    graphs). Defaults to 5.
+    :param Optional[int] number_edges: Maximum number of edges. Defaults to
+                                       :data:`pybel_tools.constants.SAMPLE_RANDOM_EDGE_COUNT` (250).
+    :param Optional[int] number_seed_nodes: Number of nodes to start with (which likely results in different components
+                                            in large graphs). Defaults to 5.
     :param Optional[int] seed: A seed for the random state
     :rtype: pybel.BELGraph
     """
-    result = BELGraph()
-
-    number_edges = number_edges or 250
+    number_edges = number_edges or SAMPLE_RANDOM_EDGE_COUNT
     number_seed_nodes = number_seed_nodes or 5
     random_state = np.random.RandomState(seed=seed)
     random.seed(seed)
-    position = 0
-    universe_nodes = graph.nodes()
-    no_grow = set()
 
+    result = BELGraph()
+
+    original_nodes = set(graph)
+
+    no_grow = set()  # these are the black list of nodes, that won't be grown from anymore
+
+    universe_nodes = list(graph)
     random.shuffle(universe_nodes)
-    for _ in range(number_seed_nodes):
-        result.add_node(universe_nodes[position])
-        position += 1
-
-    grow_node = random.choice(universe_nodes[:number_seed_nodes])
-
-    def randomly_select_weighted():
-        """Chooses a node from the graph to expand upon"""
-        nodes, degrees = zip(*list(
-            (node, degree)
-            for node, degree in result.degree_iter()
-            if node not in no_grow
-        ))
-        inv_degrees = [1 / (1 + d) for d in degrees]
-        ds = sum(inv_degrees)
-        norm_inv_degrees = [d / ds for d in inv_degrees]
-        nci = random_state.choice(len(nodes), p=norm_inv_degrees)
-        return nodes[nci]
+    result.add_nodes_from(universe_nodes[:number_seed_nodes])
 
     for _ in range(number_edges):
+        source = _randomly_select_node(result, no_grow, random_state)
 
         while True:
+            if no_grow == original_nodes:
+                log.warning('sampled full graph')
+                return graph
 
-            ud = set(graph.edge[grow_node])
-            gd = set(result.edge[grow_node])
-            dif = ud - gd
+            possible_step_nodes = set(graph.edge[source]) - set(result.edge[source])
 
-            if dif:
+            if possible_step_nodes:
                 break
 
-            no_grow.add(grow_node)
-            grow_node = randomly_select_weighted()
+            no_grow.add(source)  # there aren't any possible nodes to step to, so try growing from somewhere else
 
-        target = random.choice(list(dif))
+        step_node = random.choice(list(possible_step_nodes))
 
-        k, attr_dict = random.choice(list(graph.edge[grow_node][target].items()))
+        # it's not really a big deal which, but it might be possible to weight this by the utility of edges later
+        key, attr_dict = random.choice(list(graph.edge[source][step_node].items()))
 
-        result.add_edge(grow_node, target, attr_dict=attr_dict)
-
-        grow_node = randomly_select_weighted()
+        result.add_edge(source, step_node, key=key, attr_dict=attr_dict)
 
     remove_isolated_nodes(result)
     update_node_helper(graph, result)

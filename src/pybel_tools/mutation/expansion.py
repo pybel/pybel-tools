@@ -8,14 +8,13 @@ from pybel import BELGraph
 from pybel.constants import *
 from pybel.struct import left_full_join
 from pybel.struct.filters import and_edge_predicates, concatenate_node_predicates
-from pybel.struct.filters.edge_predicates import keep_edge_permissive
+from pybel.struct.filters.edge_predicates import edge_has_annotation, is_causal_relation, keep_edge_permissive
 from pybel.struct.filters.node_predicates import keep_node_permissive
 from .utils import ensure_node_from_universe, update_node_helper
 from .. import pipeline
-from pybel.struct.filters.edge_predicates import is_causal_relation
 from ..filters.node_filters import exclude_pathology_filter
 from ..filters.node_selection import get_nodes_by_function
-from ..utils import check_has_annotation, safe_add_edge
+from ..utils import safe_add_edge
 
 __all__ = [
     'get_upstream_causal_subgraph',
@@ -181,7 +180,7 @@ def get_subgraph_edges(graph, annotation, value, source_filter=None, target_filt
         target_filter = keep_node_permissive
 
     for u, v, k, data in graph.edges_iter(keys=True, data=True):
-        if not check_has_annotation(data, annotation):
+        if not edge_has_annotation(data, annotation):
             continue
         if data[ANNOTATIONS][annotation] == value and source_filter(graph, u) and target_filter(graph, v):
             yield u, v, k, data

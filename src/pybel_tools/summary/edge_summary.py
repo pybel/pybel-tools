@@ -9,8 +9,8 @@ from pybel.constants import (
     ANNOTATIONS, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, CAUSES_NO_CHANGE,
     FUNCTION, PATHOLOGY, RELATION,
 )
+from pybel.struct.filters.edge_predicates import edge_has_annotation
 from pybel.struct.filters.node_predicates import keep_node_permissive
-from ..utils import check_has_annotation
 
 __all__ = [
     'count_relations',
@@ -188,7 +188,7 @@ def _iter_annotation_values(graph, annotation):
     return (
         data[ANNOTATIONS][annotation]
         for _, _, data in graph.edges_iter(data=True)
-        if check_has_annotation(data, annotation)
+        if edge_has_annotation(data, annotation)
     )
 
 
@@ -234,7 +234,7 @@ def count_annotation_values_filtered(graph, annotation, source_filter=None, targ
     return Counter(
         data[ANNOTATIONS][annotation]
         for u, v, data in graph.edges_iter(data=True)
-        if check_has_annotation(data, annotation) and source_filter(graph, u) and target_filter(graph, v)
+        if edge_has_annotation(data, annotation) and source_filter(graph, u) and target_filter(graph, v)
     )
 
 

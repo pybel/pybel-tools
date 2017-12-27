@@ -45,3 +45,6 @@ OWNCLOUD_ENV = 'OWNCLOUD_BASE'
 BMS_BASE = 'BMS_BASE'
 
 DEFAULT_SERVICE_URL = 'https://pybel.scai.fraunhofer.de'
+
+#: How many edges should be sampled from a graph that's still reasonable to display
+SAMPLE_RANDOM_EDGE_COUNT = 250

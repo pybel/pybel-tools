@@ -9,9 +9,10 @@ from datetime import datetime
 
 from pybel.constants import *
 from pybel.struct.filters import filter_edges
+from pybel.struct.filters.edge_predicates import edge_has_annotation
 from pybel.struct.summary import iterate_pubmed_identifiers
 from ..filters import build_edge_data_filter, build_pmid_inclusion_filter
-from ..utils import check_has_annotation, count_defaultdict, count_dict_values, graph_edge_data_iter
+from ..utils import count_defaultdict, count_dict_values, graph_edge_data_iter
 
 __all__ = [
     'count_pmids',
@@ -136,7 +137,7 @@ def count_citations_by_annotation(graph, annotation):
     """
     citations = defaultdict(lambda: defaultdict(set))
     for u, v, data in graph.edges_iter(data=True):
-        if not check_has_annotation(data, annotation) or CITATION not in data:
+        if not edge_has_annotation(data, annotation) or CITATION not in data:
             continue
 
         k = data[ANNOTATIONS][annotation]
@@ -266,7 +267,7 @@ def count_authors_by_annotation(graph, annotation='Subgraph'):
     authors = defaultdict(list)
 
     for data in graph_edge_data_iter(graph):
-        if not check_has_annotation(data, annotation) or CITATION not in data or CITATION_AUTHORS not in data[CITATION]:
+        if not edge_has_annotation(data, annotation) or CITATION not in data or CITATION_AUTHORS not in data[CITATION]:
             continue
         if isinstance(data[CITATION][CITATION_AUTHORS], str):
             raise ValueError('Graph should be converted with pybel.mutation.parse_authors first')

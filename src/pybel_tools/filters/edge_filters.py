@@ -17,9 +17,12 @@ from collections import Iterable
 
 from pybel.constants import *
 from pybel.struct.filters import count_passed_edge_filter
-from pybel.struct.filters.edge_predicates import edge_predicate, has_authors, has_pubmed
+from pybel.struct.filters.edge_predicates import (
+    edge_has_annotation, edge_predicate, has_authors, has_pubmed,
+    is_causal_relation,
+)
+from pybel.struct.filters.node_predicates import is_pathology
 from pybel.utils import subdict_matches
-from ..utils import check_has_annotation
 
 __all__ = [
     'summarize_edge_filter',
@@ -31,10 +34,7 @@ __all__ = [
     'build_pmid_inclusion_filter',
     'build_pmid_exclusion_filter',
     'build_author_inclusion_filter',
-    'edge_has_activity',
-    'edge_has_translocation',
-    'edge_has_degradation',
-    'edge_has_pathology_causal',
+    'has_pathology_causal',
 ]
 
 
@@ -70,7 +70,7 @@ def build_annotation_value_filter(annotation, value):
             :return: If the edge has the contained annotation with the contained value
             :rtype: bool
             """
-            return check_has_annotation(data, annotation) and data[ANNOTATIONS][annotation] == value
+            return edge_has_annotation(data, annotation) and data[ANNOTATIONS][annotation] == value
 
         return annotation_value_filter
 
@@ -85,7 +85,7 @@ def build_annotation_value_filter(annotation, value):
             :return: If the edge has the contained annotation and one of the contained values
             :rtype: bool
             """
-            return check_has_annotation(data, annotation) and data[ANNOTATIONS][annotation] in values
+            return edge_has_annotation(data, annotation) and data[ANNOTATIONS][annotation] in values
 
         return annotation_values_filter
 
@@ -136,7 +136,7 @@ def build_annotation_dict_any_filter(annotations):
         :rtype: bool
         """
         return any(
-            check_has_annotation(data, key) and data[ANNOTATIONS][key] == value
+            edge_has_annotation(data, key) and data[ANNOTATIONS][key] == value
             for key, values in annotations.items()
             for value in values
         )
@@ -295,64 +295,14 @@ def build_author_inclusion_filter(author):
             :rtype: bool
             """
             return has_authors(data) and any(
-                author in data[CITATION][CITATION_AUTHORS]
-                for author in authors
+                a in data[CITATION][CITATION_AUTHORS]
+                for a in authors
             )
 
         return author_filter
 
 
-def _edge_has_modifier(d, modifier):
-    """Checks if the edge has the given modifier
-
-    :param dict d: The edge data dictionary
-    :param str modifier: The modifier to check. One of :data:`pybel.constants.ACTIVITY`,
-                        :data:`pybel.constants.DEGRADATION`, or :data:`pybel.constants.TRANSLOCATION`.
-    :return: Does either the subject or object have the given modifier
-    :rtype: bool
-    """
-    if SUBJECT in d:
-        return MODIFIER in d[SUBJECT] and d[SUBJECT][MODIFIER] == modifier
-    elif OBJECT in d:
-        return MODIFIER in d[OBJECT] and d[OBJECT][MODIFIER] == modifier
-    return False
-
-
-@edge_predicate
-def edge_has_activity(d):
-    """Checks if the edge contains an activity in either the subject or object
-
-    :param dict d: The edge data dictionary
-    :return: If the edge contains an activity in either the subject or object
-    :rtype: bool
-    """
-    return _edge_has_modifier(d, ACTIVITY)
-
-
-@edge_predicate
-def edge_has_translocation(data):
-    """Checks if the edge has a translocation in either the subject or object
-
-    :param dict data: The edge data dictionary
-    :return: If the edge has a translocation in either the subject or object
-    :rtype: bool
-    """
-    return _edge_has_modifier(data, TRANSLOCATION)
-
-
-@edge_predicate
-def edge_has_degradation(data):
-    """Checks if the edge contains a degradation in either the subject or object
-
-    :param dict data: The edge data dictionary
-    :return: If the edge contains a degradation in either the subject or object
-    :rtype: bool
-    """
-    return _edge_has_modifier(data, DEGRADATION)
-
-
-@edge_predicate
-def edge_has_pathology_causal(graph, u, v, k, d):
+def has_pathology_causal(graph, u, v, k):
     """Returns if the subject of this edge is a pathology and participates in a causal relation where the object is
     not a pathology. These relations are generally nonsense.
 
@@ -360,12 +310,11 @@ def edge_has_pathology_causal(graph, u, v, k, d):
     :param tuple u: A BEL node
     :param tuple v: A BEL node
     :param int k: The edge key between the given nodes
-    :param dict d: The edge data dictionary
     :return: If the subject of this edge is a pathology and it participates in a causal reaction.
     :rtype: bool
     """
     return (
-        graph.node[u][FUNCTION] == PATHOLOGY and
-        d[RELATION] in CAUSAL_RELATIONS and
+        is_pathology(graph, u) and
+        is_causal_relation(graph, u, v, k) and
         graph.node[v][FUNCTION] not in {PATHOLOGY, BIOPROCESS}
     )
