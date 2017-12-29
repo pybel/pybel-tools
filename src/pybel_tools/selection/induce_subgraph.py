@@ -465,7 +465,7 @@ def get_largest_component(graph):
     return max(nx.weakly_connected_component_subgraphs(graph), key=len)
 
 
-def _randomly_select_node(graph, no_grow, random_state):
+def randomly_select_node(graph, no_grow, random_state):
     """Chooses a node from the graph to expand upon
 
     :param pybel.BELGraph graph: The graph to filter from
@@ -521,7 +521,7 @@ def get_random_subgraph(graph, number_edges=None, number_seed_nodes=None, seed=N
     result.add_nodes_from(universe_nodes[:number_seed_nodes])
 
     for _ in range(number_edges):
-        source = _randomly_select_node(result, no_grow, random_state)
+        source = randomly_select_node(result, no_grow, random_state)
 
         while True:
             if no_grow == original_nodes:
