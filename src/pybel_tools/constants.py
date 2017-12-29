@@ -31,8 +31,6 @@ DATA_WEIGHT = 'weight'
 
 # Resources
 
-#: URL For HGNC Gene Families Memberships BEL document
-GENE_FAMILIES = 'https://arty.scai.fraunhofer.de/artifactory/bel/knowledge/hgnc-gene-family-membership/hgnc-gene-family-membership-20170710.bel'
 NAMED_COMPLEXES = 'http://resources.openbel.org/belframework/20150611/resource/named-complexes.bel'
 
 #: Points to the env variable name for PyBEL resources

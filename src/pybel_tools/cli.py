@@ -39,14 +39,14 @@ from pybel.resources.definitions import (
 )
 from pybel.resources.deploy import deploy_directory
 from pybel.resources.document import get_bel_knowledge_hash
+from pybel.struct.summary import get_pubmed_identifiers
 from pybel.utils import get_version as pybel_version
-from .constants import DEFAULT_SERVICE_URL, GENE_FAMILIES, NAMED_COMPLEXES
+from .constants import DEFAULT_SERVICE_URL, NAMED_COMPLEXES
 from .definition_utils import export_namespaces
 from .document_utils import write_boilerplate
 from .ioutils import convert_paths, get_paths_recursive, to_pybel_web, upload_recursive
 from .mutation.metadata import enrich_pubmed_citations
 from .ols_utils import OlsNamespaceOntology
-from .summary import get_pubmed_identifiers
 from .utils import enable_cool_mode, get_version
 
 log = logging.getLogger(__name__)
@@ -109,19 +109,6 @@ def large_corpus(manager, enrich_authors, debug):
     """Caches the Selventa Large Corpus"""
     set_debug_param(debug)
     graph = from_url(LARGE_CORPUS_URL, manager=manager, citation_clearing=False, allow_nested=True)
-    if enrich_authors:
-        enrich_pubmed_citations(graph, manager=manager)
-    manager.insert_graph(graph, store_parts=True)
-
-
-@ensure.command()
-@click.option('--enrich-authors', is_flag=True)
-@click.option('-v', '--debug', count=True, help="Turn on debugging. More v's, more debugging")
-@click.pass_obj
-def gene_families(manager, enrich_authors, debug):
-    """Caches the HGNC Gene Family memberships"""
-    set_debug_param(debug)
-    graph = from_url(GENE_FAMILIES, manager=manager)
     if enrich_authors:
         enrich_pubmed_citations(graph, manager=manager)
     manager.insert_graph(graph, store_parts=True)
