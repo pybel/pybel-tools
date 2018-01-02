@@ -390,7 +390,7 @@ def get_subgraph(graph, seed_method=None, seed_data=None, expand_nodes=None, rem
         result = get_random_subgraph(
             graph,
             number_edges=seed_data.get('number_edges'),
-            number_seed_nodes=seed_data.get('number_seed_nodes'),
+            number_seed_edges=seed_data.get('number_seed_nodes'),
             seed=seed_data.get('seed')
         )
 
@@ -473,67 +473,104 @@ def randomly_select_node(graph, no_grow, random_state):
     :param random_state: The random state
     """
     try:
-        nodes, degrees = list(zip(*list(
+        nodes, degrees = zip(*(
             (node, degree)
             for node, degree in graph.degree_iter()
             if node not in no_grow
-        )))
+        ))
     except ValueError as e:
-        print('nodes')
+        log.warning('nodes')
         print(*graph.nodes(), sep='\n')
-        print('edges')
+        log.warning('edges')
         print(*graph.edges(), sep='\n')
         raise e
 
-    inv_degrees = [1 / (1 + d) for d in degrees]
-    ds = sum(inv_degrees)
-    norm_inv_degrees = [d / ds for d in inv_degrees]
+    ds = sum(degrees)
+
+    if 0 == ds:
+        log.warning('graph has no edges in it')
+        log.warning('number nodes: %s', graph.number_of_nodes())
+        raise ZeroDivisionError
+
+    norm_inv_degrees = [d / ds for d in degrees]
     nci = random_state.choice(len(nodes), p=norm_inv_degrees)
     return nodes[nci]
 
 
+def _get_number_topological_edges(graph):
+    """Count the number of edges in the topology of the graph
+
+    :param networkx.DiGraph graph:
+    :rtype: int
+    """
+    return sum(
+        len(graph.edge[node])
+        for node in graph
+    )
+
+
 @pipeline.mutator
-def get_random_subgraph(graph, number_edges=None, number_seed_nodes=None, seed=None):
+def get_random_subgraph(graph, number_edges=None, number_seed_edges=None, seed=None):
     """Randomly picks a node from the graph, and performs a weighted random walk to sample the given number of edges
     around it
 
     :param pybel.BELGraph graph:
     :param Optional[int] number_edges: Maximum number of edges. Defaults to
                                        :data:`pybel_tools.constants.SAMPLE_RANDOM_EDGE_COUNT` (250).
-    :param Optional[int] number_seed_nodes: Number of nodes to start with (which likely results in different components
+    :param Optional[int] number_seed_edges: Number of nodes to start with (which likely results in different components
                                             in large graphs). Defaults to 5.
     :param Optional[int] seed: A seed for the random state
     :rtype: pybel.BELGraph
     """
     number_edges = number_edges or SAMPLE_RANDOM_EDGE_COUNT
-    number_seed_nodes = number_seed_nodes or 5
+
+    if _get_number_topological_edges(graph) < number_edges:
+        log.info('sampled full graph')
+        return graph
+
+    original_node_count = graph.number_of_nodes()
+
+    number_seed_edges = number_seed_edges or 5
     random_state = np.random.RandomState(seed=seed)
     random.seed(seed)
 
     result = BELGraph()
 
-    original_nodes = set(graph)
+    #: This is the set of nodes that should no longer be grown from
+    no_grow = set()
 
-    no_grow = set()  # these are the black list of nodes, that won't be grown from anymore
+    universe_edges = [
+        (u, v)
+        for u in graph
+        for v in graph.edge[u]
+    ]
+    random.shuffle(universe_edges)
 
-    universe_nodes = list(graph)
-    random.shuffle(universe_nodes)
-    result.add_nodes_from(universe_nodes[:number_seed_nodes])
+    for u, v in universe_edges[:number_seed_edges]:
+        key = random_state.choice(list(graph.edge[u][v]))
+        attr_dict = graph.edge[u][v][key]
+        result.add_edge(u, v, key=key, attr_dict=attr_dict)
 
-    for _ in range(number_edges):
-        source = randomly_select_node(result, no_grow, random_state)
+    for _ in range(number_edges - number_seed_edges):
+        possible_step_nodes = None
+        c = 0
 
-        while True:
-            if no_grow == original_nodes:
-                log.warning('sampled full graph')
-                return graph
+        while not possible_step_nodes:
+            source = randomly_select_node(result, no_grow, random_state)
 
             possible_step_nodes = set(graph.edge[source]) - set(result.edge[source])
 
-            if possible_step_nodes:
-                break
+            if not possible_step_nodes:
+                no_grow.add(source)  # there aren't any possible nodes to step to, so try growing from somewhere else
 
-            no_grow.add(source)  # there aren't any possible nodes to step to, so try growing from somewhere else
+            c += 1
+
+            if c >= original_node_count:
+                log.warning('infinite loop happening')
+                log.warning('source: %s', source)
+                log.warning('adjacent: %s', list(graph.edge[source]))
+                log.warning('no grow: %s', no_grow)
+                raise Exception
 
         step_node = random.choice(list(possible_step_nodes))
 
