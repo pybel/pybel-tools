@@ -81,11 +81,11 @@ class QueryTest(ExampleNetworkMixin, ManagerMixin):
         pipeline = Pipeline()
         pipeline.append(get_subgraph_by_annotation_value, 'Annotation', 'foo')
 
-        query = Query(
-            network_ids=network_id,
-            seed_list=[{'type': 'neighbors', 'data': [(PROTEIN, HGNC, 'a')]}],
-            pipeline=pipeline
-        )
+        query = Query(network_ids=[network_id])
+        query.append_seeding_neighbors([
+            (PROTEIN, HGNC, 'a')
+        ])
+        query.pipeline = pipeline
 
         result_graph = query.run(self.manager)
 
@@ -96,8 +96,10 @@ class QueryTest(ExampleNetworkMixin, ManagerMixin):
         test_network_1 = self.manager.insert_graph(self.network1)
         test_network_2 = self.manager.insert_graph(self.network2)
 
-        query = Query(network_ids=[test_network_1.id, test_network_2.id])
-        query.add_seed_neighbors([
+        query = Query()
+        query.append_network(test_network_1.id)
+        query.append_network(test_network_2.id)
+        query.append_seeding_neighbors([
             (RNA, HGNC, 'd'),
             (PROTEIN, HGNC, 'e')
         ])
@@ -128,7 +130,7 @@ class QueryTest(ExampleNetworkMixin, ManagerMixin):
             network_ids=[test_network_1.id, test_network_2.id],
             pipeline=pipeline
         )
-        query.add_seed_neighbors([node_1, node_2])
+        query.append_seeding_neighbors([node_1, node_2])
 
         result_graph = query.run(self.manager)
         result_graph = relabel_nodes_to_hashes(result_graph)

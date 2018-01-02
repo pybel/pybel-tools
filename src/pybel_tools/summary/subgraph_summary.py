@@ -9,8 +9,9 @@ from collections import defaultdict
 from operator import itemgetter
 
 from pybel.constants import *
-from ..selection.group_nodes import group_nodes_by_annotation_filtered, group_nodes_by_annotation
-from ..utils import calculate_tanimoto_set_distances, check_has_annotation, count_dict_values
+from pybel.struct.filters.edge_predicates import edge_has_annotation
+from ..selection.group_nodes import group_nodes_by_annotation, group_nodes_by_annotation_filtered
+from ..utils import calculate_tanimoto_set_distances, count_dict_values
 
 __all__ = [
     'count_subgraph_sizes',
@@ -51,7 +52,7 @@ def calculate_subgraph_edge_overlap(graph, annotation='Subgraph'):
     sg2edge = defaultdict(set)
 
     for u, v, d in graph.edges_iter(data=True):
-        if not check_has_annotation(d, annotation):
+        if not edge_has_annotation(d, annotation):
             continue
         sg2edge[d[ANNOTATIONS][annotation]].add((u, v))
 

@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from pybel.constants import GENE, RELATION, TRANSCRIBED_TO, RNA, TRANSLATED_TO
-from ..filters.node_filters import data_missing_key_builder, node_is_upstream_leaf, filter_nodes
+from pybel.constants import GENE, RELATION, RNA, TRANSCRIBED_TO, TRANSLATED_TO
+from pybel.struct.filters import filter_nodes
+from ..filters.node_filters import data_missing_key_builder, node_is_upstream_leaf
 from ..filters.node_selection import get_nodes_by_function
 
 __all__ = [
@@ -19,7 +20,7 @@ def get_upstream_leaves(graph):
 
     :param pybel.BELGraph graph: A BEL graph
     :return: An iterator over nodes that are upstream leaves
-    :rtype: iter
+    :rtype: iter[tuple]
     """
     return filter_nodes(graph, node_is_upstream_leaf)
 
@@ -31,18 +32,18 @@ def get_unweighted_upstream_leaves(graph, key):
     .. seealso :: :func:`data_does_not_contain_key_builder`
 
     :param pybel.BELGraph graph: A BEL graph
-    :param key: The key in the node data dictionary representing the experimental data
-    :type key: str
+    :param str key: The key in the node data dictionary representing the experimental data
     :return: An iterable over leaves (nodes with an in-degree of 0) that don't have the given annotation
-    :rtype: iter
+    :rtype: iter[tuple]
     """
     return filter_nodes(graph, [node_is_upstream_leaf, data_missing_key_builder(key)])
 
 
 def get_gene_leaves(graph):
-    """Find all genes who have only one connection, that's a transcription to its RNA
+    """Iterate over all genes who have only one connection, that's a transcription to its RNA
 
     :param pybel.BELGraph graph: A BEL graph
+    :rtype: iter[tuple]
     """
     for node in get_nodes_by_function(graph, GENE):
         if graph.in_degree(node) != 0:
@@ -58,9 +59,10 @@ def get_gene_leaves(graph):
 
 
 def get_rna_leaves(graph):
-    """Find all RNAs who have only one connection, that's a translation to its protein
+    """Iterate over all RNAs who have only one connection, that's a translation to its protein
 
     :param pybel.BELGraph graph: A BEL graph
+    :rtype: iter[tuple]
     """
     for node in get_nodes_by_function(graph, RNA):
         if graph.in_degree(node) != 0:

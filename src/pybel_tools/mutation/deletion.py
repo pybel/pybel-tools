@@ -5,6 +5,7 @@
 from pybel.constants import PATHOLOGY
 from pybel.struct.filters import get_nodes
 from pybel.struct.filters.edge_filters import filter_edges
+from pybel.struct.filters.edge_predicates import is_associative_relation
 from .. import pipeline
 from ..filters.node_selection import function_inclusion_filter_builder
 from ..selection.leaves import get_gene_leaves, get_rna_leaves
@@ -17,6 +18,7 @@ __all__ = [
     'remove_leaves_by_type',
     'prune_central_dogma',
     'remove_inconsistent_edges',
+    'remove_associations',
 ]
 
 
@@ -86,3 +88,12 @@ def remove_pathologies(graph):
     """
     nodes = get_nodes(graph, function_inclusion_filter_builder(PATHOLOGY))
     graph.remove_nodes_from(nodes)
+
+
+@pipeline.in_place_mutator
+def remove_associations(graph):
+    """Removes all associative relationships from the graph
+
+    :param pybel.BELGraph graph: A BEL graph
+    """
+    remove_filtered_edges(graph, is_associative_relation)

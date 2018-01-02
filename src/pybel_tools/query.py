@@ -2,14 +2,16 @@
 
 import json
 import logging
+from collections import Iterable
+
+import numpy as np
 
 from pybel.struct import union
 from pybel.utils import list2tuple
 from .pipeline import Pipeline
 from .selection import get_subgraph
 from .selection.induce_subgraph import (
-    NONNODE_SEED_TYPES, SEED_TYPE_ANNOTATION, SEED_TYPE_INDUCTION,
-    SEED_TYPE_NEIGHBORS,
+    NONNODE_SEED_TYPES, SEED_TYPE_ANNOTATION, SEED_TYPE_INDUCTION, SEED_TYPE_NEIGHBORS, SEED_TYPE_SAMPLE,
 )
 
 log = logging.getLogger(__name__)
@@ -21,26 +23,27 @@ SEED_DATA_KEY = 'data'
 class Query:
     """Wraps a query over the network store"""
 
-    def __init__(self, network_ids, seed_list=None, pipeline=None):
+    def __init__(self, network_ids=None, seeding=None, pipeline=None):
         """
-        :param int or list[int] or set[int] or tuple[int] network_ids:
-        :param list[dict] seed_list:
-        :param Pipeline pipeline: Instance of a pipeline
+        :param iter[int] network_ids: Database network identifiers identifiers
+        :param Optional[list[dict]] seeding:
+        :param Optional[Pipeline] pipeline: Instance of a pipeline
         """
-        self.network_ids = []
-        self.seeds = []
-
-        if isinstance(network_ids, int):
-            self.append_network(network_ids)
-        elif isinstance(network_ids, (list, set, tuple)):
-            self.network_ids.extend(int(network_id) for network_id in network_ids)
+        if not network_ids:
+            self.network_ids = []
         else:
-            raise TypeError(network_ids)
+            if not isinstance(network_ids, Iterable):
+                raise TypeError('network identifiers is not list: {}'.format(network_ids))
 
-        if seed_list:
-            self.seeds.extend(seed_list)
+            network_ids = list(network_ids)
 
-        self.pipeline = pipeline if pipeline is not None else Pipeline()
+            if any(not isinstance(entry, int) for entry in network_ids):
+                raise TypeError('network identifiers entry is not int: {}'.format(network_ids))
+
+            self.network_ids = network_ids
+
+        self.seeding = seeding or []
+        self.pipeline = pipeline or Pipeline()
 
     def append_network(self, network_id):
         """Adds a network to this query
@@ -49,36 +52,50 @@ class Query:
         """
         self.network_ids.append(network_id)
 
-    def add_seed(self, seed_type, data):
-        self.seeds.append({
+    def append_seed(self, seed_type, data):
+        """Add a seeding
+
+        :param str seed_type:
+        :param data:
+        """
+        self.seeding.append({
             SEED_TYPE_KEY: seed_type,
             SEED_DATA_KEY: data
         })
 
-    def add_seed_induction(self, data):
+    def append_seeding_induction(self, data):
         """Adds a seed induction method
 
         :param list[tuple] data: A list of PyBEL node tuples
         """
-        self.add_seed(SEED_TYPE_INDUCTION, data)
+        self.append_seed(SEED_TYPE_INDUCTION, data)
 
-    def add_seed_neighbors(self, data):
+    def append_seeding_neighbors(self, data):
         """Adds a seed by neighbors
 
         :param list[tuple] data:
         """
-        self.add_seed(SEED_TYPE_NEIGHBORS, data)
+        self.append_seed(SEED_TYPE_NEIGHBORS, data)
 
-    def add_seed_annotation(self, annotation, values):
+    def append_seeding_annotation(self, annotation, values):
         """Adds a seed induction method for single annotation's values
 
         :param str annotation: The annotation to filter by
         :param set[str] values: The values of the annotation to keep
         """
-        self.add_seed(SEED_TYPE_ANNOTATION, {
+        self.append_seed(SEED_TYPE_ANNOTATION, {
             'annotations': {
                 annotation: values
             }
+        })
+
+    def append_seeding_sample(self):
+        """Adds seed induction methods.
+
+        Kwargs can have ``number_edges`` or ``number_seed_nodes``.
+        """
+        self.append_seed(SEED_TYPE_SAMPLE, {
+            'seed': np.random.randint(0, np.iinfo('i').max)
         })
 
     def append_pipeline(self, name, *args, **kwargs):
@@ -111,11 +128,11 @@ class Query:
 
         # parse seeding stuff
 
-        if not self.seeds:
+        if not self.seeding:
             return self.pipeline.run(query_universe, universe=query_universe)
 
         subgraphs = []
-        for seed in self.seeds:
+        for seed in self.seeding:
             subgraph = get_subgraph(
                 query_universe,
                 seed_method=seed[SEED_TYPE_KEY],
@@ -126,15 +143,6 @@ class Query:
                 log.debug('Seed returned empty graph: %s', seed)
                 continue
 
-            # TODO streamline this logging... maybe put in get_subgraph function
-            log.debug(
-                'Subgraph coming from %s (seed type) %s (data) contains %d nodes and %d edges',
-                seed[SEED_DATA_KEY],
-                seed[SEED_TYPE_KEY],
-                subgraph.number_of_nodes(),
-                subgraph.number_of_edges()
-            )
-
             subgraphs.append(subgraph)
 
         if not subgraphs:
@@ -142,44 +150,31 @@ class Query:
 
         graph = union(subgraphs)
 
-        log.debug(
-            'Number of nodes/edges in query before running pipeline: %d nodes, %d edges )',
-            graph.number_of_nodes(),
-            graph.number_of_edges(),
-        )
-
         return self.pipeline.run(graph, universe=query_universe)
-
-    def seeding_to_json(self):
-        """Returns seeding JSON
-
-        :rtype: list[dict]
-        """
-        return [
-            {
-                SEED_TYPE_KEY: seed[SEED_TYPE_KEY],
-                SEED_DATA_KEY: seed[SEED_DATA_KEY]
-            }
-            for seed in self.seeds
-        ]
 
     def seeding_to_jsons(self):
         """Returns seeding JSON as a string
 
         :rtype: str
         """
-        return json.dumps(self.seeding_to_json())
+        return json.dumps(self.seeding)
 
     def to_json(self):
         """Returns this query as a JSON object
 
         :rtype: dict
         """
-        return {
+        rv = {
             'network_ids': list(self.network_ids),
-            'seeding': self.seeding_to_json(),
-            'pipeline': self.pipeline.to_json()
         }
+
+        if self.seeding:
+            rv['seeding'] = self.seeding
+
+        if self.pipeline:
+            rv['pipeline'] = self.pipeline.to_json()
+
+        return rv
 
     def to_jsons(self):
         """Returns this query as a stringified JSON object
@@ -204,11 +199,15 @@ class Query:
         :param dict d: A JSON dictionary
         :rtype: Query
         """
-        return Query(
-            network_ids=d['network_ids'],
-            seed_list=process_seeding(d['seeding']),
-            pipeline=Pipeline.from_json(d['pipeline']),
-        )
+        rv = Query(network_ids=d['network_ids'])
+
+        if 'seeding' in d:
+            rv.seeding = process_seeding(d['seeding'])
+
+        if 'pipeline' in d:
+            rv.pipeline.protocol = d['pipeline']
+
+        return rv
 
 
 def process_seeding(seeds):

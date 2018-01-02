@@ -1,7 +1,7 @@
-sqlalchemy==1.1.14
+sqlalchemy==1.1.15
 requests==2.18.4
 networkx==1.11
-pybel>=0.9.5
+pybel>=0.10.1
 click==6.7
 pandas
 scipy

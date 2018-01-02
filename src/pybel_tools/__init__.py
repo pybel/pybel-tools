@@ -69,7 +69,7 @@ __all__ = (
     visualization,
 )
 
-__version__ = '0.4.5'
+__version__ = '0.5.0'
 
 __title__ = 'pybel_tools'
 __description__ = 'Tools for using BEL documents in python'
@@ -79,4 +79,4 @@ __author__ = 'Charles Tapley Hoyt'
 __email__ = 'cthoyt@gmail.com'
 
 __license__ = 'Apache License 2.0'
-__copyright__ = 'Copyright (c) 2016 Charles Tapley Hoyt'
+__copyright__ = 'Copyright (c) 2016-2018 Charles Tapley Hoyt'

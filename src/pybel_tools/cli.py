@@ -24,8 +24,8 @@ import sys
 from getpass import getuser
 
 import click
-
 from ols_client.constants import BASE_URL
+
 from pybel import from_lines, from_pickle, from_url, to_database
 from pybel.constants import (
     BELNS_ENCODING_STR, LARGE_CORPUS_URL, NAMESPACE_DOMAIN_OTHER, NAMESPACE_DOMAIN_TYPES,
@@ -39,14 +39,14 @@ from pybel.resources.definitions import (
 )
 from pybel.resources.deploy import deploy_directory
 from pybel.resources.document import get_bel_knowledge_hash
+from pybel.struct.summary import get_pubmed_identifiers
 from pybel.utils import get_version as pybel_version
-from .constants import DEFAULT_SERVICE_URL, GENE_FAMILIES, NAMED_COMPLEXES
+from .constants import DEFAULT_SERVICE_URL, NAMED_COMPLEXES
 from .definition_utils import export_namespaces
 from .document_utils import write_boilerplate
 from .ioutils import convert_paths, get_paths_recursive, to_pybel_web, upload_recursive
 from .mutation.metadata import enrich_pubmed_citations
 from .ols_utils import OlsNamespaceOntology
-from .summary import get_pubmed_identifiers
 from .utils import enable_cool_mode, get_version
 
 log = logging.getLogger(__name__)
@@ -109,19 +109,6 @@ def large_corpus(manager, enrich_authors, debug):
     """Caches the Selventa Large Corpus"""
     set_debug_param(debug)
     graph = from_url(LARGE_CORPUS_URL, manager=manager, citation_clearing=False, allow_nested=True)
-    if enrich_authors:
-        enrich_pubmed_citations(graph, manager=manager)
-    manager.insert_graph(graph, store_parts=True)
-
-
-@ensure.command()
-@click.option('--enrich-authors', is_flag=True)
-@click.option('-v', '--debug', count=True, help="Turn on debugging. More v's, more debugging")
-@click.pass_obj
-def gene_families(manager, enrich_authors, debug):
-    """Caches the HGNC Gene Family memberships"""
-    set_debug_param(debug)
-    graph = from_url(GENE_FAMILIES, manager=manager)
     if enrich_authors:
         enrich_pubmed_citations(graph, manager=manager)
     manager.insert_graph(graph, store_parts=True)
@@ -316,7 +303,7 @@ def convert_to_annotation(file, output):
 
 @namespace.command()
 @click.argument('ontology')
-@click.option('-e', '--encoding', default=BELNS_ENCODING_STR)
+@click.option('-e', '--encoding', default=BELNS_ENCODING_STR, help='The BEL Namespace encoding')
 @click.option('-d', '--domain', type=click.Choice(NAMESPACE_DOMAIN_TYPES), default=NAMESPACE_DOMAIN_OTHER)
 @click.option('-b', '--ols-base-url', default=BASE_URL, help='Default: {}'.format(BASE_URL))
 @click.option('-o', '--output', type=click.File('w'), default=sys.stdout,
@@ -376,12 +363,13 @@ def document():
 @document.command()
 @click.argument('ontology')
 @click.argument('domain')
-@click.argument('function')
+@click.option('--function')
+@click.option('--encoding')
 @click.option('-b', '--ols-base')
 @click.option('-o', '--output', type=click.File('w'), default=sys.stdout)
-def from_ols(ontology, domain, function, ols_base, output):
+def from_ols(ontology, domain, function, encoding, ols_base, output):
     """Creates a hierarchy from the ontology lookup service"""
-    ont = OlsNamespaceOntology(ontology, domain, bel_function=function, ols_base=ols_base)
+    ont = OlsNamespaceOntology(ontology, domain, bel_function=function, encoding=encoding, ols_base=ols_base)
     ont.write_hierarchy(output)
 
 

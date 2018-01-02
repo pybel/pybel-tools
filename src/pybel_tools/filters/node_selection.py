@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from .node_filters import filter_nodes, function_inclusion_filter_builder, namespace_inclusion_builder, \
-    function_namespace_inclusion_builder
-from .. import pipeline
+from pybel.struct import filter_nodes
+from .node_filters import (
+    function_inclusion_filter_builder, function_namespace_inclusion_builder, namespace_inclusion_builder,
+)
 
 __all__ = [
     'get_nodes_by_function',
@@ -11,19 +12,17 @@ __all__ = [
 ]
 
 
-@pipeline.in_place_mutator
-def get_nodes_by_function(graph, function):
+def get_nodes_by_function(graph, func):
     """Get all nodes of a given type.
 
     :param pybel.BELGraph graph: A BEL graph
-    :param str or iter[str] function: The BEL function to filter by
+    :param str or iter[str] func: The BEL function to filter by
     :return: An iterable of all BEL nodes with the given function
     :rtype: iter[tuple]
     """
-    return filter_nodes(graph, function_inclusion_filter_builder(function))
+    return filter_nodes(graph, function_inclusion_filter_builder(func))
 
 
-@pipeline.in_place_mutator
 def get_nodes_by_namespace(graph, namespace):
     """Returns an iterator over nodes with the given namespace
 
@@ -35,14 +34,13 @@ def get_nodes_by_namespace(graph, namespace):
     return filter_nodes(graph, namespace_inclusion_builder(namespace))
 
 
-@pipeline.in_place_mutator
-def get_nodes_by_function_namespace(graph, function, namespace):
+def get_nodes_by_function_namespace(graph, func, namespace):
     """Returns an iterator over nodes with the given function and namespace
 
     :param pybel.BELGraph graph: A BEL graph
-    :param str function: The function to filter
+    :param str func: The function to filter
     :param str or iter[str] namespace: The namespace to filter
     :return: An iterable over BEL nodes with the given function and namespace
     :rtype: iter[tuple]
     """
-    return filter_nodes(graph, function_namespace_inclusion_builder(function, namespace))
+    return filter_nodes(graph, function_namespace_inclusion_builder(func, namespace))

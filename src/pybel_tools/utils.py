@@ -6,55 +6,26 @@ import datetime
 import itertools as itt
 import json
 import logging
+import os
 import time
+from collections import Counter, defaultdict
+from operator import itemgetter
 
 import jinja2
 import networkx as nx
-import os
 import pandas as pd
-from collections import Counter, defaultdict
-from operator import itemgetter
 from pkg_resources import get_distribution
 from six.moves import zip_longest
 
 from pybel.constants import (
-    ANNOTATIONS,
-    CITATION_TYPE,
-    CITATION_NAME,
-    CITATION_REFERENCE,
-    CITATION_DATE,
-    CITATION_AUTHORS,
-    CITATION_COMMENTS,
-    RELATION,
+    CITATION_AUTHORS, CITATION_COMMENTS, CITATION_DATE, CITATION_NAME, CITATION_REFERENCE,
+    CITATION_TYPE, RELATION,
 )
 
 log = logging.getLogger(__name__)
 
 CENTRALITY_SAMPLES = 200
 
-
-def multidict_list(it):
-    """Collects a list of pairs with a group by into a list
-
-    :param iter[tuple[X,Y]] it: An iterable of pairs where the first element is hashable
-    :rtype: dict[X,list[Y]]
-    """
-    result = defaultdict(list)
-    for k, v in it:
-        result[k].append(v)
-    return dict(result)
-
-
-def multidict_set(it):
-    """Collects a list of pairs with a group by into a set
-
-    :param iter[tuple[X,Y]] it: An iterable of pairs where the first and second elements are hashable
-    :rtype: dict[X,set[Y]]
-    """
-    result = defaultdict(set)
-    for k, v in it:
-        result[k].add(v)
-    return dict(result)
 
 
 def pairwise(iterable):
@@ -89,21 +60,6 @@ def count_defaultdict(dict_of_lists):
         for k, v in dict_of_lists.items()
     }
 
-
-def get_value_sets(dict_of_iterables):
-    """Takes a dictionary of lists/iterables/counters and gets the sets of the values
-
-    :param dict_of_iterables: A dictionary of lists
-    :type dict_of_iterables: dict or collections.defaultdict
-    :return: A dictionary of {key: set of values}
-    :rtype: dict
-    """
-    return {
-        k: set(v)
-        for k, v in dict_of_iterables.items()
-    }
-
-
 def count_dict_values(dict_of_counters):
     """Counts the number of elements in each value (can be list, Counter, etc)
 
@@ -116,41 +72,6 @@ def count_dict_values(dict_of_counters):
         k: len(v)
         for k, v in dict_of_counters.items()
     })
-
-
-def _check_has_data(data, super_key, sub_key):
-    """
-
-    :param dict data:
-    :param str super_key:
-    :param str sub_key:
-    :return: None if the conditions don't pass, or the value from the subdict if they do
-    """
-    if super_key not in data:
-        return
-
-    return data[super_key].get(sub_key)
-
-
-def check_has_annotation(data, key):
-    """Checks that ANNOTATION is included in the data dictionary and that the key is also present
-
-    :param dict data: The data dictionary from a BELGraph's edge
-    :param str key: An annotation key
-    :return: If the annotation key is present in the current data dictionary
-    :rtype: bool
-
-    For example, it might be useful to print all edges that are annotated with 'Subgraph':
-
-    >>> from pybel import BELGraph
-    >>> graph = BELGraph()
-    >>> ...
-    >>> for u, v, data in graph.edges_iter(data=True):
-    >>>     if not check_has_annotation(data, 'Subgraph')
-    >>>         continue
-    >>>     print(u, v, data)
-    """
-    return _check_has_data(data, ANNOTATIONS, key)
 
 
 def set_percentage(x, y):
@@ -304,23 +225,6 @@ def barv(d, plt, title=None, rotation='vertical'):
         plt.title(title)
 
 
-def citation_to_tuple(citation):
-    """Converts a citation dictionary to a tuple. Can be useful for sorting and serialization purposes
-
-    :param dict citation: A citation dictionary
-    :return: A citation tuple
-    :rtype: tuple
-    """
-    return tuple([
-        citation.get(CITATION_TYPE),
-        citation.get(CITATION_NAME),
-        citation.get(CITATION_REFERENCE),
-        citation.get(CITATION_DATE),
-        citation.get(CITATION_AUTHORS),
-        citation.get(CITATION_COMMENTS)
-    ])
-
-
 def is_edge_consistent(graph, u, v):
     """Checks if all edges between two nodes have the same relation
 
@@ -356,7 +260,7 @@ def safe_add_edges(graph, edges):
     """Adds an iterable of edges to the graph
 
     :param pybel.BELGraph graph: A BEL Graph
-    :param iter[tuple edges: An iterable of 4-tuples of (source, target, key, data)
+    :param iter[tuple,tuple,Any,dict] edges: An iterable of 4-tuples of (source, target, key, data)
     """
     for source, target, key, attr_dict in edges:
         safe_add_edge(graph, source, target, key=key, attr_dict=attr_dict)

@@ -175,7 +175,7 @@ def make_variant_term(tokens):
 def _ensure_variants(tokens):
     func = tokens[FUNCTION]
     arguments = [
-        identifier_parameter(tokens[IDENTIFIER])
+        identifier_parameter(tokens)
     ]
 
     for variant_tokens in tokens[VARIANTS]:
@@ -202,7 +202,7 @@ def _ensure_fusion(tokens):
 
 def convert_simple(tokens, location=None):
     arguments = [
-        identifier_parameter(tokens[IDENTIFIER])
+        identifier_parameter(tokens)
     ]
 
     if location is not None:

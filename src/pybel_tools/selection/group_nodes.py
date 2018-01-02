@@ -3,8 +3,8 @@
 from collections import defaultdict
 
 from pybel.constants import *
-from pybel.struct.filters.node_filters import concatenate_node_filters
-from ..utils import check_has_annotation
+from pybel.struct.filters.edge_predicates import edge_has_annotation
+from pybel.struct.filters.node_filters import concatenate_node_predicates
 
 __all__ = [
     'group_nodes_by_annotation',
@@ -25,7 +25,7 @@ def group_nodes_by_annotation(graph, annotation='Subgraph'):
     result = defaultdict(set)
 
     for u, v, d in graph.edges_iter(data=True):
-        if not check_has_annotation(d, annotation):
+        if not edge_has_annotation(d, annotation):
             continue
 
         result[d[ANNOTATIONS][annotation]].add(u)
@@ -71,7 +71,7 @@ def group_nodes_by_annotation_filtered(graph, node_filters=None, annotation='Sub
     :return: A dictionary of {annotation value: set of nodes}
     :rtype: dict[str,set[tuple]]
     """
-    node_filter = concatenate_node_filters(node_filters)
+    node_filter = concatenate_node_predicates(node_filters)
     return {
         key: {
             node

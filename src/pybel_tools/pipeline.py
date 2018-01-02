@@ -49,13 +49,9 @@ from __future__ import print_function
 import json
 import logging
 from functools import wraps
+from inspect import signature
 
-from pybel.struct.operations import union
-
-try:
-    from inspect import signature
-except ImportError:
-    from funcsigs import signature
+from pybel.struct.operations import node_intersection, union
 
 __all__ = [
     'Pipeline',
@@ -94,9 +90,6 @@ def _register(universe, in_place, **kwargs):
         :param f: A function
         :return: The same function, with additional properties added
         """
-
-        f.wrap_universe = universe
-        f.wrap_in_place = in_place
         f.__dict__.update(kwargs)
 
         if universe:
@@ -144,6 +137,17 @@ def splitter(f):
     return f
 
 
+def function_is_registered(name):
+    """Checks if a function is a valid pipeline function
+
+    :param str or types.FunctionType name: The name of the function
+    :rtype: bool
+    """
+    if not isinstance(name, str):
+        return name.__name__ in mapped
+
+    return name in mapped
+
 class Pipeline:
     """Builds and runs analytical pipelines on BEL graphs"""
 
@@ -155,14 +159,6 @@ class Pipeline:
         self.universe = universe
         self.protocol = [] if protocol is None else protocol
 
-    def has_function(self, name):
-        """Checks if a function is a valid pipeline function
-
-        :param str name: The name of the function
-        :rtype: bool
-        """
-        return name in mapped
-
     def get_function(self, name):
         """Wraps a function with the universe and in-place
 
@@ -171,13 +167,13 @@ class Pipeline:
         """
         f = mapped[name]
 
-        if f.wrap_universe and f.wrap_in_place:
+        if name in universe_map and name in in_place_map:
             return self.wrap_in_place(self.wrap_universe(f))
 
-        if f.wrap_universe:
+        if name in universe_map:
             return self.wrap_universe(f)
 
-        if f.wrap_in_place:
+        if name in in_place_map:
             return self.wrap_in_place(f)
 
         return f
@@ -191,20 +187,23 @@ class Pipeline:
         :return: This pipeline for fluid query building
         :rtype: Pipeline
         """
-
         if not isinstance(name, str):
-            self.append(name.__name__, *args, **kwargs)
-            return
+            return self.append(name.__name__, *args, **kwargs)
 
-        if not self.has_function(name):
+        if not function_is_registered(name):
             raise KeyError(name)
 
-        self.protocol.append({
+        av = {
             'function': name,
-            'args': args,
-            'kwargs': kwargs,
-        })
+        }
 
+        if args:
+            av['args'] = args
+
+        if kwargs:
+            av['kwargs'] = kwargs
+
+        self.protocol.append(av)
         return self
 
     def extend(self, pipeline):
@@ -216,6 +215,9 @@ class Pipeline:
         """
         self.protocol.extend(pipeline.protocol)
         return self
+
+    def __nonzero__(self):
+        return self.protocol
 
     def _run_helper(self, graph, protocol):
         """Helps run the protocol
@@ -243,7 +245,6 @@ class Pipeline:
                     result = union(networks)
 
                 elif entry['meta'] == 'intersection':
-                    from pybel.struct.operations import node_intersection  # secret sketchy import for now
                     result = node_intersection(networks)
 
                 else:
@@ -284,9 +285,9 @@ class Pipeline:
         """Takes a function that doesn't return the graph and returns the graph"""
 
         @wraps(f)
-        def wrapper(graph, *attrs, **kwargs):
+        def wrapper(graph, *args, **kwargs):
             """Applies the enclosed function and returns the graph"""
-            f(graph, *attrs, **kwargs)
+            f(graph, *args, **kwargs)
             return graph
 
         return wrapper
@@ -310,23 +311,14 @@ class Pipeline:
         return json.dump(self.protocol, file)
 
     @staticmethod
-    def from_json(d):
+    def from_json(protocol):
         """Loads a pipeline from a JSON object
 
-        :param list[dict] d:
+        :param list[dict] protocol:
         :return: The pipeline represented by the JSON
         :rtype: Pipeline
         """
-        return Pipeline(protocol=d)
-
-    @staticmethod
-    def from_jsons(s):
-        """Loads a pipeline from the JSON in a string
-
-        :param str s: A string containing the JSON representing a pipeline
-        :rtype: Pipeline
-        """
-        return Pipeline.from_json(json.loads(s))
+        return Pipeline(protocol=protocol)
 
     @staticmethod
     def from_json_file(file):
@@ -341,14 +333,15 @@ class Pipeline:
         return json.dumps(self.protocol, indent=2)
 
     @staticmethod
-    def union(*pipelines):
-        """Takes the union of multiple pipelines
+    def _build_meta(meta, pipelines):
+        """
 
-        :return: The union of the results from multiple pipelines
-        :rtype: Pipeline
+        :param str meta:
+        :param list[Pipeline] pipelines:
+        :return:
         """
         return Pipeline.from_json([{
-            'meta': 'union',
+            'meta': meta,
             'pipelines': [
                 pipeline.to_json()
                 for pipeline in pipelines
@@ -356,16 +349,21 @@ class Pipeline:
         }])
 
     @staticmethod
+    def union(*pipelines):
+        """Takes the union of multiple pipelines
+
+        :param list[Pipeline] pipelines: A list of pipelines
+        :return: The union of the results from multiple pipelines
+        :rtype: Pipeline
+        """
+        return Pipeline._build_meta('union', pipelines)
+
+    @staticmethod
     def intersection(*pipelines):
         """Takes the intersection of the results from multiple pipelines
 
+        :param list[Pipeline] pipelines: A list of pipelines
         :return: The intersection of results from multiple pipelines
         :rtype: Pipeline
         """
-        return Pipeline.from_json([{
-            'meta': 'intersection',
-            'pipelines': [
-                pipeline.to_json()
-                for pipeline in pipelines
-            ]
-        }])
+        return Pipeline._build_meta('intersection', pipelines)

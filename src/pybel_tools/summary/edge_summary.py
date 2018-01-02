@@ -9,8 +9,8 @@ from pybel.constants import (
     ANNOTATIONS, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, CAUSES_NO_CHANGE,
     FUNCTION, PATHOLOGY, RELATION,
 )
+from pybel.struct.filters.edge_predicates import edge_has_annotation
 from pybel.struct.filters.node_predicates import keep_node_permissive
-from ..utils import check_has_annotation, get_value_sets
 
 __all__ = [
     'count_relations',
@@ -44,7 +44,22 @@ def count_relations(graph):
     :return: A Counter from {relation type: frequency}
     :rtype: collections.Counter
     """
-    return Counter(d[RELATION] for _, _, d in graph.edges_iter(data=True))
+    return Counter(
+        data[RELATION]
+        for _, _, data in graph.edges_iter(data=True)
+    )
+
+
+def group_dict_set(iterator):
+    """Makes a dict that accumulates the values for each key in an iterator of doubles
+
+    :param iter[tuple[A,B]] iterator: An iterator
+    :rtype: dict[A,set[B]]
+    """
+    d = defaultdict(set)
+    for key, value in iterator:
+        d[key].add(value)
+    return dict(d)
 
 
 def get_edge_relations(graph):
@@ -52,12 +67,12 @@ def get_edge_relations(graph):
 
     :param pybel.BELGraph graph: A BEL graph
     :return: A dictionary of {(node, node): set of edge types}
-    :rtype: dict
+    :rtype: dict[tuple[tuple,tuple],set[str]]
     """
-    edge_relations = defaultdict(set)
-    for u, v, d in graph.edges_iter(data=True):
-        edge_relations[u, v].add(d[RELATION])
-    return dict(edge_relations)
+    return group_dict_set(
+        ((u, v), d[RELATION])
+        for u, v, d in graph.edges_iter(data=True)
+    )
 
 
 def count_unique_relations(graph):
@@ -72,6 +87,15 @@ def count_unique_relations(graph):
     return Counter(itt.chain.from_iterable(get_edge_relations(graph).values()))
 
 
+def _annotation_iter_helper(graph):
+    return (
+        key
+        for _, _, data in graph.edges_iter(data=True)
+        if ANNOTATIONS in data
+        for key in data[ANNOTATIONS]
+    )
+
+
 def count_annotations(graph):
     """Counts how many times each annotation is used in the graph
 
@@ -79,12 +103,7 @@ def count_annotations(graph):
     :return: A Counter from {annotation key: frequency}
     :rtype: collections.Counter
     """
-    return Counter(
-        key
-        for _, _, data in graph.edges_iter(data=True)
-        if ANNOTATIONS in data
-        for key in data[ANNOTATIONS]
-    )
+    return Counter(_annotation_iter_helper(graph))
 
 
 def get_annotations(graph):
@@ -94,7 +113,7 @@ def get_annotations(graph):
     :return: A set of annotation keys
     :rtype: set[str]
     """
-    return set(count_annotations(graph))
+    return set(_annotation_iter_helper(graph))
 
 
 def get_unused_annotations(graph):
@@ -128,18 +147,14 @@ def _get_annotation_values_by_annotation_helper(graph):
 
     :param pybel.BELGraph graph: A BEL graph
     :return: A dictionary of {annotation key: list of annotation values}
-    :rtype: dict[str, list[str]]
+    :rtype: dict[str, set[str]]
     """
-    result = defaultdict(set)
-
-    for _, _, data in graph.edges_iter(data=True):
-        if ANNOTATIONS not in data:
-            continue
-
-        for key, value in data[ANNOTATIONS].items():
-            result[key].add(value)
-
-    return dict(result)
+    return (
+        (key, value)
+        for _, _, data in graph.edges_iter(data=True)
+        if ANNOTATIONS in data
+        for key, value in data[ANNOTATIONS].items()
+    )
 
 
 def get_annotation_values_by_annotation(graph):
@@ -149,7 +164,7 @@ def get_annotation_values_by_annotation(graph):
     :return: A dictionary of {annotation key: set of annotation values}
     :rtype: dict[str, set[str]]
     """
-    return get_value_sets(_get_annotation_values_by_annotation_helper(graph))
+    return group_dict_set(_get_annotation_values_by_annotation_helper(graph))
 
 
 def get_annotations_containing_keyword(graph, keyword):
@@ -164,10 +179,17 @@ def get_annotations_containing_keyword(graph, keyword):
             'annotation': annotation,
             'value': value
         }
-        for annotation, values in get_annotation_values_by_annotation(graph).items()
-        for value in values
+        for annotation, value in _get_annotation_values_by_annotation_helper(graph)
         if keyword.lower() in value.lower()
     ]
+
+
+def _iter_annotation_values(graph, annotation):
+    return (
+        data[ANNOTATIONS][annotation]
+        for _, _, data in graph.edges_iter(data=True)
+        if edge_has_annotation(data, annotation)
+    )
 
 
 def count_annotation_values(graph, annotation):
@@ -178,11 +200,7 @@ def count_annotation_values(graph, annotation):
     :return: A Counter from {annotation value: frequency}
     :rtype: collections.Counter
     """
-    return Counter(
-        data[ANNOTATIONS][annotation]
-        for _, _, data in graph.edges_iter(data=True)
-        if check_has_annotation(data, annotation)
-    )
+    return Counter(_iter_annotation_values(graph, annotation))
 
 
 def get_annotation_values(graph, annotation):
@@ -193,7 +211,7 @@ def get_annotation_values(graph, annotation):
     :return: A set of all annotation values
     :rtype: set[str]
     """
-    return set(count_annotation_values(graph, annotation))
+    return set(_iter_annotation_values(graph, annotation))
 
 
 def count_annotation_values_filtered(graph, annotation, source_filter=None, target_filter=None):
@@ -216,7 +234,7 @@ def count_annotation_values_filtered(graph, annotation, source_filter=None, targ
     return Counter(
         data[ANNOTATIONS][annotation]
         for u, v, data in graph.edges_iter(data=True)
-        if check_has_annotation(data, annotation) and source_filter(graph, u) and target_filter(graph, v)
+        if edge_has_annotation(data, annotation) and source_filter(graph, u) and target_filter(graph, v)
     )
 
 
@@ -353,6 +371,12 @@ def get_tree_annotations(graph):
     """
     annotations = get_annotation_values_by_annotation(graph)
     return [
-        {'text': annotation, 'children': [{'text': value} for value in sorted(values)]}
+        {
+            'text': annotation,
+            'children': [
+                {'text': value}
+                for value in sorted(values)
+            ]
+        }
         for annotation, values in sorted(annotations.items())
     ]

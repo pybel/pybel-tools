@@ -31,8 +31,6 @@ DATA_WEIGHT = 'weight'
 
 # Resources
 
-#: URL For HGNC Gene Families Memberships BEL document
-GENE_FAMILIES = 'https://arty.scai.fraunhofer.de/artifactory/bel/knowledge/hgnc-gene-family-membership/hgnc-gene-family-membership-20170710.bel'
 NAMED_COMPLEXES = 'http://resources.openbel.org/belframework/20150611/resource/named-complexes.bel'
 
 #: Points to the env variable name for PyBEL resources
@@ -45,3 +43,6 @@ OWNCLOUD_ENV = 'OWNCLOUD_BASE'
 BMS_BASE = 'BMS_BASE'
 
 DEFAULT_SERVICE_URL = 'https://pybel.scai.fraunhofer.de'
+
+#: How many edges should be sampled from a graph that's still reasonable to display
+SAMPLE_RANDOM_EDGE_COUNT = 250
