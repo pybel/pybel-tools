@@ -28,7 +28,7 @@ class TestRandomSelectNode(unittest.TestCase):
 
     def setUp(self):
         self.random_state = np.random.RandomState(seed=127)
-        self.trials = 20000
+        self.trials = 30000
 
     def test_randomly_select_node_1(self):
         """Tests that randomly selecting nodes works"""
