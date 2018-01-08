@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import os
 from collections import defaultdict
 
 from ols_client import OlsClient
 
-from pybel.constants import CITATION_TYPE_URL, IS_A, NAMESPACE_DOMAIN_TYPES, belns_encodings
-from pybel.language import rev_abundance_labels  # FIXME for pybel 0.10.1
+from pybel.constants import CITATION_TYPE_URL, IS_A, NAMESPACE_DOMAIN_TYPES, belns_encodings, rev_abundance_labels
 from pybel.resources.arty import (
     get_latest_arty_namespace, get_today_arty_annotation, get_today_arty_knowledge,
     get_today_arty_namespace,
@@ -49,7 +49,13 @@ class OlsNamespaceOntology:
         self._bel_function = bel_function
         self._encoding = encoding
         self.ols_client = OlsClient(ols_base=ols_base)
-        self.auth = auth
+
+        if auth is not None:
+            self.auth = auth
+        elif 'ARTY_USERNAME' in os.environ and 'ARTY_PASSWORD' in os.environ:
+            self.auth = (os.environ['ARTY_USERNAME'], os.environ['ARTY_PASSWORD'])
+        else:
+            self.auth = None
 
         self.metadata = self.ols_client.get_ontology(self.ontology)
 
