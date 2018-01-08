@@ -37,7 +37,6 @@ from pybel.resources.definitions import (
     get_bel_resource_hash, hash_names, parse_bel_resource, write_annotation,
     write_namespace,
 )
-from pybel.resources.deploy import deploy_directory
 from pybel.resources.document import get_bel_knowledge_hash
 from pybel.struct.summary import get_pubmed_identifiers
 from pybel.utils import get_version as pybel_version
@@ -306,12 +305,17 @@ def convert_to_annotation(file, output):
 @click.option('-e', '--encoding', default=BELNS_ENCODING_STR, help='The BEL Namespace encoding')
 @click.option('-d', '--domain', type=click.Choice(NAMESPACE_DOMAIN_TYPES), default=NAMESPACE_DOMAIN_OTHER)
 @click.option('-b', '--ols-base-url', default=BASE_URL, help='Default: {}'.format(BASE_URL))
+@click.option('--deploy', is_flag=True, help='Deploy to artifactory')
+@click.option('--no-hash-check', is_flag=True, help='Do not check if already deployed first')
 @click.option('-o', '--output', type=click.File('w'), default=sys.stdout,
               help='The file to output to. Defaults to standard out.')
-def from_ols(ontology, domain, encoding, ols_base_url, output):
+def from_ols(ontology, domain, encoding, ols_base_url, deploy, no_hash_check, output):
     """Creates a namespace from the ontology lookup service given the internal ontology keyword"""
     ont = OlsNamespaceOntology(ontology, domain, encoding=encoding, ols_base=ols_base_url)
     ont.write_namespace(output)
+
+    if deploy:
+        ont.deploy_namespace(hash_check=(not no_hash_check))
 
 
 @main.group()
@@ -425,6 +429,8 @@ def serialize_namespaces(namespaces, connection, path, directory):
 @click.option('-v', '--debug', count=True, help="Turn on debugging. More v's, more debugging")
 def upload_resources(directory, debug):
     """Uploads the resources in a directory to arty"""
+    from pybel.resources.deploy import deploy_directory
+
     set_debug_param(debug)
     deploy_directory(directory)
 
