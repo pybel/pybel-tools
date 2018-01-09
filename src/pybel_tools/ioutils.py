@@ -3,20 +3,19 @@
 """Utilities for loading and exporting BEL graphs"""
 
 import logging
-
 import os
+
 import requests
 
 import pybel
-from pybel import from_path, to_pickle, from_pickle, to_database
+from pybel import from_path, from_pickle, to_database, to_pickle
 from pybel.io.io_exceptions import ImportVersionWarning
 from pybel.manager import Manager
 from pybel.struct import union
 from pybel.utils import get_version as get_pybel_version
 from .constants import DEFAULT_SERVICE_URL
-from .integration import HGNCAnnotator
 from .mutation import opening_on_central_dogma
-from .mutation.metadata import enrich_pubmed_citations, add_canonical_names
+from .mutation.metadata import add_canonical_names, enrich_pubmed_citations
 from .selection import get_subgraph_by_annotation_value
 from .summary import get_annotation_values
 
@@ -89,8 +88,7 @@ def get_paths_recursive(directory, extension='.bel', exclude_directory_pattern=N
 
 
 def convert_paths(paths, connection=None, upload=False, pickle=False, canonicalize=True, infer_central_dogma=True,
-                  enrich_citations=False, enrich_genes=False, enrich_go=False, send=False, version_in_path=False,
-                  **kwargs):
+                  enrich_citations=False, send=False, version_in_path=False, **kwargs):
     """Recursively parses and either uploads/pickles graphs in a given set of files
 
     :param iter[str] paths: The paths to convert
@@ -101,16 +99,11 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, canonicali
     :param bool canonicalize: Calculate canonical nodes?
     :param bool infer_central_dogma: Should the central dogma be inferred for all proteins, RNAs, and miRNAs
     :param bool enrich_citations: Should the citations be enriched using Entrez Utils?
-    :param bool enrich_genes: Should the genes' descriptions be downloaded from Gene Cards?
-    :param bool enrich_go: Should the biological processes' descriptions be downloaded from Gene Ontology?
     :param bool send: Send to PyBEL Web?
     :param bool version_in_path: Add the current pybel version to the pathname
     :param kwargs: Parameters to pass to :func:`pybel.from_path`
     """
-    from .integration.description.go_annotator import GOAnnotator
     manager = Manager.ensure(connection)
-    hgnc_annotator = HGNCAnnotator(preload=enrich_genes)
-    go_annotator = GOAnnotator(preload=enrich_go)
 
     failures = []
 
@@ -132,12 +125,6 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, canonicali
 
         if enrich_citations:
             enrich_pubmed_citations(network, manager=manager)
-
-        if enrich_genes and hgnc_annotator.download_successful:
-            hgnc_annotator.annotate(network)
-
-        if enrich_go and go_annotator.download_successful:
-            go_annotator.annotate(network)
 
         if upload:
             to_database(network, connection=manager, store_parts=True)

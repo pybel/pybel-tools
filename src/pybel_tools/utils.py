@@ -13,13 +13,11 @@ from operator import itemgetter
 
 import jinja2
 import networkx as nx
-import pandas as pd
 from pkg_resources import get_distribution
 from six.moves import zip_longest
 
 from pybel.constants import (
-    CITATION_AUTHORS, CITATION_COMMENTS, CITATION_DATE, CITATION_NAME, CITATION_REFERENCE,
-    CITATION_TYPE, RELATION,
+    RELATION,
 )
 
 log = logging.getLogger(__name__)
@@ -264,24 +262,6 @@ def safe_add_edges(graph, edges):
     """
     for source, target, key, attr_dict in edges:
         safe_add_edge(graph, source, target, key=key, attr_dict=attr_dict)
-
-
-def load_differential_gene_expression(data_path, gene_symbol_column='Gene.symbol', logfc_column='logFC'):
-    """Quick and dirty loader for differential gene expression data
-
-    :param str data_path:
-    :param str gene_symbol_column:
-    :param str logfc_colun:
-    :return: A dictionary of {gene symbol: log fold change}
-    :rtype: dict
-    """
-    df = pd.read_csv(data_path)
-    df = df.loc[df[gene_symbol_column].notnull(), [gene_symbol_column, logfc_column]]
-
-    return {
-        k: v
-        for _, k, v in df.itertuples()
-    }
 
 
 def prepare_c3(data, y_axis_label='y', x_axis_label='x'):

@@ -60,3 +60,22 @@ def overlay_type_data(graph, data, label, function, namespace, overwrite=False, 
     }
 
     overlay_data(graph, new_data, label, overwrite=overwrite)
+
+
+def load_differential_gene_expression(data_path, gene_symbol_column='Gene.symbol', logfc_column='logFC'):
+    """Quick and dirty loader for differential gene expression data
+
+    :param str data_path:
+    :param str gene_symbol_column:
+    :param str logfc_colun:
+    :return: A dictionary of {gene symbol: log fold change}
+    :rtype: dict
+    """
+    import pandas as pd
+    df = pd.read_csv(data_path)
+    df = df.loc[df[gene_symbol_column].notnull(), [gene_symbol_column, logfc_column]]
+
+    return {
+        k: v
+        for _, k, v in df.itertuples()
+    }

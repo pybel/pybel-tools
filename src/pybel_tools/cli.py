@@ -176,8 +176,6 @@ def post(path, url, skip_check_version):
 @io.command()
 @click.option('-u', '--enable-upload', is_flag=True, help='Enable automatic database uploading')
 @click.option('--no-enrich-authors', is_flag=True, help="Don't enrich authors. Makes faster.")
-@click.option('--no-enrich-genes', is_flag=True, help="Don't enrich HGNC genes")
-@click.option('--no-enrich-go', is_flag=True, help="Don't enrich GO entries")
 @click.option('-c', '--no-citation-clearing', is_flag=True, help='Turn off citation clearing')
 @click.option('-n', '--allow-nested', is_flag=True, help="Enable lenient parsing for nested statements")
 @click.option('-d', '--directory', default=os.getcwd(),
@@ -189,9 +187,8 @@ def post(path, url, skip_check_version):
 @click.option('-v', '--debug', count=True, help="Turn on debugging. More v's, more debugging")
 @click.option('-x', '--cool', is_flag=True, help='enable cool mode')
 @click.pass_obj
-def convert(manager, enable_upload, no_enrich_authors, no_enrich_genes, no_enrich_go, no_citation_clearing,
-            allow_nested, directory, use_stdin, send_pybel_web, exclude_directory_pattern, version_in_path, debug,
-            cool):
+def convert(manager, enable_upload, no_enrich_authors, no_citation_clearing, allow_nested, directory, use_stdin,
+            send_pybel_web, exclude_directory_pattern, version_in_path, debug, cool):
     """Recursively walks the file tree and converts BEL scripts to gpickles. Optional uploader"""
     set_debug_param(debug)
 
@@ -209,8 +206,6 @@ def convert(manager, enable_upload, no_enrich_authors, no_enrich_genes, no_enric
         upload=enable_upload,
         pickle=True,
         enrich_citations=(not no_enrich_authors),
-        enrich_genes=(not no_enrich_genes),
-        enrich_go=(not no_enrich_go),
         citation_clearing=(not no_citation_clearing),
         allow_nested=allow_nested,
         send=send_pybel_web,
