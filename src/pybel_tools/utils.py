@@ -25,7 +25,6 @@ log = logging.getLogger(__name__)
 CENTRALITY_SAMPLES = 200
 
 
-
 def pairwise(iterable):
     """ Iterate over pairs in list s -> (s0,s1), (s1,s2), (s2, s3), ..."""
     a, b = itt.tee(iterable)
@@ -306,15 +305,6 @@ def prepare_c3_time_series(data, y_axis_label='y', x_axis_label='x'):
         [x_axis_label] + list(years),
         [y_axis_label] + list(counter)
     ])
-
-
-def get_version():
-    """Gets the current PyBEL Tools version
-
-    :return: The current PyBEL Tools version
-    :rtype: str
-    """
-    return get_distribution('pybel_tools').version
 
 
 def build_template_environment(here):
