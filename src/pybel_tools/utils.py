@@ -13,12 +13,10 @@ from operator import itemgetter
 
 import jinja2
 import networkx as nx
-from pkg_resources import get_distribution
 from six.moves import zip_longest
 
-from pybel.constants import (
-    RELATION,
-)
+from pybel.constants import RELATION
+from .constants import VERSION
 
 log = logging.getLogger(__name__)
 
@@ -409,3 +407,12 @@ def canonical_circulation(t, key=None):
     :return: The
     """
     return min(get_circulations(t), key=key)
+
+
+def get_version():
+    """Gets the current PyBEL Tools version
+
+    :return: The current PyBEL Tools version
+    :rtype: str
+    """
+    return VERSION
