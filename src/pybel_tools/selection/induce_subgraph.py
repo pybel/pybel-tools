@@ -471,6 +471,7 @@ def randomly_select_node(graph, no_grow, random_state):
     :param pybel.BELGraph graph: The graph to filter from
     :param set[tuple] no_grow: Nodes to filter out
     :param random_state: The random state
+    :rtype: Optional[tuple]
     """
     try:
         nodes, degrees = zip(*(
@@ -478,12 +479,8 @@ def randomly_select_node(graph, no_grow, random_state):
             for node, degree in graph.degree_iter()
             if node not in no_grow
         ))
-    except ValueError as e:
-        log.warning('nodes')
-        print(*graph.nodes(), sep='\n')
-        log.warning('edges')
-        print(*graph.edges(), sep='\n')
-        raise e
+    except ValueError: # something wrong with graph, probably no elements in graph.degree_iter
+        return
 
     ds = sum(degrees)
 
@@ -557,6 +554,9 @@ def get_random_subgraph(graph, number_edges=None, number_seed_edges=None, seed=N
 
         while not possible_step_nodes:
             source = randomly_select_node(result, no_grow, random_state)
+
+            if source is None:
+                continue # maybe do something else?
 
             possible_step_nodes = set(graph.edge[source]) - set(result.edge[source])
 
