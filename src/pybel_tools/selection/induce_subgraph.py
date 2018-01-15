@@ -10,13 +10,16 @@ import numpy as np
 from pybel import BELGraph
 from pybel.constants import ANNOTATIONS
 from pybel.struct.filters import filter_edges, filter_nodes
+from pybel.struct.filters.edge_predicate_builders import (
+    build_annotation_dict_all_filter,
+    build_annotation_dict_any_filter,
+)
 from pybel.struct.filters.edge_predicates import edge_has_annotation, is_causal_relation
 from .paths import get_nodes_in_all_shortest_paths
 from .search import search_node_names
 from .. import pipeline
 from ..constants import SAMPLE_RANDOM_EDGE_COUNT
 from ..filters.edge_filters import (
-    build_annotation_dict_all_filter, build_annotation_dict_any_filter,
     build_annotation_value_filter, build_author_inclusion_filter, build_edge_data_filter, build_pmid_inclusion_filter,
 )
 from ..mutation.expansion import (
