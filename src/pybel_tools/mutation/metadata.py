@@ -181,4 +181,4 @@ def add_identifiers(graph):
         graph.node[node][HASH] = canonical_node_hash
 
     for u, v, k, d in graph.edges_iter(keys=True, data=True):
-        graph.edge[u][v][k][HASH] = hash_edge(u, v, k, d)
+        graph.edge[u][v][k][HASH] = hash_edge(u, v, d)
