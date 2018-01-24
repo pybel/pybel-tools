@@ -11,6 +11,7 @@ from pybel.constants import (
 )
 from pybel.struct.filters.edge_predicates import edge_has_annotation
 from pybel.struct.filters.node_predicates import keep_node_permissive
+from pybel.struct.summary.edge_summary import iter_annotation_values
 
 __all__ = [
     'count_relations',
@@ -142,21 +143,6 @@ def get_unused_list_annotation_values(graph):
     return result
 
 
-def _get_annotation_values_by_annotation_helper(graph):
-    """Gets the list of values, with duplicates, for each annotation used in a BEL graph
-
-    :param pybel.BELGraph graph: A BEL graph
-    :return: A dictionary of {annotation key: list of annotation values}
-    :rtype: dict[str, set[str]]
-    """
-    return (
-        (key, value)
-        for _, _, data in graph.edges_iter(data=True)
-        if ANNOTATIONS in data
-        for key, value in data[ANNOTATIONS].items()
-    )
-
-
 def get_annotation_values_by_annotation(graph):
     """Gets the set of values for each annotation used in a BEL graph
 
@@ -164,7 +150,7 @@ def get_annotation_values_by_annotation(graph):
     :return: A dictionary of {annotation key: set of annotation values}
     :rtype: dict[str, set[str]]
     """
-    return group_dict_set(_get_annotation_values_by_annotation_helper(graph))
+    return group_dict_set(iter_annotation_values(graph))
 
 
 def get_annotations_containing_keyword(graph, keyword):
@@ -179,7 +165,7 @@ def get_annotations_containing_keyword(graph, keyword):
             'annotation': annotation,
             'value': value
         }
-        for annotation, value in _get_annotation_values_by_annotation_helper(graph)
+        for annotation, value in iter_annotation_values(graph)
         if keyword.lower() in value.lower()
     ]
 
