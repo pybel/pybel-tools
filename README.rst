@@ -65,8 +65,8 @@ Links
     :target: https://travis-ci.org/pybel/pybel-tools
     :alt: Development Build Status
 
-.. |stable_coverage| image:: https://codecov.io/gh/pybel/pybel-tools/coverage.svg?branch=stable
-    :target: https://codecov.io/gh/pybel/pybel-tools?branch=develop
+.. |stable_coverage| image:: https://codecov.io/gh/pybel/pybel-tools/coverage.svg?branch=master
+    :target: https://codecov.io/gh/pybel/pybel-tools?branch=master
     :alt: Stable Coverage Status
 
 .. |develop_coverage| image:: https://codecov.io/gh/pybel/pybel-tools/coverage.svg?branch=develop
@@ -74,7 +74,7 @@ Links
     :alt: Development Coverage Status
 
 .. |stable_documentation| image:: https://readthedocs.org/projects/pybel-tools/badge/?version=stable
-    :target: http://pybel-tools.readthedocs.io/en/latest/
+    :target: http://pybel-tools.readthedocs.io/en/stable/
     :alt: Stable Documentation Status
 
 .. |develop_documentation| image:: https://readthedocs.org/projects/pybel-tools/badge/?version=latest
