@@ -119,7 +119,7 @@ def enrich_pubmed_citations(graph, stringify_authors=False, manager=None):
         return set()
 
     pmids = get_pubmed_identifiers(graph)
-    pmid_data, errors = get_citations_by_pmids(pmids, return_errors=True, manager=manager)
+    pmid_data, errors = get_citations_by_pmids(manager=manager, pmids=pmids)
 
     for u, v, k in filter_edges(graph, has_pubmed):
         pmid = graph.edge[u][v][k][CITATION][CITATION_REFERENCE].strip()
