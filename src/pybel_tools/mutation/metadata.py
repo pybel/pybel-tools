@@ -169,16 +169,22 @@ def update_context(universe, graph):
             log.warning('annotation: %s missing from universe', annotation)
 
 
-def add_identifiers(graph):
+def add_identifiers(graph): # FIXME this function shouldn't have to exist.
     """Adds stable node and edge identifiers to the graph, in-place using the PyBEL
     node and edge hashes as a hexadecimal str.
 
     :param pybel.BELGraph graph: A BEL Graph
     """
     for node, data in graph.nodes_iter(data=True):
+        if HASH in data:
+            continue
+
         canonical_node_tuple = node_to_tuple(data)
         canonical_node_hash = hash_node(canonical_node_tuple)
         graph.node[node][HASH] = canonical_node_hash
 
-    for u, v, k, d in graph.edges_iter(keys=True, data=True):
-        graph.edge[u][v][k][HASH] = hash_edge(u, v, d)
+    for u, v, k, data in graph.edges_iter(keys=True, data=True):
+        if HASH in data:
+            continue
+
+        graph.edge[u][v][k][HASH] = hash_edge(u, v, data)
