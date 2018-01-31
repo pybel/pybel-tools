@@ -254,8 +254,9 @@ def get_subgraph_by_annotations(graph, annotations, or_=None):
     """Returns the subgraph given an annotations filter.
 
     :param graph: pybel.BELGraph graph: A BEL graph
-    :param dict annotations: Annotation filters (match all with :func:`pybel.utils.subdict_matches`)
-    :param boolean or_: if True any annotation should be present, if False all annotations should be present in the edge
+    :param dict[str,set[str]] annotations: Annotation filters (match all with :func:`pybel.utils.subdict_matches`)
+    :param boolean or_: if True any annotation should be present, if False all annotations should be present in the
+                        edge. Defaults to True.
     :return: A subgraph of the original BEL graph
     :rtype: pybel.BELGraph
     """
