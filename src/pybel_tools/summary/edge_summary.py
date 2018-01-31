@@ -19,7 +19,6 @@ __all__ = [
     'count_unique_relations',
     'count_annotations',
     'get_annotations',
-    'get_annotation_values_by_annotation',
     'get_annotations_containing_keyword',
     'count_annotation_values',
     'get_annotation_values',
@@ -31,7 +30,6 @@ __all__ = [
     'get_inconsistent_edges',
     'get_contradictory_pairs',
     'count_pathologies',
-    'get_tree_annotations',
     'relation_set_has_contradictions',
     'get_unused_annotations',
     'get_unused_list_annotation_values',
@@ -141,16 +139,6 @@ def get_unused_list_annotation_values(graph):
             continue
         result[annotation] = set(values) - used_values
     return result
-
-
-def get_annotation_values_by_annotation(graph):
-    """Gets the set of values for each annotation used in a BEL graph
-
-    :param pybel.BELGraph graph: A BEL graph
-    :return: A dictionary of {annotation key: set of annotation values}
-    :rtype: dict[str, set[str]]
-    """
-    return group_dict_set(iter_annotation_values(graph))
 
 
 def get_annotations_containing_keyword(graph, keyword):
@@ -346,23 +334,3 @@ def count_pathologies(graph):
     :rtype: Counter
     """
     return Counter(_pathology_iterator(graph))
-
-
-def get_tree_annotations(graph):
-    """Builds tree structure with annotation for a given graph
-    
-    :param pybel.BELGraph graph: A BEL Graph
-    :return: The JSON structure necessary for building the tree box
-    :rtype: list[dict]
-    """
-    annotations = get_annotation_values_by_annotation(graph)
-    return [
-        {
-            'text': annotation,
-            'children': [
-                {'text': value}
-                for value in sorted(values)
-            ]
-        }
-        for annotation, values in sorted(annotations.items())
-    ]
