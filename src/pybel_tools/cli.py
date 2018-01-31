@@ -16,6 +16,7 @@ Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 
 from __future__ import print_function
 
+import click
 import hashlib
 import json
 import logging
@@ -23,9 +24,7 @@ import os
 import sys
 from getpass import getuser
 
-import click
 from ols_client.constants import BASE_URL
-
 from pybel import from_lines, from_pickle, from_url, to_database
 from pybel.constants import (
     BELNS_ENCODING_STR, LARGE_CORPUS_URL, NAMESPACE_DOMAIN_OTHER, NAMESPACE_DOMAIN_TYPES,
@@ -140,22 +139,22 @@ def io(ctx, connection, config):
 
 
 @io.command()
-@click.option('-p', '--path', default=os.getcwd())
-@click.option('-r', '--recursive', is_flag=True,
-              help='Recursively upload all gpickles in the directory given as the path')
+@click.option('-p', '--path', help='Path or directory. Defaults to {}'.format(os.getcwd()), default=os.getcwd())
 @click.option('-s', '--skip-check-version', is_flag=True, help='Skip checking the PyBEL version of the gpickle')
 @click.option('--to-service', is_flag=True, help='Sends to PyBEL web service')
 @click.option('--service-url', help='Service location. Defaults to {}'.format(DEFAULT_SERVICE_URL))
 @click.option('--exclude-directory-pattern', help="Pattern to match for bad directories")
 @click.option('-v', '--debug', count=True, help="Turn on debugging. More v's, more debugging")
 @click.pass_obj
-def upload(manager, path, recursive, skip_check_version, to_service, service_url, exclude_directory_pattern, debug):
-    """Quick uploader"""
+def upload(manager, path, skip_check_version, to_service, service_url, exclude_directory_pattern, debug):
+    """Upload gpickles"""
     set_debug_param(debug)
-    if recursive:
+
+    if os.path.isdir(path):
         log.info('uploading recursively from: %s', path)
         upload_recursive(path, connection=manager, exclude_directory_pattern=exclude_directory_pattern)
-    else:
+
+    elif os.path.isfile(path):
         graph = from_pickle(path, check_version=(not skip_check_version))
         if to_service:
             to_pybel_web(graph, service_url)
@@ -185,14 +184,14 @@ def post(path, url, skip_check_version):
 @click.option('--exclude-directory-pattern', help="Pattern to match for bad directories")
 @click.option('--version-in-path', is_flag=True, help="Adds version to end of path string")
 @click.option('-v', '--debug', count=True, help="Turn on debugging. More v's, more debugging")
-@click.option('-x', '--cool', is_flag=True, help='enable cool mode')
+@click.option('--uncool', is_flag=True, help='enable cool mode')
 @click.pass_obj
 def convert(manager, enable_upload, no_enrich_authors, no_citation_clearing, allow_nested, directory, use_stdin,
-            send_pybel_web, exclude_directory_pattern, version_in_path, debug, cool):
+            send_pybel_web, exclude_directory_pattern, version_in_path, debug, uncool):
     """Recursively walks the file tree and converts BEL scripts to gpickles. Optional uploader"""
     set_debug_param(debug)
 
-    if cool:
+    if not uncool:
         enable_cool_mode()
 
     if use_stdin:
@@ -200,7 +199,7 @@ def convert(manager, enable_upload, no_enrich_authors, no_citation_clearing, all
     else:
         paths = get_paths_recursive(directory, exclude_directory_pattern=exclude_directory_pattern)
 
-    results = convert_paths(
+    failures = convert_paths(
         paths=paths,
         connection=manager,
         upload=enable_upload,
@@ -212,7 +211,7 @@ def convert(manager, enable_upload, no_enrich_authors, no_citation_clearing, all
         version_in_path=version_in_path,
     )
 
-    for path, e in results:
+    for path, e in failures:
         click.echo('FAILED {} {}'.format(path, e))
 
 
@@ -412,7 +411,7 @@ def boilerplate(name, contact, description, pmids, version, copyright, authors, 
 @click.argument('namespaces', nargs=-1)
 @click.option('-c', '--connection', help='Cache connection. Defaults to {}'.format(get_cache_connection()))
 @click.option('-p', '--path', type=click.File('r'), default=sys.stdin, help='Input BEL file path. Defaults to stdin.')
-@click.option('-d', '--directory', help='Output directory. Defaults to current working directory')
+@click.option('-d', '--directory', help='Output folder. Defaults to current working directory {})'.format(os.getcwd()))
 def serialize_namespaces(namespaces, connection, path, directory):
     """Parses a BEL document then serializes the given namespaces (errors and all) to the given directory"""
     graph = from_lines(path, manager=connection)
