@@ -108,26 +108,26 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, canonicali
     failures = []
 
     for path in paths:
-        log.info('Parsing path: %s', path)
+        log.info('parsing: %s', path)
 
         try:
-            network = from_path(path, manager=manager, **kwargs)
+            graph = from_path(path, manager=manager, **kwargs)
         except Exception as e:
-            log.exception('Problem parsing %s', path)
+            log.exception('problem parsing %s', path)
             failures.append((path, e))
             continue
 
         if canonicalize:
-            add_canonical_names(network)
+            add_canonical_names(graph)
 
         if infer_central_dogma:
-            opening_on_central_dogma(network)
+            opening_on_central_dogma(graph)
 
         if enrich_citations:
-            enrich_pubmed_citations(network, manager=manager)
+            enrich_pubmed_citations(graph=graph, manager=manager)
 
         if upload:
-            to_database(network, connection=manager, store_parts=True)
+            to_database(graph, connection=manager, store_parts=True)
 
         if pickle:
             name = path[:-4]  # [:-4] gets rid of .bel at the end of the file name
@@ -137,10 +137,13 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, canonicali
             else:
                 new_path = '{}.gpickle'.format(name)
 
-            to_pickle(network, new_path)
+            to_pickle(graph, new_path)
+
+            log.info('output pickle: %s', new_path)
 
         if send:
-            to_pybel_web(network)
+            response = to_pybel_web(graph)
+            log.info('sent to PyBEL Web with response: %s', response.json())
 
     return failures
 
