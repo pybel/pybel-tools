@@ -7,10 +7,9 @@ the code from PyPI_ with :code:`python3 -m pip install pybel-tools`.
 
 Citation
 --------
-If you use PyBEL and PyBEL Tools in your work, we ask that you please cite:
+If you use PyBEL and PyBEL Tools in your work, please cite [1]_:
 
-Hoyt et al., 2017. PyBEL: a computational framework for Biological Expression Language. Bioinformatics, btx660,
-https://doi.org/10.1093/bioinformatics/btx660
+.. [1] Hoyt et al., 2017. PyBEL: a computational framework for Biological Expression Language. Bioinformatics, btx660, https://doi.org/10.1093/bioinformatics/btx660
 
 Links
 -----

@@ -9,7 +9,7 @@ import requests
 
 import pybel
 from pybel import from_path, from_pickle, to_database, to_pickle
-from pybel.io.io_exceptions import ImportVersionWarning
+from pybel.io.exc import ImportVersionWarning
 from pybel.manager import Manager
 from pybel.struct import union
 from pybel.utils import get_version as get_pybel_version
@@ -175,7 +175,7 @@ def convert_directory(directory, connection=None, upload=False, pickle=False, ca
         connection=connection,
         upload=upload,
         pickle=pickle,
-        canonicalize= canonicalize,
+        canonicalize=canonicalize,
         infer_central_dogma=infer_central_dogma,
         enrich_citations=enrich_citations,
         enrich_genes=enrich_genes,
