@@ -18,8 +18,7 @@ from collections import Iterable
 from pybel.constants import *
 from pybel.struct.filters import count_passed_edge_filter
 from pybel.struct.filters.edge_predicates import (
-    edge_has_annotation, edge_predicate, has_authors, has_pubmed,
-    is_causal_relation,
+    edge_has_annotation, edge_predicate, has_authors, has_pubmed, is_causal_relation,
 )
 from pybel.struct.filters.node_predicates import is_pathology
 from pybel.utils import subdict_matches
@@ -48,7 +47,10 @@ def summarize_edge_filter(graph, edge_filters):
     passed = count_passed_edge_filter(graph, edge_filters)
     print('{}/{} edges passed {}'.format(
         passed, graph.number_of_edges(),
-        ', '.join(edge_filter.__name__ for edge_filter in edge_filters)
+        (
+            ', '.join(edge_filter.__name__ for edge_filter in edge_filters) if isinstance(edge_filters, Iterable) else
+            edge_filters.__name__
+        )
     ))
 
 
