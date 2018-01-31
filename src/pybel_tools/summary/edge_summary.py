@@ -11,7 +11,7 @@ from pybel.constants import (
 )
 from pybel.struct.filters.edge_predicates import edge_has_annotation
 from pybel.struct.filters.node_predicates import keep_node_permissive
-from pybel.struct.summary.edge_summary import iter_annotation_values
+from pybel.struct.summary.edge_summary import iter_annotation_value_pairs, iter_annotation_values
 
 __all__ = [
     'count_relations',
@@ -153,17 +153,9 @@ def get_annotations_containing_keyword(graph, keyword):
             'annotation': annotation,
             'value': value
         }
-        for annotation, value in iter_annotation_values(graph)
+        for annotation, value in iter_annotation_value_pairs(graph)
         if keyword.lower() in value.lower()
     ]
-
-
-def _iter_annotation_values(graph, annotation):
-    return (
-        data[ANNOTATIONS][annotation]
-        for _, _, data in graph.edges_iter(data=True)
-        if edge_has_annotation(data, annotation)
-    )
 
 
 def count_annotation_values(graph, annotation):
@@ -174,7 +166,7 @@ def count_annotation_values(graph, annotation):
     :return: A Counter from {annotation value: frequency}
     :rtype: collections.Counter
     """
-    return Counter(_iter_annotation_values(graph, annotation))
+    return Counter(iter_annotation_values(graph, annotation))
 
 
 def get_annotation_values(graph, annotation):
@@ -185,7 +177,7 @@ def get_annotation_values(graph, annotation):
     :return: A set of all annotation values
     :rtype: set[str]
     """
-    return set(_iter_annotation_values(graph, annotation))
+    return set(iter_annotation_values(graph, annotation))
 
 
 def count_annotation_values_filtered(graph, annotation, source_filter=None, target_filter=None):
