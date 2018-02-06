@@ -56,7 +56,7 @@ def get_unweighted_sources(graph, key):
     :return: An iterator over BEL nodes that are unannotated and on the periphery of this subgraph
     :rtype: iter[tuple]
     """
-    for node in graph.nodes_iter():
+    for node in graph:
         if is_unweighted_source(graph, node, key):
             yield node
 

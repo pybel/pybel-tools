@@ -24,8 +24,7 @@ def compare(graph, annotation='Subgraph'):
     2. Gets subgraphs for all NeuroMMsig Subgraphs
     3. Make tanimoto similarity comparison for all sets
 
-    :param graph: A BEL graph
-    :type graph: pybel.BELGraph
+    :param pybel.BELGraph graph: A BEL graph
     :param annotation: The annotation to group by
     :type annotation: str
     :return: A dictionary table comparing the canonical subgraphs to generated ones
@@ -44,8 +43,8 @@ def compare(graph, annotation='Subgraph'):
         # TODO filters?
         candidate_mechanisms[bp] = m
 
-    canonical_nodes = {sg: set(m.nodes_iter()) for sg, m in canonical_mechanisms.items()}
-    candidate_nodes = {bp: set(m.nodes_iter()) for bp, m in candidate_mechanisms.items()}
+    canonical_nodes = {sg: set(m) for sg, m in canonical_mechanisms.items()}
+    candidate_nodes = {bp: set(m) for bp, m in candidate_mechanisms.items()}
 
     results = defaultdict(dict)
 

@@ -92,7 +92,7 @@ def add_canonical_names(graph, replace=False):
     :param pybel.BELGraph graph: A BEL graph
     :param bool replace: Should the canonical names be recalculated?
     """
-    nodes = graph.nodes_iter() if replace else filter_nodes(graph, node_missing_cname)
+    nodes = graph if replace else filter_nodes(graph, node_missing_cname)
 
     for node in nodes:
         graph.node[node][CNAME] = calculate_canonical_name(graph, node)
@@ -175,7 +175,7 @@ def add_identifiers(graph): # FIXME this function shouldn't have to exist.
 
     :param pybel.BELGraph graph: A BEL Graph
     """
-    for node, data in graph.nodes_iter(data=True):
+    for node, data in graph.iter_node_data_pairs():
         if HASH in data:
             continue
 

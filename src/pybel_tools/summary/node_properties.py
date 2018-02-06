@@ -77,7 +77,7 @@ def get_causal_source_nodes(graph, function):
     """
     return {
         node
-        for node, data in graph.nodes_iter(data=True)
+        for node, data in graph.iter_node_data_pairs()
         if data[FUNCTION] == function and is_causal_source(graph, node)
     }
 
@@ -93,7 +93,7 @@ def get_causal_central_nodes(graph, function):
     """
     return {
         node
-        for node, data in graph.nodes_iter(data=True)
+        for node, data in graph.iter_node_data_pairs()
         if data[FUNCTION] == function and is_causal_central(graph, node)
     }
 
@@ -109,7 +109,7 @@ def get_causal_sink_nodes(graph, function):
     """
     return {
         node
-        for node, data in graph.nodes_iter(data=True)
+        for node, data in graph.iter_node_data_pairs()
         if data[FUNCTION] == function and is_causal_sink(graph, node)
     }
 
@@ -145,10 +145,14 @@ def get_translocated(graph):
 
 
 def count_variants(graph):
-    """Counts how many of each type of variant a graph has"""
+    """Counts how many of each type of variant a graph has
+
+    :param pybel.BELGraph graph: A BEL graph
+    :rtype: Counter
+    """
     return Counter(
         variant_data[KIND]
-        for node, data in graph.nodes_iter(data=True)
+        for node, data in graph.iter_node_data_pairs()
         if has_variant(graph, node)
         for variant_data in data[VARIANTS]
     )
