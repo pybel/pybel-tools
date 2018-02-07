@@ -211,7 +211,7 @@ def get_random_path(graph):
         source, target = pick_random_pair()
 
     if tries == sentinel_tries:
-        return source
+        return [source]
 
     shortest_path = nx.shortest_path(graph, source=source, target=target)
 
