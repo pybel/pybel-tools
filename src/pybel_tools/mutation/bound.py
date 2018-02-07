@@ -2,7 +2,7 @@
 
 """This module builds mutation functions that are bound to a manager"""
 
-from . import expand_node_neighborhood
+from .expansion import expand_node_neighborhood
 from ..pipeline import in_place_mutator, uni_in_place_mutator
 
 __all__ = [
