@@ -2,16 +2,12 @@
 
 import unittest
 
-import pybel_tools.pipeline
 from pybel import BELGraph
 from pybel.constants import *
 from pybel.constants import unqualified_edge_code
-from pybel.examples import egf_example
 from pybel_tools.mutation import collapse_by_central_dogma, collapse_nodes
-from pybel_tools.mutation.bound import build_delete_node_by_hash, build_expand_node_neighborhood_by_hash
 from pybel_tools.mutation.collapse import collapse_to_protein_interactions
 from pybel_tools.mutation.inference import infer_central_dogmatic_transcriptions, infer_central_dogmatic_translations
-from pybel_tools.pipeline import Pipeline
 from pybel_tools.selection import get_subgraph_by_data
 from tests.constants import ExampleNetworkMixin
 
@@ -235,54 +231,3 @@ class TestCollapseProteinInteractions(unittest.TestCase):
         self.assertIn(('Gene', 'HGNC', '2'), collapsed_graph)
 
 
-class MockManager(object):
-    def __init__(self, graph):
-        """Instantiates a mock manager for testing bound mutation methods
-
-        :param pybel.BELGraph graph: A BEL graph to index
-        """
-        self.graph = graph
-
-        self.hash_to_tuple = {
-            graph.hash_node(data): node
-            for node, data in graph.nodes(data=True)
-        }
-
-    def get_node_tuple_by_hash(self, node_hash):
-        return self.hash_to_tuple[node_hash]
-
-
-class TestBoundMutation(unittest.TestCase):
-    """Random test for mutation functions"""
-
-    def test_bound_mutation(self):
-        """Tests when a node is deleted then re-expanded"""
-        graph = egf_example.egf_graph
-
-        original_number_nodes = graph.number_of_nodes()
-        original_number_edges = graph.number_of_edges()
-
-        manager = MockManager(graph)
-
-        self.assertIn(graph.hash_node(egf_example.nfkb_complex), manager.hash_to_tuple)
-        self.assertIn(graph.hash_node(egf_example.rela), manager.hash_to_tuple)
-
-        build_delete_node_by_hash(manager)
-        self.assertIn('delete_node_by_hash', pybel_tools.pipeline.mapped)
-
-        build_expand_node_neighborhood_by_hash(manager)
-        self.assertIn('expand_node_neighborhood_by_hash', pybel_tools.pipeline.mapped)
-
-        pipeline = Pipeline(universe=graph)
-        pipeline.append('delete_node_by_hash', graph.hash_node(egf_example.nfkb_complex))
-        pipeline.append('expand_node_neighborhood_by_hash', graph.hash_node(egf_example.rela))
-
-        result = pipeline.run(graph)
-
-        self.assertEqual(original_number_nodes, graph.number_of_nodes(),
-                         msg='original graph nodes should remain unchanged')
-        self.assertEqual(original_number_edges, graph.number_of_edges(),
-                         msg='original graph edges should remain unchanged')
-
-        self.assertEqual(original_number_nodes, result.number_of_nodes())
-        self.assertLess(graph.number_of_edges(), original_number_edges)
