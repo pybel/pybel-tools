@@ -225,13 +225,16 @@ class Pipeline:
 
         :param pybel.BELGraph graph: A BEL graph
         :param list[dict] protocol: The protocol to run, as JSON
+        :rtype: pybel.BELGraph
         """
         result = graph
 
         for entry in protocol:
-            if 'meta' not in entry:
-                f = self.get_function(entry['function'])
-                result = f(
+            meta_entry = entry.get('meta')
+
+            if meta_entry is None:
+                func = self.get_function(entry['function'])
+                result = func(
                     result,
                     *(entry.get('args', [])),
                     **(entry.get('kwargs', {}))
@@ -242,14 +245,14 @@ class Pipeline:
                     for subprotocol in entry['pipeline']
                 )
 
-                if entry['meta'] == 'union':
+                if meta_entry == 'union':
                     result = union(networks)
 
-                elif entry['meta'] == 'intersection':
+                elif meta_entry == 'intersection':
                     result = node_intersection(networks)
 
                 else:
-                    raise ValueError
+                    raise ValueError('invalid meta-command: {}'.format(meta_entry))
 
         return result
 
