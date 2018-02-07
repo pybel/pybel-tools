@@ -148,6 +148,7 @@ def function_is_registered(name):
 
     return name in mapped
 
+
 class Pipeline:
     """Builds and runs analytical pipelines on BEL graphs"""
 
@@ -260,6 +261,7 @@ class Pipeline:
                                         Defaults to the given network.
         :param bool in_place: Should the graph be copied before applying the algorithm?
         :return: The new graph is returned if not applied in-place
+        :rtype: pybel.BELGraph
         """
         self.universe = graph if universe is None else universe
 
