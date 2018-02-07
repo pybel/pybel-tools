@@ -7,8 +7,8 @@ from __future__ import print_function
 import pandas as pd
 import requests
 
-from pybel.constants import CITATION, CITATION_TYPE_PUBMED, CITATION_REFERENCE, CITATION_TYPE, EVIDENCE, ANNOTATIONS
-from pybel.constants import GENE, ORTHOLOGOUS, RELATION
+from pybel.constants import ORTHOLOGOUS, RELATION
+from pybel.dsl import gene
 from pybel.struct.filters import filter_edges
 from . import pipeline
 from .filters.edge_filters import build_relation_filter
@@ -109,25 +109,23 @@ def _add_orthology_statements(graph, orthologies, namespace):
     :param pybel.BELGraph graph: A BEL Graph
     :param list orthologies: An iterable over pairs of (HGNC, ORTHOLOG) identifiers
     """
-    for hgnc, ortholog in orthologies:
-        hgnc_node = GENE, HGNC, hgnc
-        ortholog_node = GENE, namespace, ortholog
+    for hgnc_name, ortholog_name in orthologies:
+        hgnc_node = gene(namespace=HGNC, name=hgnc_name)
+        ortholog_node = gene(namespace=namespace, name=ortholog_name)
 
         if ortholog_node not in graph:
             continue
 
         if hgnc_node not in graph:
-            graph.add_simple_node(*hgnc_node)
+            graph.add_node_from_data(hgnc_node)
 
-        graph.add_edge(hgnc_node, ortholog_node, attr_dict={
-            RELATION: ORTHOLOGOUS,
-            CITATION: {
-                CITATION_TYPE: CITATION_TYPE_PUBMED,
-                CITATION_REFERENCE: '25355511',
-            },
-            EVIDENCE: 'Asserted from: {}'.format(RGD_ORTHOLOGY),
-            ANNOTATIONS: {}
-        })
+        graph.add_qualified_edge(
+            hgnc_node,
+            ortholog_node,
+            relation=ORTHOLOGOUS,
+            citation='25355511',
+            evidence='Asserted from: {}'.format(RGD_ORTHOLOGY)
+        )
 
 
 @pipeline.in_place_mutator
@@ -173,7 +171,6 @@ def collapse_orthologies(graph):
 
     .. warning:: This won't work for two way orthology annotations, so it's best to use :func:`integrate_orthologies_from_rgd` first
     """
-
     orthologs = []
 
     # TODO rewrite with collapsing functions
