@@ -5,7 +5,7 @@
 from random import sample
 
 from pybel.io import to_jsons
-from .utils import render_template, default_color_map
+from .utils import default_color_map, render_template
 from ..mutation import add_canonical_names
 
 __all__ = [
@@ -58,39 +58,16 @@ def to_jupyter_str(graph, width=DEFAULT_WIDTH, height=DEFAULT_HEIGHT, color_map=
     :rtype: str
     """
     add_canonical_names(graph, replace=replace_cnames)
-    gjson = to_jsons(graph)
-
-    d3_code = render_template('pybel_vis.js')
+    gjson = to_jsons(graph, sort_keys=True)
     chart_id = generate_id()
 
     color_map = default_color_map if color_map is None else color_map
 
-    javascript_vars = """
-        var chart = "{}";
-        var width = {};
-        var height = {};
-        var graph = {};
-        const color_map = {};
-    """.format(chart_id, width, height, gjson, color_map)
-
-    require_code = """
-        require.config({
-          paths: {
-              d3: '//cdnjs.cloudflare.com/ajax/libs/d3/4.5.0/d3.min'
-          }
-        });
-
-        var elementInnerHTML = "<div id='" + chart + "'></div>";
-
-        element.append(elementInnerHTML);
-
-        var chartQualified = "#" + chart;
-
-        require(['d3'], function(d3) {
-            return init_d3_force(d3, graph, chartQualified, width, height, color_map);
-        });
-    """
-
-    result = d3_code + javascript_vars + require_code
-
-    return result
+    return render_template(
+        'pybel_jupyter.js',
+        graph=gjson,
+        chart=chart_id,
+        width=width,
+        height=height,
+        color_map=color_map
+    )
