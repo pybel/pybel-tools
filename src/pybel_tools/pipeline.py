@@ -64,6 +64,9 @@ __all__ = [
 
 log = logging.getLogger(__name__)
 
+META_UNION = 'union'
+META_INTERSECTION = 'intersection'
+
 mapped = {}
 universe_map = {}
 no_universe_map = {}
@@ -245,10 +248,10 @@ class Pipeline:
                     for subprotocol in entry['pipeline']
                 )
 
-                if meta_entry == 'union':
+                if meta_entry == META_UNION:
                     result = union(networks)
 
-                elif meta_entry == 'intersection':
+                elif meta_entry == META_INTERSECTION:
                     result = node_intersection(networks)
 
                 else:
@@ -340,10 +343,9 @@ class Pipeline:
     @staticmethod
     def _build_meta(meta, pipelines):
         """
-
-        :param str meta:
+        :param str meta: either union or intersection
         :param list[Pipeline] pipelines:
-        :return:
+        :rtype: Pipeline
         """
         return Pipeline.from_json([{
             'meta': meta,
@@ -354,21 +356,21 @@ class Pipeline:
         }])
 
     @staticmethod
-    def union(*pipelines):
+    def union(pipelines):
         """Takes the union of multiple pipelines
 
         :param list[Pipeline] pipelines: A list of pipelines
         :return: The union of the results from multiple pipelines
         :rtype: Pipeline
         """
-        return Pipeline._build_meta('union', pipelines)
+        return Pipeline._build_meta(META_UNION, pipelines)
 
     @staticmethod
-    def intersection(*pipelines):
+    def intersection(pipelines):
         """Takes the intersection of the results from multiple pipelines
 
         :param list[Pipeline] pipelines: A list of pipelines
         :return: The intersection of results from multiple pipelines
         :rtype: Pipeline
         """
-        return Pipeline._build_meta('intersection', pipelines)
+        return Pipeline._build_meta(META_INTERSECTION, pipelines)
