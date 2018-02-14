@@ -7,11 +7,11 @@ from pybel.constants import *
 from pybel.struct.filters import get_nodes
 from pybel.struct.filters.edge_filters import invert_edge_filter
 from pybel.struct.filters.edge_predicates import has_polarity
-from pybel_tools.filters.node_filters import function_inclusion_filter_builder
-from pybel_tools.mutation.deletion import remove_filtered_edges
 from .deletion import prune_central_dogma
 from .inference import infer_central_dogma
 from .. import pipeline
+from ..filters.node_filters import function_inclusion_filter_builder
+from ..mutation.deletion import remove_filtered_edges
 from ..summary.edge_summary import pair_is_consistent
 from ..utils import all_edges_iter
 
@@ -35,36 +35,36 @@ log = logging.getLogger(__name__)
 
 
 @pipeline.in_place_mutator
-def collapse_pair(graph, survivor, synonym):
+def collapse_pair(graph, *, to_node, from_node):
     """Rewires all edges from the synonymous node to the survivor node, then deletes the synonymous node.
     
     Does not keep edges between the two nodes.
     
     :param pybel.BELGraph graph: A BEL graph
-    :param tuple survivor: The BEL node to collapse all edges on the synonym to
-    :param tuple synonym: The BEL node to collapse into the surviving node
+    :param tuple to_node: The BEL node to collapse all edges on the synonym to
+    :param tuple from_node: The BEL node to collapse into the surviving node
     """
-    for successor in graph.successors_iter(synonym):
-        if successor == survivor:
+    for successor in graph.successors_iter(from_node):
+        if successor == to_node:
             continue
 
-        for key, data in graph.edge[synonym][successor].items():
-            if key >= 0:
-                graph.add_edge(survivor, successor, attr_dict=data)
-            elif successor not in graph.edge[survivor] or key not in graph.edge[survivor][successor]:
-                graph.add_edge(survivor, successor, key=key, **{RELATION: unqualified_edges[-1 - key]})
+        for key, data in graph.edge[from_node][successor].items():
+            if key >= 0:  # FIXME switch to safe add edge?
+                graph.add_edge(to_node, successor, attr_dict=data)
+            elif successor not in graph.edge[to_node] or key not in graph.edge[to_node][successor]:
+                graph.add_edge(to_node, successor, key=key, **{RELATION: unqualified_edges[-1 - key]})
 
-    for predecessor in graph.predecessors_iter(synonym):
-        if predecessor == survivor:
+    for predecessor in graph.predecessors_iter(from_node):
+        if predecessor == to_node:
             continue
 
-        for key, data in graph.edge[predecessor][synonym].items():
-            if key >= 0:
-                graph.add_edge(predecessor, survivor, attr_dict=data)
-            elif predecessor not in graph.pred[survivor] or key not in graph.edge[predecessor][survivor]:
-                graph.add_edge(predecessor, survivor, key=key, **{RELATION: unqualified_edges[-1 - key]})
+        for key, data in graph.edge[predecessor][from_node].items():
+            if key >= 0:  # FIXME switch to safe add edge?
+                graph.add_edge(predecessor, to_node, attr_dict=data)
+            elif predecessor not in graph.pred[to_node] or key not in graph.edge[predecessor][to_node]:
+                graph.add_edge(predecessor, to_node, key=key, **{RELATION: unqualified_edges[-1 - key]})
 
-    graph.remove_node(synonym)
+    graph.remove_node(from_node)
 
 
 @pipeline.in_place_mutator
@@ -78,7 +78,7 @@ def collapse_nodes(graph, dict_of_sets_of_nodes):
 
     for key_node, value_nodes in dict_of_sets_of_nodes.items():
         for value_node in value_nodes:
-            collapse_pair(graph, key_node, value_node)
+            collapse_pair(graph, from_node=value_node, to_node=key_node)
 
     # Remove self edges
     for u, v, k in graph.edges(keys=True):
@@ -197,15 +197,15 @@ def collapse_by_central_dogma_to_genes_out_place(graph):
 
 
 @pipeline.in_place_mutator
-def _collapse_variants_by_function(graph, function):
+def _collapse_variants_by_function(graph, func):
     """Collapses all of the given functions' variants' edges to their parents, in-place
 
     :param pybel.BELGraph graph: A BEL graph
-    :param str function: A BEL function
+    :param str func: A BEL function
     """
-    for parent_node, variant_node, d in graph.edges(data=True):
-        if d[RELATION] == HAS_VARIANT and graph.node[parent_node][FUNCTION] == function:
-            collapse_pair(graph, parent_node, variant_node)
+    for parent_node, variant_node, data in graph.edges(data=True):
+        if data[RELATION] == HAS_VARIANT and graph.node[parent_node][FUNCTION] == func:
+            collapse_pair(graph, from_node=variant_node, to_node=parent_node)
 
 
 @pipeline.in_place_mutator
@@ -250,9 +250,9 @@ def collapse_all_variants(graph):
     
     :param pybel.BELGraph graph: A BEL Graph
     """
-    for u, v, d in graph.edges(data=True):
+    for parent_node, variant_node, d in graph.edges(data=True):
         if d[RELATION] == HAS_VARIANT:
-            collapse_pair(graph, u, v)
+            collapse_pair(graph, from_node=variant_node, to_node=parent_node)
 
 
 @pipeline.mutator
@@ -323,22 +323,17 @@ def collapse_by_opening_by_central_dogma_to_genes(graph):
     collapse_by_central_dogma_to_genes(graph)
 
 
-@pipeline.in_place_mutator
-def collapse_namespace(graph, from_namespace, to_namespace):
-    """Collapses pairs of nodes that have equivalence relationships to the target namespace
-    
-    :param pybel.BELGraph graph: A BEL graph
-    :param str from_namespace: 
-    :param str to_namespace: 
-    
-    
-    To convert all ChEBI names to InChI keys:
-    
-    >>> collapse_namespace(graph, 'CHEBI', 'CHEBIID')
-    >>> collapse_namespace(graph, 'CHEBIID', 'INCHI')
+def _collapse_edge_by_namespace(graph, from_namespace, to_namespace, relation):
+    """Collapses pairs of nodes with the given namespaces that have the given relationship
+
+    :param pybel.BELGraph graph: A BEL Graph
+    :param str from_namespace: The namespace of the node to collapse
+    :param str to_namespace: The namespace of the node to keep
+    :param str relation: The relation to search
+
     """
     for u, v, d in graph.edges(data=True):
-        if d[RELATION] != EQUIVALENT_TO:
+        if d[RELATION] != relation:
             continue
 
         if NAMESPACE not in graph.node[u] or graph.node[u][NAMESPACE] != from_namespace:
@@ -347,7 +342,38 @@ def collapse_namespace(graph, from_namespace, to_namespace):
         if NAMESPACE not in graph.node[v] or graph.node[v][NAMESPACE] != to_namespace:
             continue
 
-        collapse_pair(graph, u, v)
+        collapse_pair(graph, from_node=u, to_node=v)
+
+
+@pipeline.in_place_mutator
+def collapse_equivalencies_by_namespace(graph, from_namespace, to_namespace):
+    """Collapses pairs of nodes with the given namespaces that have equivalence relationships
+    
+    :param pybel.BELGraph graph: A BEL graph
+    :param str from_namespace: The namespace of the node to collapse
+    :param str to_namespace: The namespace of the node to keep
+
+    To convert all ChEBI names to InChI keys, assuming there are appropriate equivalence relations between nodes with
+    those namespaces:
+    
+    >>> collapse_equivalencies_by_namespace(graph, 'CHEBI', 'CHEBIID')
+    >>> collapse_equivalencies_by_namespace(graph, 'CHEBIID', 'INCHI')
+    """
+    _collapse_edge_by_namespace(graph, from_namespace, to_namespace, EQUIVALENT_TO)
+
+
+@pipeline.in_place_mutator
+def collapse_orthologies_by_namespace(graph, from_namespace, to_namespace):
+    """Collapses pairs of nodes with the given namespaces that have orthology relationships
+
+    :param pybel.BELGraph graph: A BEL Graph
+    :param str from_namespace: The namespace of the node to collapse
+    :param str to_namespace: The namespace of the node to keep
+
+    To collapse all MGI nodes to their HGNC orthologs, use:
+    >>> collapse_orthologies_by_namespace('MGI', 'HGNC')
+    """
+    _collapse_edge_by_namespace(graph, from_namespace, to_namespace, EQUIVALENT_TO)
 
 
 @pipeline.in_place_mutator
