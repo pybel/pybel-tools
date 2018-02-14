@@ -33,6 +33,8 @@ __all__ = [
     'build_pmid_exclusion_filter',
     'build_author_inclusion_filter',
     'has_pathology_causal',
+    'build_source_namespace_filter',
+    'build_target_namespace_filter',
 ]
 
 
