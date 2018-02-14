@@ -331,8 +331,8 @@ def _collapse_edge_by_namespace(graph, from_namespace, to_namespace, relation):
     """Collapses pairs of nodes with the given namespaces that have the given relationship
 
     :param pybel.BELGraph graph: A BEL Graph
-    :param str from_namespace: The namespace of the node to collapse
-    :param str to_namespace: The namespace of the node to keep
+    :param str or iter[str] from_namespace: The namespace of the node to collapse
+    :param str or iter[str] to_namespace: The namespace of the node to keep
     :param relation: The relation to search
     :type relation: str or iter[str]
     """
@@ -355,8 +355,8 @@ def collapse_equivalencies_by_namespace(graph, from_namespace, to_namespace):
     """Collapses pairs of nodes with the given namespaces that have equivalence relationships
     
     :param pybel.BELGraph graph: A BEL graph
-    :param str from_namespace: The namespace of the node to collapse
-    :param str to_namespace: The namespace of the node to keep
+    :param str or iter[str] from_namespace: The namespace of the node to collapse
+    :param str or iter[str] to_namespace: The namespace of the node to keep
 
     To convert all ChEBI names to InChI keys, assuming there are appropriate equivalence relations between nodes with
     those namespaces:
@@ -369,8 +369,56 @@ def collapse_equivalencies_by_namespace(graph, from_namespace, to_namespace):
 
 @pipeline.in_place_mutator
 def collapse_entrez_to_hgnc(graph):
-    """Collapses Entrez nodes to HGNC"""
-    collapse_equivalencies_by_namespace(graph, 'ENTREZ', 'HGNC')
+    """Collapses Entrez nodes to HGNC
+
+    :param pybel.BELGraph graph: A BEL graph
+    """
+    collapse_equivalencies_by_namespace(graph, ['EGID', 'EG', 'ENTREZ'], 'HGNC')
+
+
+@pipeline.in_place_mutator
+def collapse_mgi_to_hgnc(graph):
+    """Collapses MGI nodes to HGNC
+
+    :param pybel.BELGraph graph: A BEL graph
+    """
+    collapse_equivalencies_by_namespace(graph, ['MGI', 'MGIID'], 'HGNC')
+
+
+@pipeline.in_place_mutator
+def collapse_rgd_to_hgnc(graph):
+    """Collapses RGD nodes to HGNC
+
+    :param pybel.BELGraph graph: A BEL graph
+    """
+    collapse_equivalencies_by_namespace(graph, ['RDG', 'RGDID'], 'HGNC')
+
+
+@pipeline.in_place_mutator
+def collapse_flybase_to_hgnc(graph):
+    """Collapses FlyBase nodes to HGNC
+
+    :param pybel.BELGraph graph: A BEL graph
+    """
+    collapse_equivalencies_by_namespace(graph, 'FLYBASE', 'HGNC')
+
+
+@pipeline.in_place_mutator
+def collapse_entrez_equivalencies(graph):
+    """Collapses all equivalence edges away from Entrez. Assumes well formed, 2-way equivalencies
+
+    :param pybel.BELGraph graph: A BEL graph
+    """
+    relation_filter = build_relation_filter(EQUIVALENT_TO)
+    source_namespace_filter = build_source_namespace_filter(['EGID', 'EG', 'ENTREZ'])
+
+    edge_predicates = [
+        relation_filter,
+        source_namespace_filter,
+    ]
+
+    for u, v, _ in filter_edges(graph, edge_predicates=edge_predicates):
+        collapse_pair(graph, from_node=u, to_node=v)
 
 
 @pipeline.in_place_mutator
@@ -378,8 +426,8 @@ def collapse_orthologies_by_namespace(graph, from_namespace, to_namespace):
     """Collapses pairs of nodes with the given namespaces that have orthology relationships
 
     :param pybel.BELGraph graph: A BEL Graph
-    :param str from_namespace: The namespace of the node to collapse
-    :param str to_namespace: The namespace of the node to keep
+    :param str or iter[str] from_namespace: The namespace of the node to collapse
+    :param str or iter[str] to_namespace: The namespace of the node to keep
 
     To collapse all MGI nodes to their HGNC orthologs, use:
 
