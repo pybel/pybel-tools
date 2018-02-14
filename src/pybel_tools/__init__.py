@@ -44,30 +44,6 @@ installation difficult for Windows users, for whom Python cannot easily build C 
 `Anaconda <https://www.continuum.io/downloads>`_ distribution of Python, which includes these precompiled.
 """
 
-from . import (
-    analysis, citation_utils, comparison, definition_utils, document_utils, filters, generation, integration,
-    ioutils, mutation, query, selection, serialization, summary, utils, visualization,
-)
-
-__all__ = (
-    analysis,
-    citation_utils,
-    comparison,
-    definition_utils,
-    document_utils,
-    filters,
-    generation,
-    integration,
-    ioutils,
-    mutation,
-    query,
-    selection,
-    serialization,
-    summary,
-    utils,
-    visualization,
-)
-
 __version__ = '0.5.1-dev'
 
 __title__ = 'pybel_tools'
