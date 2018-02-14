@@ -51,7 +51,6 @@ Links
    :caption: Pipelines
    :name: pipelines
 
-   orthology
    expansion
    generation
    cmpa

@@ -29,6 +29,8 @@ __all__ = [
     'collapse_protein_variants',
     'opening_on_central_dogma',
     'collapse_consistent_edges',
+    'collapse_equivalencies_by_namespace',
+    'collapse_orthologies_by_namespace',
 ]
 
 log = logging.getLogger(__name__)

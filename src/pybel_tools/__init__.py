@@ -46,7 +46,7 @@ installation difficult for Windows users, for whom Python cannot easily build C 
 
 from . import (
     analysis, citation_utils, comparison, definition_utils, document_utils, filters, generation, integration,
-    ioutils, mutation, orthology, query, selection, serialization, summary, utils, visualization,
+    ioutils, mutation, query, selection, serialization, summary, utils, visualization,
 )
 
 __all__ = (
@@ -60,7 +60,6 @@ __all__ = (
     integration,
     ioutils,
     mutation,
-    orthology,
     query,
     selection,
     serialization,
