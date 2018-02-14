@@ -13,6 +13,7 @@ from pybel.struct.filters import filter_edges, filter_nodes
 from pybel.struct.filters.edge_predicate_builders import (
     build_annotation_dict_all_filter,
     build_annotation_dict_any_filter,
+
 )
 from pybel.struct.filters.edge_predicates import edge_has_annotation, is_causal_relation
 from .paths import get_nodes_in_all_shortest_paths
@@ -20,7 +21,7 @@ from .search import search_node_names
 from .. import pipeline
 from ..constants import SAMPLE_RANDOM_EDGE_COUNT
 from ..filters.edge_filters import (
-    build_annotation_value_filter, build_author_inclusion_filter, build_edge_data_filter, build_pmid_inclusion_filter,
+    build_author_inclusion_filter, build_edge_data_filter, build_pmid_inclusion_filter,
 )
 from ..mutation.expansion import (
     expand_all_node_neighborhoods, expand_downstream_causal_subgraph,
@@ -100,13 +101,13 @@ NONNODE_SEED_TYPES = {
 class NodeDegreeIterError(ValueError):
     """Raised when failing to iterate over node degrees"""
 
+
 @pipeline.mutator
 def get_subgraph_by_induction(graph, nodes):
-    """Induces a graph over the given nodes
+    """Induces a graph over the given nodes. Returns None if none of the nodes are in the given graph.
 
     :param pybel.BELGraph graph: A BEL graph
     :param iter[tuple] nodes: A list of BEL nodes in the graph
-    :return: A sub-graph induced over the given nodes
     :rtype: Optional[pybel.BELGraph]
     """
     if all(node not in graph for node in nodes):
@@ -193,7 +194,8 @@ def get_subgraph_by_all_shortest_paths(graph, nodes, weight=None, remove_patholo
     if not query_nodes:
         return
 
-    induced_nodes = get_nodes_in_all_shortest_paths(graph, query_nodes, weight=weight, remove_pathologies=remove_pathologies)
+    induced_nodes = get_nodes_in_all_shortest_paths(graph, query_nodes, weight=weight,
+                                                    remove_pathologies=remove_pathologies)
 
     if not induced_nodes:
         return
@@ -218,23 +220,9 @@ def get_subgraph_by_edge_filter(graph, edge_filters):
         for u, v, k in filter_edges(graph, edge_filters)
     ))
 
-
     update_node_helper(graph, result)
 
     return result
-
-
-@pipeline.mutator
-def get_subgraph_by_annotation_value(graph, annotation, value):
-    """Builds a new subgraph induced over all edges whose annotations match the given key and value
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param str annotation: The annotation to group by
-    :param str value: The value for the annotation
-    :return: A subgraph of the original BEL graph
-    :rtype: pybel.BELGraph
-    """
-    return get_subgraph_by_edge_filter(graph, build_annotation_value_filter(annotation, value))
 
 
 @pipeline.mutator
@@ -266,6 +254,19 @@ def get_subgraph_by_annotations(graph, annotations, or_=None):
     )
 
     return get_subgraph_by_edge_filter(graph, edge_filter_builder(annotations))
+
+
+@pipeline.mutator
+def get_subgraph_by_annotation_value(graph, annotation, value):
+    """Builds a new subgraph induced over all edges whose annotations match the given key and value
+
+    :param pybel.BELGraph graph: A BEL graph
+    :param str annotation: The annotation to group by
+    :param str value: The value for the annotation
+    :return: A subgraph of the original BEL graph
+    :rtype: pybel.BELGraph
+    """
+    return get_subgraph_by_annotations(graph, {annotation: {value}})
 
 
 @pipeline.splitter
@@ -486,7 +487,7 @@ def randomly_select_node(graph, no_grow, random_state):
             for node, degree in graph.degree_iter()
             if node not in no_grow
         ))
-    except ValueError: # something wrong with graph, probably no elements in graph.degree_iter
+    except ValueError:  # something wrong with graph, probably no elements in graph.degree_iter
         return
 
     ds = sum(degrees)
@@ -563,7 +564,7 @@ def get_random_subgraph(graph, number_edges=None, number_seed_edges=None, seed=N
             source = randomly_select_node(result, no_grow, random_state)
 
             if source is None:
-                continue # maybe do something else?
+                continue  # maybe do something else?
 
             possible_step_nodes = set(graph.edge[source]) - set(result.edge[source])
 

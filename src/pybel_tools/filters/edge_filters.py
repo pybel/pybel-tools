@@ -25,7 +25,6 @@ from pybel.utils import subdict_matches
 
 __all__ = [
     'summarize_edge_filter',
-    'build_annotation_value_filter',
     'build_edge_data_filter',
     'build_annotation_dict_all_filter',
     'build_annotation_dict_any_filter',
@@ -42,7 +41,7 @@ def summarize_edge_filter(graph, edge_filters):
 
     :param pybel.BELGraph graph: A BEL graph
     :param edge_filters: A filter or list of filters
-    :type edge_filters: types.FunctionType or list[types.FunctionType] or tuple[types.FunctionType]
+    :type edge_filters: (pybel.BELGraph, tuple, tuple, int) -> bool or iter[(pybel.BELGraph, tuple, tuple, int) -> bool]
     """
     passed = count_passed_edge_filter(graph, edge_filters)
     print('{}/{} edges passed {}'.format(
@@ -54,49 +53,12 @@ def summarize_edge_filter(graph, edge_filters):
     ))
 
 
-def build_annotation_value_filter(annotation, value):
-    """Builds a filter that only passes for edges that contain the given annotation and have the given value(s)
-    
-    :param str annotation: The annotation to filter on
-    :param str or iter[str] value: The value or values for the annotation to filter on
-    :return: An edge filter function (graph, node, node, key, data) -> bool
-    :rtype: types.FunctionType
-    """
-
-    if isinstance(value, str):
-        @edge_predicate
-        def annotation_value_filter(data):
-            """Only passes for edges that contain the given annotation and have the given value
-    
-            :param dict data: The edge data dictionary
-            :return: If the edge has the contained annotation with the contained value
-            :rtype: bool
-            """
-            return edge_has_annotation(data, annotation) and data[ANNOTATIONS][annotation] == value
-
-        return annotation_value_filter
-
-    elif isinstance(value, Iterable):
-        values = set(value)
-
-        @edge_predicate
-        def annotation_values_filter(data):
-            """Only passes for edges that contain the given annotation and have one of the given values
-
-            :param dict data: The edge data dictionary
-            :return: If the edge has the contained annotation and one of the contained values
-            :rtype: bool
-            """
-            return edge_has_annotation(data, annotation) and data[ANNOTATIONS][annotation] in values
-
-        return annotation_values_filter
-
-
 def build_edge_data_filter(annotations, partial_match=True):
     """Builds a filter that keeps edges whose data dictionaries are superdictionaries to the given dictionary
 
     :param dict annotations: The annotation query dict to match
     :param bool partial_match: Should the query values be used as partial or exact matches? Defaults to :code:`True`.
+    :rtype: (pybel.BELGraph, tuple, tuple, int) -> bool
     """
 
     @edge_predicate
@@ -113,6 +75,7 @@ def build_annotation_dict_all_filter(annotations, partial_match=True):
 
     :param dict annotations: The annotation query dict to match
     :param bool partial_match: Should the query values be used as partial or exact matches? Defaults to :code:`True`.
+    :rtype: (pybel.BELGraph, tuple, tuple, int) -> bool
     """
 
     @edge_predicate
@@ -152,7 +115,7 @@ def build_relation_filter(relations):
     :param relations: A relation or iterable of relations
     :type relations: str or iter[str]
     :return: An edge filter function (graph, node, node, key, data) -> bool
-    :rtype: types.FunctionType
+    :rtype: (pybel.BELGraph, tuple, tuple, int) -> bool
     """
 
     if isinstance(relations, str):
@@ -182,6 +145,7 @@ def build_relation_filter(relations):
             return data[RELATION] in relation_set
 
         return relation_filter
+
     else:
         raise ValueError('Invalid type for argument: {}'.format(relations))
 
@@ -192,7 +156,7 @@ def build_pmid_inclusion_filter(pmid):
     :param pmid: A PubMed identifier or list of PubMed identifiers to filter for
     :type pmid: str or iter[str]
     :return: An edge filter function (graph, node, node, key, data) -> bool
-    :rtype: types.FunctionType
+    :rtype: (pybel.BELGraph, tuple, tuple, int) -> bool
     """
 
     if isinstance(pmid, str):
@@ -230,7 +194,7 @@ def build_pmid_exclusion_filter(pmid):
     :param pmid: A PubMed identifier or list of PubMed identifiers to filter against
     :type pmid: str or iter[str]
     :return: An edge filter function (graph, node, node, key, data) -> bool
-    :rtype: types.FunctionType
+    :rtype: (pybel.BELGraph, tuple, tuple, int) -> bool
     """
 
     if isinstance(pmid, str):
@@ -269,7 +233,7 @@ def build_author_inclusion_filter(author):
     :param author: The author or list of authors to filter by
     :type author: str or iter[str]
     :return: An edge filter
-    :rtype: types.FunctionType
+    :rtype: (pybel.BELGraph, tuple, tuple, int) -> bool
     """
     if isinstance(author, str):
 
@@ -316,7 +280,65 @@ def has_pathology_causal(graph, u, v, k):
     :rtype: bool
     """
     return (
-        is_pathology(graph, u) and
-        is_causal_relation(graph, u, v, k) and
-        graph.node[v][FUNCTION] not in {PATHOLOGY, BIOPROCESS}
+            is_pathology(graph, u) and
+            is_causal_relation(graph, u, v, k) and
+            graph.node[v][FUNCTION] not in {PATHOLOGY, BIOPROCESS}
     )
+
+
+def node_has_namespace(graph, node, namespace):
+    ns = graph.node[node].get(NAMESPACE)
+    return ns is not None and ns == namespace
+
+
+def node_has_namespaces(graph, node, namespaces):
+    namespace = graph.node[node].get(NAMESPACE)
+    return namespace is not None and namespace in namespaces
+
+
+def build_source_namespace_filter(namespaces):
+    """Only passes for edges whose source nodes have the given namespace or one of the given namespaces
+
+    :param namespaces: The namespace or namespaces to filter by
+    :type namespaces: str or iter[str]
+    :rtype: (pybel.BELGraph, tuple, tuple, int) -> bool
+    """
+    if isinstance(namespaces, str):
+
+        def source_namespace_filter(graph, u, v, k):
+            return node_has_namespace(graph, u, namespaces)
+
+    elif isinstance(namespaces, Iterable):
+        namespaces = set(namespaces)
+
+        def source_namespace_filter(graph, u, v, k):
+            return node_has_namespaces(graph, u, namespaces)
+
+    else:
+        raise ValueError
+
+    return source_namespace_filter
+
+
+def build_target_namespace_filter(namespaces):
+    """Only passes for edges whose target nodes have the given namespace or one of the given namespaces
+
+    :param namespaces: The namespace or namespaces to filter by
+    :type namespaces: str or iter[str]
+    :rtype: (pybel.BELGraph, tuple, tuple, int) -> bool
+    """
+    if isinstance(namespaces, str):
+
+        def target_namespace_filter(graph, u, v, k):
+            return node_has_namespace(graph, v, namespaces)
+
+    elif isinstance(namespaces, Iterable):
+        namespaces = set(namespaces)
+
+        def target_namespace_filter(graph, u, v, k):
+            return node_has_namespaces(graph, v, namespaces)
+
+    else:
+        raise ValueError
+
+    return target_namespace_filter

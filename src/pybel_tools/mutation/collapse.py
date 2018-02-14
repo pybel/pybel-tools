@@ -5,13 +5,13 @@ from collections import defaultdict
 
 from pybel.constants import *
 from pybel.struct.filters import get_nodes
-from pybel.struct.filters.edge_filters import invert_edge_filter, filter_edges
+from pybel.struct.filters.edge_filters import filter_edges, invert_edge_filter
 from pybel.struct.filters.edge_predicates import has_polarity
 from .deletion import prune_central_dogma
 from .inference import infer_central_dogma
 from .. import pipeline
+from ..filters.edge_filters import build_relation_filter, build_source_namespace_filter, build_target_namespace_filter
 from ..filters.node_filters import function_inclusion_filter_builder
-from ..filters.edge_filters import build_relation_filter
 from ..mutation.deletion import remove_filtered_edges
 from ..summary.edge_summary import pair_is_consistent
 from ..utils import all_edges_iter
@@ -32,6 +32,7 @@ __all__ = [
     'collapse_consistent_edges',
     'collapse_equivalencies_by_namespace',
     'collapse_orthologies_by_namespace',
+    'collapse_to_protein_interactions',
 ]
 
 log = logging.getLogger(__name__)
@@ -336,14 +337,16 @@ def _collapse_edge_by_namespace(graph, from_namespace, to_namespace, relation):
     :type relation: str or iter[str]
     """
     relation_filter = build_relation_filter(relation)
+    source_namespace_filter = build_source_namespace_filter(from_namespace)
+    target_namespace_filter = build_target_namespace_filter(to_namespace)
 
-    for u, v, _ in filter_edges(graph, relation_filter):
-        if NAMESPACE not in graph.node[u] or graph.node[u][NAMESPACE] != from_namespace:
-            continue
+    edge_predicates = [
+        relation_filter,
+        source_namespace_filter,
+        target_namespace_filter
+    ]
 
-        if NAMESPACE not in graph.node[v] or graph.node[v][NAMESPACE] != to_namespace:
-            continue
-
+    for u, v, _ in filter_edges(graph, edge_predicates=edge_predicates):
         collapse_pair(graph, from_node=u, to_node=v)
 
 
@@ -379,6 +382,7 @@ def collapse_orthologies_by_namespace(graph, from_namespace, to_namespace):
     :param str to_namespace: The namespace of the node to keep
 
     To collapse all MGI nodes to their HGNC orthologs, use:
+
     >>> collapse_orthologies_by_namespace('MGI', 'HGNC')
     """
     _collapse_edge_by_namespace(graph, from_namespace, to_namespace, EQUIVALENT_TO)
