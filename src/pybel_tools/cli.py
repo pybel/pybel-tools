@@ -16,7 +16,6 @@ Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 
 from __future__ import print_function
 
-import click
 import hashlib
 import json
 import logging
@@ -24,26 +23,22 @@ import os
 import sys
 from getpass import getuser
 
+import click
+
 from ols_client.constants import BASE_URL
-from pybel import from_lines, from_pickle, from_url, to_database
 from pybel.constants import (
     BELNS_ENCODING_STR, LARGE_CORPUS_URL, NAMESPACE_DOMAIN_OTHER, NAMESPACE_DOMAIN_TYPES,
     PYBEL_CONNECTION, SMALL_CORPUS_URL, get_cache_connection,
 )
-from pybel.manager import Manager
-from pybel.resources.arty import get_annotation_history, get_knowledge_history, get_namespace_history
+from pybel.manager.cache_manager import Manager
 from pybel.resources.definitions import (
-    get_bel_resource_hash, hash_names, parse_bel_resource, write_annotation,
-    write_namespace,
+    get_bel_resource_hash, hash_names, parse_bel_resource, write_annotation, write_namespace,
 )
 from pybel.resources.document import get_bel_knowledge_hash
 from pybel.struct.summary import get_pubmed_identifiers
 from pybel.utils import get_version as pybel_version
-from .constants import DEFAULT_SERVICE_URL, NAMED_COMPLEXES
-from .definition_utils import export_namespaces
-from .document_utils import write_boilerplate
-from .ioutils import convert_paths, get_paths_recursive, to_pybel_web, upload_recursive
-from .mutation.metadata import enrich_pubmed_citations
+from .constants import DEFAULT_SERVICE_URL, NAMED_COMPLEXES_URL
+from .ioutils import convert_paths, get_paths_recursive, upload_recursive
 from .ols_utils import OlsNamespaceOntology
 from .utils import enable_cool_mode, get_version
 
@@ -86,17 +81,23 @@ def ensure(ctx, connection):
     ctx.obj = Manager(connection=connection)
 
 
+def help_ensure(debug, url, enrich_authors, manager):
+    set_debug_param(debug)
+    from pybel import from_url
+    graph = from_url(SMALL_CORPUS_URL, manager=manager, citation_clearing=False, allow_nested=True)
+    if enrich_authors:
+        from .mutation.metadata import enrich_pubmed_citations
+        enrich_pubmed_citations(graph, manager=manager)
+    manager.insert_graph(graph, store_parts=True)
+
+
 @ensure.command()
 @click.option('--enrich-authors', is_flag=True)
 @click.option('-v', '--debug', count=True, help="Turn on debugging. More v's, more debugging")
 @click.pass_obj
 def small_corpus(manager, enrich_authors, debug):
     """Caches the Selventa Small Corpus"""
-    set_debug_param(debug)
-    graph = from_url(SMALL_CORPUS_URL, manager=manager, citation_clearing=False, allow_nested=True)
-    if enrich_authors:
-        enrich_pubmed_citations(graph, manager=manager)
-    manager.insert_graph(graph, store_parts=True)
+    help_ensure(debug, SMALL_CORPUS_URL, enrich_authors, manager)
 
 
 @ensure.command()
@@ -105,11 +106,7 @@ def small_corpus(manager, enrich_authors, debug):
 @click.pass_obj
 def large_corpus(manager, enrich_authors, debug):
     """Caches the Selventa Large Corpus"""
-    set_debug_param(debug)
-    graph = from_url(LARGE_CORPUS_URL, manager=manager, citation_clearing=False, allow_nested=True)
-    if enrich_authors:
-        enrich_pubmed_citations(graph, manager=manager)
-    manager.insert_graph(graph, store_parts=True)
+    help_ensure(debug, LARGE_CORPUS_URL, enrich_authors, manager)
 
 
 @ensure.command()
@@ -118,11 +115,7 @@ def large_corpus(manager, enrich_authors, debug):
 @click.pass_obj
 def named_complexes(manager, enrich_authors, debug):
     """Caches GO Named Protein Complexes memberships"""
-    set_debug_param(debug)
-    graph = from_url(NAMED_COMPLEXES, manager=manager)
-    if enrich_authors:
-        enrich_pubmed_citations(graph, manager=manager)
-    manager.insert_graph(graph, store_parts=True)
+    help_ensure(debug, NAMED_COMPLEXES_URL, enrich_authors, manager)
 
 
 @main.group()
@@ -155,10 +148,13 @@ def upload(manager, path, skip_check_version, to_service, service_url, exclude_d
         upload_recursive(path, connection=manager, exclude_directory_pattern=exclude_directory_pattern)
 
     elif os.path.isfile(path):
+        from pybel import from_pickle
         graph = from_pickle(path, check_version=(not skip_check_version))
         if to_service:
-            to_pybel_web(graph, service_url)
+            from pybel import to_web
+            to_web(graph, service_url)
         else:
+            from pybel import to_database
             to_database(graph, connection=manager, store_parts=True)
 
 
@@ -168,8 +164,9 @@ def upload(manager, path, skip_check_version, to_service, service_url, exclude_d
 @click.option('-s', '--skip-check-version', is_flag=True, help='Skip checking the PyBEL version of the gpickle')
 def post(path, url, skip_check_version):
     """Posts the given graph to the PyBEL Web Service via JSON"""
+    from pybel import from_pickle, to_web
     graph = from_pickle(path, check_version=(not skip_check_version))
-    to_pybel_web(graph, url)
+    to_web(graph, url)
 
 
 @io.command()
@@ -213,6 +210,31 @@ def convert(manager, enable_upload, no_enrich_authors, no_citation_clearing, all
 
     for path, e in failures:
         click.echo('FAILED {} {}'.format(path, e))
+
+
+@io.command()
+@click.option('-d', '--directory', default=os.getcwd(),
+              help='The directory to search. Defaults to current working directory')
+@click.option('-n', '--name', help='The name of the file. Defaults to directory name')
+@click.option('-v', '--debug', count=True, help="Turn on debugging. More v's, more debugging")
+@click.pass_obj
+def merge_directory(manager, directory, name, debug):
+    """Parses all BEL files in a directory and outputs it"""
+    set_debug_param(debug)
+
+    name = name or '{}-merged.gpickle'.format(directory)
+    path = os.path.join(directory, name)
+    if os.path.exists(path):
+        click.echo('Path already exists. Quitting. [{}]'.format(path))
+
+    from .ioutils import load_directory
+    from pybel import to_pickle
+
+    enable_cool_mode()
+
+    graph = load_directory(directory, connection=manager)
+
+    to_pickle(graph, file=path)
 
 
 @main.group()
@@ -273,6 +295,8 @@ def semhash(file):
 @click.argument('namespace')
 def history(namespace):
     """Hash all versions on Arty"""
+    from pybel.resources.arty import get_namespace_history
+
     for path in get_namespace_history(namespace):
         h = get_bel_resource_hash(path.as_posix())
         click.echo('{}\t{}'.format(path, h))
@@ -321,6 +345,8 @@ def annotation():
 @click.argument('annotation')
 def history(annotation):
     """Outputs the hashes for the annotation's versions"""
+    from pybel.resources.arty import get_annotation_history
+
     for path in get_annotation_history(annotation):
         h = get_bel_resource_hash(path.as_posix())
         click.echo('{}\t{}'.format(path, h))
@@ -375,6 +401,8 @@ def from_ols(ontology, domain, function, encoding, ols_base, output):
 @click.argument('name')
 def history(name):
     """Outputs the hashes for the BEL scripts' versions"""
+    from pybel.resources.arty import get_knowledge_history
+
     for path in get_knowledge_history(name):
         h = get_bel_knowledge_hash(path.as_posix())
         click.echo('{}\t{}'.format(path, h))
@@ -393,6 +421,8 @@ def history(name):
 @click.option('--output', type=click.File('wb'), default=sys.stdout)
 def boilerplate(name, contact, description, pmids, version, copyright, authors, licenses, disclaimer, output):
     """Builds a template BEL document with the given PubMed identifiers"""
+    from .document_utils import write_boilerplate
+
     write_boilerplate(
         name=name,
         version=version,
@@ -414,6 +444,9 @@ def boilerplate(name, contact, description, pmids, version, copyright, authors, 
 @click.option('-d', '--directory', help='Output folder. Defaults to current working directory {})'.format(os.getcwd()))
 def serialize_namespaces(namespaces, connection, path, directory):
     """Parses a BEL document then serializes the given namespaces (errors and all) to the given directory"""
+    from pybel import from_lines
+    from .definition_utils import export_namespaces
+
     graph = from_lines(path, manager=connection)
     export_namespaces(namespaces, graph, directory)
 
@@ -434,6 +467,7 @@ def upload_resources(directory, debug):
 @click.option('-o', '--output', type=click.File('w'), default=sys.stdout)
 def get_pmids(path, output):
     """Outputs PubMed identifiers from a graph to a stream"""
+    from pybel import from_pickle
     graph = from_pickle(path)
     for pmid in get_pubmed_identifiers(graph):
         click.echo(pmid, file=output)
