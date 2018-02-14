@@ -5,12 +5,13 @@ from collections import defaultdict
 
 from pybel.constants import *
 from pybel.struct.filters import get_nodes
-from pybel.struct.filters.edge_filters import invert_edge_filter
+from pybel.struct.filters.edge_filters import invert_edge_filter, filter_edges
 from pybel.struct.filters.edge_predicates import has_polarity
 from .deletion import prune_central_dogma
 from .inference import infer_central_dogma
 from .. import pipeline
 from ..filters.node_filters import function_inclusion_filter_builder
+from ..filters.edge_filters import build_relation_filter
 from ..mutation.deletion import remove_filtered_edges
 from ..summary.edge_summary import pair_is_consistent
 from ..utils import all_edges_iter
@@ -331,13 +332,12 @@ def _collapse_edge_by_namespace(graph, from_namespace, to_namespace, relation):
     :param pybel.BELGraph graph: A BEL Graph
     :param str from_namespace: The namespace of the node to collapse
     :param str to_namespace: The namespace of the node to keep
-    :param str relation: The relation to search
-
+    :param relation: The relation to search
+    :type relation: str or iter[str]
     """
-    for u, v, d in graph.edges(data=True):
-        if d[RELATION] != relation:
-            continue
+    relation_filter = build_relation_filter(relation)
 
+    for u, v, _ in filter_edges(graph, relation_filter):
         if NAMESPACE not in graph.node[u] or graph.node[u][NAMESPACE] != from_namespace:
             continue
 
@@ -362,6 +362,12 @@ def collapse_equivalencies_by_namespace(graph, from_namespace, to_namespace):
     >>> collapse_equivalencies_by_namespace(graph, 'CHEBIID', 'INCHI')
     """
     _collapse_edge_by_namespace(graph, from_namespace, to_namespace, EQUIVALENT_TO)
+
+
+@pipeline.in_place_mutator
+def collapse_entrez_to_hgnc(graph):
+    """Collapses Entrez nodes to HGNC"""
+    collapse_equivalencies_by_namespace(graph, 'ENTREZ', 'HGNC')
 
 
 @pipeline.in_place_mutator
