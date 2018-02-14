@@ -9,12 +9,9 @@ python:
 env:
   matrix:
     - TOXENV=py
-
-matrix:
-    include:
-        - env: TOXENV=docs
-        - env: TOXENV=manifest
-        - env: TOXENV=rst-lint
+    - TOXENV=rst-lint
+    - TOXENV=manifest
+    - TOXENV=docs
 
 before_install:
     - pip install codecov
