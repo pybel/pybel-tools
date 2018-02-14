@@ -282,7 +282,6 @@ def opening_on_central_dogma(graph):
 
     >>> infer_central_dogma(graph)
     >>> prune_central_dogma(graph)
-
     """
     infer_central_dogma(graph)
     prune_central_dogma(graph)
@@ -327,6 +326,17 @@ def collapse_by_opening_by_central_dogma_to_genes(graph):
     collapse_by_central_dogma_to_genes(graph)
 
 
+def _collapse_edge_passing_predicates(graph, edge_predicates=None):
+    """Collapses all edges passing the given edge predicates
+
+    :param pybel.BELGraph graph: A BEL Graph
+    :param edge_predicates: A predicate or list of predicates
+    :type edge_predicates: Optional[(pybel.BELGraph, tuple, tuple, int) -> bool or iter[(pybel.BELGraph, tuple, tuple, int) -> bool]]
+    """
+    for u, v, _ in filter_edges(graph, edge_predicates=edge_predicates):
+        collapse_pair(graph, from_node=u, to_node=v)
+
+
 def _collapse_edge_by_namespace(graph, from_namespace, to_namespace, relation):
     """Collapses pairs of nodes with the given namespaces that have the given relationship
 
@@ -346,8 +356,7 @@ def _collapse_edge_by_namespace(graph, from_namespace, to_namespace, relation):
         target_namespace_filter
     ]
 
-    for u, v, _ in filter_edges(graph, edge_predicates=edge_predicates):
-        collapse_pair(graph, from_node=u, to_node=v)
+    _collapse_edge_passing_predicates(graph, edge_predicates=edge_predicates)
 
 
 @pipeline.in_place_mutator
@@ -368,39 +377,62 @@ def collapse_equivalencies_by_namespace(graph, from_namespace, to_namespace):
 
 
 @pipeline.in_place_mutator
+def collapse_orthologies_by_namespace(graph, from_namespace, to_namespace):
+    """Collapses pairs of nodes with the given namespaces that have orthology relationships
+
+    :param pybel.BELGraph graph: A BEL Graph
+    :param str or iter[str] from_namespace: The namespace of the node to collapse
+    :param str or iter[str] to_namespace: The namespace of the node to keep
+
+    To collapse all MGI nodes to their HGNC orthologs, use:
+
+    >>> collapse_orthologies_by_namespace('MGI', 'HGNC')
+    """
+    _collapse_edge_by_namespace(graph, from_namespace, to_namespace, ORTHOLOGOUS)
+
+
+@pipeline.in_place_mutator
 def collapse_entrez_to_hgnc(graph):
-    """Collapses Entrez nodes to HGNC
+    """Collapses Entrez orthologies to HGNC.
+
+    Implemented with :func:`collapse_orthologies_by_namespace`.
 
     :param pybel.BELGraph graph: A BEL graph
     """
-    collapse_equivalencies_by_namespace(graph, ['EGID', 'EG', 'ENTREZ'], 'HGNC')
+    collapse_orthologies_by_namespace(graph, ['EGID', 'EG', 'ENTREZ'], 'HGNC')
 
 
 @pipeline.in_place_mutator
 def collapse_mgi_to_hgnc(graph):
-    """Collapses MGI nodes to HGNC
+    """Collapses MGI orthologies to HGNC
+
+    Implemented with :func:`collapse_orthologies_by_namespace`.
 
     :param pybel.BELGraph graph: A BEL graph
     """
-    collapse_equivalencies_by_namespace(graph, ['MGI', 'MGIID'], 'HGNC')
+    collapse_orthologies_by_namespace(graph, ['MGI', 'MGIID'], 'HGNC')
 
 
 @pipeline.in_place_mutator
 def collapse_rgd_to_hgnc(graph):
-    """Collapses RGD nodes to HGNC
+    """Collapses RGD orthologies to HGNC
+
+    Implemented with :func:`collapse_orthologies_by_namespace`.
 
     :param pybel.BELGraph graph: A BEL graph
     """
-    collapse_equivalencies_by_namespace(graph, ['RDG', 'RGDID'], 'HGNC')
+    collapse_orthologies_by_namespace(graph, ['RDG', 'RGDID'], 'HGNC')
 
 
 @pipeline.in_place_mutator
 def collapse_flybase_to_hgnc(graph):
-    """Collapses FlyBase nodes to HGNC
+    """Collapses FlyBase orthologies to HGNC
+
+    Implemented with :func:`collapse_orthologies_by_namespace`.
 
     :param pybel.BELGraph graph: A BEL graph
     """
-    collapse_equivalencies_by_namespace(graph, 'FLYBASE', 'HGNC')
+    collapse_orthologies_by_namespace(graph, 'FLYBASE', 'HGNC')
 
 
 @pipeline.in_place_mutator
@@ -417,23 +449,7 @@ def collapse_entrez_equivalencies(graph):
         source_namespace_filter,
     ]
 
-    for u, v, _ in filter_edges(graph, edge_predicates=edge_predicates):
-        collapse_pair(graph, from_node=u, to_node=v)
-
-
-@pipeline.in_place_mutator
-def collapse_orthologies_by_namespace(graph, from_namespace, to_namespace):
-    """Collapses pairs of nodes with the given namespaces that have orthology relationships
-
-    :param pybel.BELGraph graph: A BEL Graph
-    :param str or iter[str] from_namespace: The namespace of the node to collapse
-    :param str or iter[str] to_namespace: The namespace of the node to keep
-
-    To collapse all MGI nodes to their HGNC orthologs, use:
-
-    >>> collapse_orthologies_by_namespace('MGI', 'HGNC')
-    """
-    _collapse_edge_by_namespace(graph, from_namespace, to_namespace, EQUIVALENT_TO)
+    _collapse_edge_passing_predicates(graph, edge_predicates=edge_predicates)
 
 
 @pipeline.in_place_mutator
