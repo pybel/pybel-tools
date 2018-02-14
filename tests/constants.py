@@ -8,6 +8,7 @@ from pybel import BELGraph
 from pybel.constants import *
 from pybel.dsl import gene, protein, rna
 from pybel.manager import Manager
+from uuid import uuid4
 
 HGNC = 'HGNC'
 
@@ -260,3 +261,6 @@ class ExampleNetworkMixin(unittest.TestCase):
         self.network2 = make_graph_2()
         self.network3 = make_graph_3()
         self.network4 = make_graph_4()
+
+def n():
+    return str(uuid4())
