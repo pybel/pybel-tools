@@ -4,18 +4,17 @@
 
 import logging
 import os
+import warnings
 
 import requests
 
 import pybel
-from pybel import from_path, from_pickle, to_database, to_pickle
+from pybel import from_path, from_pickle, to_database, to_pickle, to_web
 from pybel.io.exc import ImportVersionWarning
 from pybel.manager import Manager
 from pybel.struct import union
 from pybel.utils import get_version as get_pybel_version
-from .constants import DEFAULT_SERVICE_URL
-from .mutation import opening_on_central_dogma
-from .mutation.metadata import add_canonical_names, enrich_pubmed_citations
+from .mutation import add_canonical_names, enrich_pubmed_citations, opening_on_central_dogma
 from .selection import get_subgraph_by_annotation_value
 from .summary import get_annotation_values
 
@@ -58,12 +57,12 @@ def load_directory(directory, connection=None):
     :type connection: Optional[str or pybel.manager.Manager]
     :rtype: pybel.BELGraph
     """
-    paths = (
+    paths = [
         path
         for path in os.listdir(directory)
         if path.endswith('.bel')
-    )
-
+    ]
+    log.info('loadings %d paths: %s', len(paths), ', '.join(paths))
     return load_paths(paths, connection=connection)
 
 
@@ -218,7 +217,7 @@ def subgraphs_to_pickles(network, directory=None, annotation='Subgraph'):
     :param str directory: A directory to output the pickles
     :param str annotation: An annotation to split by. Suggestion: ``Subgraph``
     """
-    directory = os.getcwd() if directory is None else directory
+    directory = directory or os.getcwd()
     for value in get_annotation_values(network, annotation=annotation):
         sg = get_subgraph_by_annotation_value(network, annotation, value)
         sg.document.update(network.document)
@@ -228,15 +227,13 @@ def subgraphs_to_pickles(network, directory=None, annotation='Subgraph'):
         to_pickle(sg, path)
 
 
-def to_pybel_web(network, service=None):
+def to_pybel_web(graph, host=None):
     """Sends a graph to the receiver service and returns the :mod:`requests` response object
 
-    :param pybel.BELGraph network: A BEL network
-    :param str service: The location of the PyBEL web server. Defaults to :data:`DEFAULT_SERVICE_URL`
+    :param pybel.BELGraph graph: A BEL network
+    :param Optional[str] host: The location of the PyBEL web server. Defaults to :data:`DEFAULT_SERVICE_URL`
     :return: The response object from :mod:`requests`
     :rtype: requests.Response
     """
-    service = DEFAULT_SERVICE_URL if service is None else service
-    url = service + '/api/receive'
-    headers = {'content-type': 'application/json'}
-    return requests.post(url, json=pybel.to_json(network), headers=headers)
+    warnings.warn('Deprecated. use pybel.to_web instead', DeprecationWarning)
+    to_web(graph, host=host)
