@@ -14,7 +14,7 @@ from pybel.io.exc import ImportVersionWarning
 from pybel.manager import Manager
 from pybel.struct import union
 from pybel.utils import get_version as get_pybel_version
-from .mutation import add_canonical_names, enrich_pubmed_citations, opening_on_central_dogma
+from .mutation import add_canonical_names, enrich_pubmed_citations, infer_central_dogma as infer_central_dogma_mutator
 from .selection import get_subgraph_by_annotation_value
 from .summary import get_annotation_values
 
@@ -116,7 +116,7 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, canonicali
             add_canonical_names(graph)
 
         if infer_central_dogma:
-            opening_on_central_dogma(graph)
+            infer_central_dogma_mutator(graph)
 
         if enrich_citations:
             enrich_pubmed_citations(graph=graph, manager=manager)

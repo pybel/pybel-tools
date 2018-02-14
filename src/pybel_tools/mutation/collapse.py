@@ -7,7 +7,6 @@ from pybel.constants import *
 from pybel.struct.filters import get_nodes
 from pybel.struct.filters.edge_filters import filter_edges, invert_edge_filter
 from pybel.struct.filters.edge_predicates import has_polarity
-from .deletion import prune_central_dogma
 from .inference import infer_central_dogma
 from .. import pipeline
 from ..filters.edge_filters import build_relation_filter, build_source_namespace_filter, build_target_namespace_filter
@@ -28,7 +27,6 @@ __all__ = [
     'collapse_all_variants_out_place',
     'collapse_gene_variants',
     'collapse_protein_variants',
-    'opening_on_central_dogma',
     'collapse_consistent_edges',
     'collapse_equivalencies_by_namespace',
     'collapse_orthologies_by_namespace',
@@ -269,22 +267,6 @@ def collapse_all_variants_out_place(graph):
     result = graph.copy()
     _collapse_variants_by_function(result)
     return result
-
-
-@pipeline.in_place_mutator
-def opening_on_central_dogma(graph):
-    """Infers central dogmatic relations with :func:`infer_central_dogma` then successively prunes gene leaves then
-    RNA leaves with :func:`prune_central_dogma` to connect disparate elements in a knowledge assembly
-
-    :param pybel.BELGraph graph: A BEL graph
-
-    Equivalent to:
-
-    >>> infer_central_dogma(graph)
-    >>> prune_central_dogma(graph)
-    """
-    infer_central_dogma(graph)
-    prune_central_dogma(graph)
 
 
 @pipeline.in_place_mutator
