@@ -34,15 +34,11 @@ log = logging.getLogger(__name__)
 
 
 def load_paths(paths, connection=None):
-    """Loads a group of BEL graphs.
-
-    Internally, this function uses a shared :class:`pybel.parser.MetadataParser` to cache the definitions more
-    efficiently.
+    """Parses multiple BEL scripts with :func:`pybel.from_path` and returns the union of the resulting graphs.
 
     :param iter[str] paths: An iterable over paths to BEL scripts
-    :param str connection: A custom database connection string
-    :type connection: None or str or pybel.manager.Manager
-    :return: A BEL graph comprised of the union of all BEL graphs produced by each BEL script
+    :param connection: A custom database connection string or manager
+    :type connection: Optional[str or pybel.manager.Manager]
     :rtype: pybel.BELGraph
     """
     manager = Manager.ensure(connection)
@@ -54,12 +50,12 @@ def load_paths(paths, connection=None):
 
 
 def load_directory(directory, connection=None):
-    """Compiles all BEL scripts in the given directory and returns as a merged BEL graph using :func:`load_paths`
+    """Parses all BEL scripts in the given directory with :func:`load_paths` and returns the union of the resulting
+    graphs.
 
     :param str directory: A path to a directory
-    :param str connection: A custom database connection string
-    :type connection: None or str or pybel.manager.Manager
-    :return: A BEL graph comprised of the union of all BEL graphs produced by each BEL script
+    :param connection: A custom database connection string or manager
+    :type connection: Optional[str or pybel.manager.Manager]
     :rtype: pybel.BELGraph
     """
     paths = (
