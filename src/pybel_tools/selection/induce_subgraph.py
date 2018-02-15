@@ -276,8 +276,7 @@ def get_subgraphs_by_annotation(graph, annotation, sentinel='Undefined'):
     :param pybel.BELGraph graph: A BEL graph
     :param str annotation: The annotation to group by
     :param str sentinel: The value to stick unannotated edges into
-    :return: A dictionary of {str value: BELGraph subgraph}
-    :rtype: dict[str, pybel.BELGraph]
+    :rtype: dict[str,pybel.BELGraph]
     """
     result = defaultdict(BELGraph)
 
@@ -287,7 +286,7 @@ def get_subgraphs_by_annotation(graph, annotation, sentinel='Undefined'):
         if annotation_dict is None or annotation not in annotation_dict:
             safe_add_edge(result[sentinel], source, target, key, data)
         else:
-            for value, apparent in annotation_dict[annotation].items():
+            for value in annotation_dict[annotation]:
                 safe_add_edge(result[value], source, target, key, data)
 
     for value in result:
