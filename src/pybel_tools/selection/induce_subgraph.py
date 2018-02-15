@@ -15,7 +15,7 @@ from pybel.struct.filters.edge_predicate_builders import (
     build_annotation_dict_any_filter,
 
 )
-from pybel.struct.filters.edge_predicates import edge_has_annotation, is_causal_relation
+from pybel.struct.filters.edge_predicates import is_causal_relation
 from .paths import get_nodes_in_all_shortest_paths
 from .search import search_node_names
 from .. import pipeline
@@ -270,23 +270,25 @@ def get_subgraph_by_annotation_value(graph, annotation, value):
 
 
 @pipeline.splitter
-def get_subgraphs_by_annotation(graph, annotation):
+def get_subgraphs_by_annotation(graph, annotation, sentinel='Undefined'):
     """Stratifies the given graph into subgraphs based on the values for edges' annotations
 
     :param pybel.BELGraph graph: A BEL graph
     :param str annotation: The annotation to group by
+    :param str sentinel: The value to stick unannotated edges into
     :return: A dictionary of {str value: BELGraph subgraph}
     :rtype: dict[str, pybel.BELGraph]
     """
     result = defaultdict(BELGraph)
 
     for source, target, key, data in graph.edges_iter(keys=True, data=True):
-        if not edge_has_annotation(data, annotation):
-            continue
+        annotation_dict = data.get(ANNOTATIONS)
 
-        value = data[ANNOTATIONS][annotation]
-
-        safe_add_edge(result[value], source, target, key, data)
+        if annotation_dict is None or annotation not in annotation_dict:
+            safe_add_edge(result[sentinel], source, target, key, data)
+        else:
+            for value, apparent in annotation_dict[annotation].items():
+                safe_add_edge(result[value], source, target, key, data)
 
     for value in result:
         update_node_helper(graph, result[value])
