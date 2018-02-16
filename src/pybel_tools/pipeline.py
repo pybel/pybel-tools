@@ -275,6 +275,27 @@ class Pipeline:
         result = self._run_helper(result, self.protocol)
         return result
 
+    def __call__(self, graph, universe=None, in_place=True):
+        """Calls :meth:`Pipeline.run`
+
+        :param pybel.BELGraph graph: The seed BEL graph
+        :param pybel.BELGraph universe: Allows just-in-time setting of the universe in case it wasn't set before.
+                                        Defaults to the given network.
+        :param bool in_place: Should the graph be copied before applying the algorithm?
+        :return: The new graph is returned if not applied in-place
+        :rtype: pybel.BELGraph
+
+        Using __call__ allows for methods to be chained together then applied
+
+        >>> from pybel_tools.mutation import remove_associations, remove_pathologies
+        >>> from pybel_tools.pipeline import Pipeline
+        >>> from pybel import BELGraph
+        >>> pipe = Pipeline([remove_associations, remove_pathologies])
+        >>> graph = BELGraph() ...
+        >>> new_graph = pipe(graph)
+        """
+        return self.run(graph=graph, universe=universe, in_place=in_place)
+
     def wrap_universe(self, f):
         """Takes a function that needs a universe graph as the first argument and returns a wrapped one"""
 
