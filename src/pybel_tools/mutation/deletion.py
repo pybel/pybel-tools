@@ -2,7 +2,7 @@
 
 """This module contains convenient functions for removing nodes/edges that are returned from selection functions"""
 
-from pybel.constants import PATHOLOGY
+from pybel.constants import BIOPROCESS, PATHOLOGY
 from pybel.struct.filters import get_nodes
 from pybel.struct.filters.edge_filters import filter_edges
 from pybel.struct.filters.edge_predicates import is_associative_relation
@@ -18,6 +18,8 @@ __all__ = [
     'remove_leaves_by_type',
     'prune_central_dogma',
     'remove_inconsistent_edges',
+    'remove_pathologies',
+    'remove_biological_processes',
     'remove_associations',
 ]
 
@@ -87,6 +89,16 @@ def remove_pathologies(graph):
     :param pybel.BELGraph graph: A BEL graph
     """
     nodes = get_nodes(graph, function_inclusion_filter_builder(PATHOLOGY))
+    graph.remove_nodes_from(nodes)
+
+
+@pipeline.in_place_mutator
+def remove_biological_processes(graph):
+    """Remove biological process nodes
+
+    :param pybel.BELGraph graph: A BEL graph
+    """
+    nodes = get_nodes(graph, function_inclusion_filter_builder(BIOPROCESS))
     graph.remove_nodes_from(nodes)
 
 
