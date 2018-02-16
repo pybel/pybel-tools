@@ -76,8 +76,6 @@ def collapse_nodes(graph, dict_of_sets_of_nodes):
     :param pybel.BELGraph graph: A BEL graph
     :param dict[tuple,set[tuple]] dict_of_sets_of_nodes: A dictionary of {node: set of nodes}
     """
-    log.debug('collapsing %d groups', len(dict_of_sets_of_nodes))
-
     for key_node, value_nodes in dict_of_sets_of_nodes.items():
         for value_node in value_nodes:
             collapse_pair(graph, from_node=value_node, to_node=key_node)
