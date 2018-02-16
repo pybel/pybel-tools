@@ -165,6 +165,12 @@ def count_top_degrees(graph, number=30):
 
 
 def count_top_centrality(graph, number=30):
+    """Gets top centrality dictionary
+
+    :param graph:
+    :param int number:
+    :rtype: dict[tuple,int]
+    """
     dd = nx.betweenness_centrality(graph)
     dc = Counter(dd)
     return dict(dc.most_common(number))
@@ -174,7 +180,7 @@ def get_modifications_count(graph):
     """Gets a modifications count dictionary
 
     :param pybel.BELGraph graph:
-    :rtype: dict
+    :rtype: dict[str,int]
     """
     translocation_count = len(get_translocated(graph))
     degradation_count = len(get_degradations(graph))
