@@ -163,6 +163,18 @@ class Pipeline:
         self.universe = universe
         self.protocol = [] if protocol is None else protocol
 
+    @staticmethod
+    def from_functions(functions):
+        """Builds a pipeline from a list of functions
+
+        :param iter[(pybel.BELGraph) -> pybel.BELGraph or (pybel.BELGraph) -> None] functions: A list of functions
+        :rtype: Pipeline
+        """
+        result = Pipeline()
+        for func in functions:
+            result.append(func)
+        return result
+
     def get_function(self, name):
         """Wraps a function with the universe and in-place
 
