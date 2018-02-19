@@ -24,12 +24,12 @@ log.setLevel(10)
 class TestMockManager(unittest.TestCase):
     def test_make(self):
         manager = MockQueryManager()
-        self.assertEqual(0, len(manager.graphs))
+        self.assertEqual(0, manager.count_networks())
 
     def test_make_with_graph(self):
         graph_1 = make_graph_1()
         manager = MockQueryManager(graphs=[graph_1])
-        self.assertEqual(1, len(manager.graphs))
+        self.assertEqual(1, manager.count_networks())
 
 
 class QueryTest(ExampleNetworkMixin):

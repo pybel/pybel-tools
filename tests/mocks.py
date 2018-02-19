@@ -27,6 +27,8 @@ class MockQueryManager(object):
             for graph in graphs:
                 self.insert_graph(graph)
 
+    def count_networks(self):
+        return len(self.graphs)
 
     def insert_graph(self, graph):
         """Inserts a graph
