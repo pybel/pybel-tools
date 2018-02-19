@@ -18,7 +18,6 @@ __all__ = [
     'subgraphs_to_pickles',
     'convert_paths',
     'convert_directory',
-    'to_pybel_web',
     'get_paths_recursive',
     'upload_recursive',
 ]
