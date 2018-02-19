@@ -175,13 +175,13 @@ def post(path, url, skip_check_version):
 @click.option('-c', '--no-citation-clearing', is_flag=True, help='Turn off citation clearing')
 @click.option('-n', '--allow-nested', is_flag=True, help="Enable lenient parsing for nested statements")
 @click.option('-d', '--directory', default=os.getcwd(),
-              help='The directory to search. Defaults to current working directory')
+              help='The directory to search. Defaults to cwd: {}'.format(os.getcwd()))
 @click.option('-i', '--use-stdin', is_flag=True, help='Use stdin for paths')
 @click.option('-w', '--send-pybel-web', is_flag=True, help='Send to PyBEL Web')
 @click.option('--exclude-directory-pattern', help="Pattern to match for bad directories")
 @click.option('--version-in-path', is_flag=True, help="Adds version to end of path string")
 @click.option('-v', '--debug', count=True, help="Turn on debugging. More v's, more debugging")
-@click.option('--uncool', is_flag=True, help='enable cool mode')
+@click.option('--uncool', is_flag=True, help='disable cool mode')
 @click.pass_obj
 def convert(manager, enable_upload, no_enrich_authors, no_citation_clearing, allow_nested, directory, use_stdin,
             send_pybel_web, exclude_directory_pattern, version_in_path, debug, uncool):
@@ -206,6 +206,7 @@ def convert(manager, enable_upload, no_enrich_authors, no_citation_clearing, all
         allow_nested=allow_nested,
         send=send_pybel_web,
         version_in_path=version_in_path,
+        use_tqdm=True
     )
 
     for path, e in failures:
@@ -214,7 +215,7 @@ def convert(manager, enable_upload, no_enrich_authors, no_citation_clearing, all
 
 @io.command()
 @click.option('-d', '--directory', default=os.getcwd(),
-              help='The directory to search. Defaults to current working directory')
+              help='The directory to search. Defaults to cwd: {}'.format(os.getcwd()))
 @click.option('-n', '--name', help='The name of the file. Defaults to directory name')
 @click.option('-v', '--debug', count=True, help="Turn on debugging. More v's, more debugging")
 @click.pass_obj
@@ -227,12 +228,12 @@ def merge_directory(manager, directory, name, debug):
     if os.path.exists(path):
         click.echo('Path already exists. Quitting. [{}]'.format(path))
 
-    from .ioutils import load_directory
+    from . import from_directory
     from pybel import to_pickle
 
     enable_cool_mode()
 
-    graph = load_directory(directory, connection=manager)
+    graph = from_directory(directory, connection=manager)
 
     to_pickle(graph, file=path)
 
@@ -394,7 +395,7 @@ def document():
 def from_ols(ontology, domain, function, encoding, ols_base, output):
     """Creates a hierarchy from the ontology lookup service"""
     ont = OlsNamespaceOntology(ontology, domain, bel_function=function, encoding=encoding, ols_base=ols_base)
-    ont.write_hierarchy(output)
+    ont.write_namespace_hierarchy(output)
 
 
 @document.command()
