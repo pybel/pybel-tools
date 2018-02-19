@@ -63,19 +63,19 @@ class Query:
             SEED_DATA_KEY: data
         })
 
-    def append_seeding_induction(self, data):
+    def append_seeding_induction(self, nodes):
         """Adds a seed induction method
 
-        :param list[tuple] data: A list of PyBEL node tuples
+        :param list[tuple] nodes: A list of PyBEL node tuples
         """
-        self.append_seed(SEED_TYPE_INDUCTION, data)
+        self.append_seed(SEED_TYPE_INDUCTION, nodes)
 
-    def append_seeding_neighbors(self, data):
+    def append_seeding_neighbors(self, nodes):
         """Adds a seed by neighbors
 
-        :param list[tuple] data:
+        :param list[tuple] nodes: A list of PyBEL node tuples
         """
-        self.append_seed(SEED_TYPE_NEIGHBORS, data)
+        self.append_seed(SEED_TYPE_NEIGHBORS, nodes)
 
     def append_seeding_annotation(self, annotation, values):
         """Adds a seed induction method for single annotation's values
@@ -89,14 +89,17 @@ class Query:
             }
         })
 
-    def append_seeding_sample(self):
+    def append_seeding_sample(self, **kwargs):
         """Adds seed induction methods.
 
         Kwargs can have ``number_edges`` or ``number_seed_nodes``.
         """
-        self.append_seed(SEED_TYPE_SAMPLE, {
+        data = {
             'seed': np.random.randint(0, np.iinfo('i').max)
-        })
+        }
+        data.update(kwargs)
+
+        self.append_seed(SEED_TYPE_SAMPLE, data)
 
     def append_pipeline(self, name, *args, **kwargs):
         """Adds an entry to the pipeline
