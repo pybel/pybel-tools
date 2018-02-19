@@ -257,7 +257,7 @@ class ExampleNetworkMixin(unittest.TestCase):
     def setUp(self):
         super(ExampleNetworkMixin, self).setUp()
 
-        self.network1 = make_graph_1()
+        self.graph_1 = make_graph_1()
         self.network2 = make_graph_2()
         self.network3 = make_graph_3()
         self.network4 = make_graph_4()

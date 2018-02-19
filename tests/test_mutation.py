@@ -116,7 +116,7 @@ class TestGetSubgraphByData(ExampleNetworkMixin):
         self.assertIn(('Protein', 'HGNC', 'e'), filtered_network)
 
     def test_evidence_filter(self):
-        test_network = self.network1  # Defined in test.constants.TestNetworks
+        test_network = self.graph_1  # Defined in test.constants.TestNetworks
 
         filtered_network = get_subgraph_by_data(test_network, {EVIDENCE: ['Evidence 1', 'Evidence 2']})
 
@@ -127,7 +127,7 @@ class TestGetSubgraphByData(ExampleNetworkMixin):
         self.assertIn(('RNA', 'HGNC', 'd'), filtered_network)
 
     def test_citation_filter(self):
-        test_network = self.network1  # Defined in test.constants.TestNetworks
+        test_network = self.graph_1  # Defined in test.constants.TestNetworks
 
         filtered_network = get_subgraph_by_data(
             test_network,

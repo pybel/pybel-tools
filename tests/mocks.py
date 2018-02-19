@@ -4,18 +4,29 @@ from pybel.manager.models import Network
 from pybel.struct import union
 
 
+class MockNetwork(object):
+    def __init__(self, id):
+        self.id = id
+
+
 class MockQueryManager(object):
     def __init__(self, graphs=None):
         """Builds a mock manager appropriate for testing the pipeline and query builders
 
         :param Optional[list[pybel.BELGraph]] graphs: A list of BEL graphs to index
         """
-        self.graphs = graphs or []
+        self.graphs = []
+
+        #: A lookup for nodes from the node hash (string) to the node tuple
         self.hash_to_tuple = {}
+
+        #: A lookup from network identifier to graph
         self.id_graph = {}
 
-        for graph in self.graphs:
-            self.insert_graph(graph)
+        if graphs is not None:
+            for graph in graphs:
+                self.insert_graph(graph)
+
 
     def insert_graph(self, graph):
         """Inserts a graph
@@ -23,16 +34,14 @@ class MockQueryManager(object):
         :param pybel.BELGraph graph:
         :rtype: Network
         """
-        self.graphs.append(graph)
-
         network_id = len(self.graphs)
-
+        self.graphs.append(graph)
         self.id_graph[network_id] = graph
 
         for node, data in graph.nodes(data=True):
             self.hash_to_tuple[graph.hash_node(data)] = node
 
-        return Network(id=network_id)
+        return MockNetwork(id=network_id)
 
     def get_node_tuple_by_hash(self, node_hash):
         """Gets a node tuple by its hash

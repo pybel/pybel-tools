@@ -8,16 +8,28 @@ Reference for testing Flask
 """
 
 import logging
+import unittest
 
 from pybel_tools.mutation import collapse_by_central_dogma_to_genes, infer_central_dogma
 from pybel_tools.pipeline import Pipeline
 from pybel_tools.query import Query
 from pybel_tools.selection import get_subgraph_by_annotation_value
-from tests.constants import ExampleNetworkMixin, protein_a_tuple, protein_e_tuple, rna_d_tuple
+from tests.constants import ExampleNetworkMixin, make_graph_1, protein_a_tuple, protein_e_tuple, rna_d_tuple
 from tests.mocks import MockQueryManager
 
 log = logging.getLogger(__name__)
 log.setLevel(10)
+
+
+class TestMockManager(unittest.TestCase):
+    def test_make(self):
+        manager = MockQueryManager()
+        self.assertEqual(0, len(manager.graphs))
+
+    def test_make_with_graph(self):
+        graph_1 = make_graph_1()
+        manager = MockQueryManager(graphs=[graph_1])
+        self.assertEqual(1, len(manager.graphs))
 
 
 class QueryTest(ExampleNetworkMixin):
@@ -26,14 +38,14 @@ class QueryTest(ExampleNetworkMixin):
         self.manager = MockQueryManager()
 
     def test_pipeline(self):
-        test_network = self.network1  # Defined in test.constants.TestNetworks
+        test_graph_1 = self.graph_1  # Defined in test.constants.TestNetworks
 
-        infer_central_dogma(test_network)
+        infer_central_dogma(test_graph_1)
 
-        self.assertEqual(9, test_network.number_of_nodes())  # 4 nodes already there +  2*2 proteins + 1 (rna)
-        self.assertEqual(8, test_network.number_of_edges())  # 3 already there + 2*2 proteins + 1 (rna)
+        self.assertEqual(9, test_graph_1.number_of_nodes())  # 4 nodes already there +  2*2 proteins + 1 (rna)
+        self.assertEqual(8, test_graph_1.number_of_edges())  # 3 already there + 2*2 proteins + 1 (rna)
 
-        network = self.manager.insert_graph(test_network)
+        network = self.manager.insert_graph(test_graph_1)
 
         pipeline = Pipeline()
         pipeline.append(collapse_by_central_dogma_to_genes)
@@ -48,7 +60,7 @@ class QueryTest(ExampleNetworkMixin):
         self.assertEqual(3, result_graph.number_of_edges())  # same number of edges than there were
 
     def test_pipeline_2(self):
-        test_network = self.network1  # Defined in test.constants.TestNetworks
+        test_network = self.graph_1  # Defined in test.constants.TestNetworks
 
         infer_central_dogma(test_network)
 
@@ -70,7 +82,7 @@ class QueryTest(ExampleNetworkMixin):
         self.assertEqual(2, result_graph.number_of_edges())  # three nodes with two relationships
 
     def test_query_multiple_networks(self):
-        test_network_1 = self.manager.insert_graph(self.network1)
+        test_network_1 = self.manager.insert_graph(self.graph_1)
         test_network_2 = self.manager.insert_graph(self.network2)
 
         query = Query()
@@ -90,7 +102,7 @@ class QueryTest(ExampleNetworkMixin):
         self.assertEqual(2, result_graph.number_of_edges())
 
     def test_query_multiple_networks_with_api(self):
-        test_network_1 = self.manager.insert_graph(self.network1)
+        test_network_1 = self.manager.insert_graph(self.graph_1)
         test_network_2 = self.manager.insert_graph(self.network2)
 
         pipeline = Pipeline()
