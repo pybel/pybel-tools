@@ -4,23 +4,17 @@
 
 import logging
 import os
-import warnings
-
-import requests
 
 import pybel
 from pybel import from_path, from_pickle, to_database, to_pickle, to_web
 from pybel.io.exc import ImportVersionWarning
 from pybel.manager import Manager
-from pybel.struct import union
 from pybel.utils import get_version as get_pybel_version
 from .mutation import add_canonical_names, enrich_pubmed_citations, infer_central_dogma as infer_central_dogma_mutator
 from .selection import get_subgraph_by_annotation_value
 from .summary import get_annotation_values
 
 __all__ = [
-    'load_paths',
-    'load_directory',
     'subgraphs_to_pickles',
     'convert_paths',
     'convert_directory',
@@ -30,40 +24,6 @@ __all__ = [
 ]
 
 log = logging.getLogger(__name__)
-
-
-def load_paths(paths, connection=None):
-    """Parses multiple BEL scripts with :func:`pybel.from_path` and returns the union of the resulting graphs.
-
-    :param iter[str] paths: An iterable over paths to BEL scripts
-    :param connection: A custom database connection string or manager
-    :type connection: Optional[str or pybel.manager.Manager]
-    :rtype: pybel.BELGraph
-    """
-    manager = Manager.ensure(connection)
-
-    return union(
-        from_path(path, manager=manager)
-        for path in paths
-    )
-
-
-def load_directory(directory, connection=None):
-    """Parses all BEL scripts in the given directory with :func:`load_paths` and returns the union of the resulting
-    graphs.
-
-    :param str directory: A path to a directory
-    :param connection: A custom database connection string or manager
-    :type connection: Optional[str or pybel.manager.Manager]
-    :rtype: pybel.BELGraph
-    """
-    paths = [
-        path
-        for path in os.listdir(directory)
-        if path.endswith('.bel')
-    ]
-    log.info('loadings %d paths: %s', len(paths), ', '.join(paths))
-    return load_paths(paths, connection=connection)
 
 
 def get_paths_recursive(directory, extension='.bel', exclude_directory_pattern=None):
@@ -125,7 +85,7 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, canonicali
             to_database(graph, connection=manager, store_parts=True)
 
         if pickle:
-            name = path[:-4]  # [:-4] gets rid of .bel at the end of the file name
+            name = path[:-len('.bel')]  # gets rid of .bel at the end of the file name
 
             if version_in_path:
                 new_path = '{}-{}.gpickle'.format(name, get_pybel_version())
@@ -137,7 +97,7 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, canonicali
             log.info('output pickle: %s', new_path)
 
         if send:
-            response = to_pybel_web(graph)
+            response = to_web(graph)
             log.info('sent to PyBEL Web with response: %s', response.json())
 
     return failures
@@ -188,8 +148,8 @@ def upload_recursive(directory, connection=None, exclude_directory_pattern=None)
     
     :param str directory: the directory to traverse
     :param connection: A connection string or manager
-    :type connection: None or str or pybel.manage.Manager
-    :param str exclude_directory_pattern: Any directory names to exclude
+    :type connection: Optional[str or pybel.manage.Manager]
+    :param Optional[str] exclude_directory_pattern: Any directory names to exclude
     """
     manager = Manager.ensure(connection)
     paths = list(get_paths_recursive(
@@ -209,31 +169,20 @@ def upload_recursive(directory, connection=None, exclude_directory_pattern=None)
         to_database(network, connection=manager, store_parts=True)
 
 
-def subgraphs_to_pickles(network, directory=None, annotation='Subgraph'):
+def subgraphs_to_pickles(network, annotation, directory=None):
     """Groups the given graph into subgraphs by the given annotation with :func:`get_subgraph_by_annotation` and
     outputs them as gpickle files to the given directory with :func:`pybel.to_pickle`
 
     :param pybel.BELGraph network: A BEL network
-    :param str directory: A directory to output the pickles
     :param str annotation: An annotation to split by. Suggestion: ``Subgraph``
+    :param Optional[str] directory: A directory to output the pickles
     """
     directory = directory or os.getcwd()
-    for value in get_annotation_values(network, annotation=annotation):
+
+    for value in get_annotation_values(network, annotation):
         sg = get_subgraph_by_annotation_value(network, annotation, value)
         sg.document.update(network.document)
 
         file_name = '{}_{}.gpickle'.format(annotation, value.replace(' ', '_'))
         path = os.path.join(directory, file_name)
         to_pickle(sg, path)
-
-
-def to_pybel_web(graph, host=None):
-    """Sends a graph to the receiver service and returns the :mod:`requests` response object
-
-    :param pybel.BELGraph graph: A BEL network
-    :param Optional[str] host: The location of the PyBEL web server. Defaults to :data:`DEFAULT_SERVICE_URL`
-    :return: The response object from :mod:`requests`
-    :rtype: requests.Response
-    """
-    warnings.warn('Deprecated. use pybel.to_web instead', DeprecationWarning)
-    to_web(graph, host=host)
