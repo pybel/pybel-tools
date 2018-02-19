@@ -6,6 +6,7 @@ import unittest
 import pybel_tools.pipeline
 import pybel_tools.pipeline
 from pybel.examples import egf_example
+from pybel.utils import hash_node
 from pybel_tools.mutation import build_delete_node_by_hash, build_expand_node_neighborhood_by_hash, infer_central_dogma
 from pybel_tools.pipeline import Pipeline
 from tests.mocks import MockQueryManager
@@ -18,7 +19,7 @@ class TestEgfExample(unittest.TestCase):
     """Random test for mutation functions"""
 
     def setUp(self):
-        self.graph = egf_example.egf_graph
+        self.graph = egf_example.egf_graph.copy()
         self.original_number_nodes = self.graph.number_of_nodes()
         self.original_number_edges = self.graph.number_of_edges()
 
@@ -30,22 +31,32 @@ class TestEgfExample(unittest.TestCase):
 
 
 class TestPipeline(TestEgfExample):
-    def test_infer_central_dogma_lookup(self):
-        func = 'infer_central_dogma'
-        self.assertIn(func, pybel_tools.pipeline.mapped)
+    def test_central_dogma_is_registered(self):
+        self.assertIn('infer_central_dogma', pybel_tools.pipeline.mapped)
 
+    def test_pipeline_by_string(self):
         pipeline = Pipeline()
-        pipeline.append(func)
-        result = pipeline.run(self.graph)
-        self.check_original_unchanged()
-        self.assertEqual(12 + 10 * 2, result.number_of_nodes())
+        pipeline.append('infer_central_dogma')
+        result = pipeline.run(self.graph, in_place=False)
 
-    def test_infer_central_dogma(self):
+        self.assertEqual(32, result.number_of_nodes())
+
+        for node in self.graph:
+            self.assertIn(node, result)
+
+        self.check_original_unchanged()
+
+    def test_pipeline_by_function(self):
         pipeline = Pipeline()
         pipeline.append(infer_central_dogma)
-        result = pipeline.run(self.graph)
+        result = pipeline.run(self.graph, in_place=False)
+
+        self.assertEqual(32, result.number_of_nodes())
+
+        for node in self.graph:
+            self.assertIn(node, result)
+
         self.check_original_unchanged()
-        self.assertEqual(12 + 10 * 2, result.number_of_nodes())
 
 
 class TestBoundMutation(TestEgfExample):
@@ -60,8 +71,16 @@ class TestBoundMutation(TestEgfExample):
         build_expand_node_neighborhood_by_hash(self.manager)
 
     def test_mock_contents(self):
-        self.assertIn(self.graph.hash_node(egf_example.nfkb_complex), self.manager.hash_to_tuple)
-        self.assertIn(self.graph.hash_node(egf_example.rela), self.manager.hash_to_tuple)
+        nfkb_complex_tuple = egf_example.nfkb_complex.as_tuple()
+        rela_tuple = egf_example.rela.as_tuple()
+        self.assertIn(nfkb_complex_tuple, self.manager.graphs[0], msg='Graph missing NFKB complex')
+        self.assertIn(rela_tuple, self.manager.graphs[0], msg='Graph missing RELA')
+
+        self.assertIn(nfkb_complex_tuple, self.manager.hash_to_tuple.values(), msg='NFKB is unindexed')
+        self.assertIn(rela_tuple, self.manager.hash_to_tuple.values(), msg='RELA is unindexed')
+
+        self.assertIn(hash_node(nfkb_complex_tuple), self.manager.hash_to_tuple.keys(), msg='NFKB is unindexed')
+        self.assertIn(hash_node(rela_tuple), self.manager.hash_to_tuple.keys(), msg='RELA is unindexed')
 
     def test_functions_registered(self):
         self.assertIn('delete_node_by_hash', pybel_tools.pipeline.mapped)
@@ -69,14 +88,13 @@ class TestBoundMutation(TestEgfExample):
 
     def test_bound_mutation(self):
         """Tests when a node is deleted then re-expanded"""
-
         pipeline = Pipeline(universe=self.graph)
-        pipeline.append('delete_node_by_hash', self.graph.hash_node(egf_example.nfkb_complex))
-        pipeline.append('expand_node_neighborhood_by_hash', self.graph.hash_node(egf_example.rela))
+        pipeline.append('delete_node_by_hash', hash_node(egf_example.nfkb_complex.as_tuple()))
+        pipeline.append('expand_node_neighborhood_by_hash', hash_node(egf_example.rela.as_tuple()))
 
-        result = pipeline.run(self.graph)
+        result = pipeline.run(self.graph, in_place=False)
 
         self.check_original_unchanged()
 
         self.assertEqual(self.original_number_nodes, result.number_of_nodes())
-        self.assertGreater(self.original_number_edges, self.graph.number_of_edges())
+        self.assertGreater(self.original_number_edges, result.number_of_edges())

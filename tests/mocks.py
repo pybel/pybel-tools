@@ -2,6 +2,7 @@
 
 from pybel.manager.models import Network
 from pybel.struct import union
+from pybel.utils import hash_node
 
 
 class MockNetwork(object):
@@ -40,8 +41,11 @@ class MockQueryManager(object):
         self.graphs.append(graph)
         self.id_graph[network_id] = graph
 
-        for node, data in graph.nodes(data=True):
-            self.hash_to_tuple[graph.hash_node(data)] = node
+        for node in graph:
+            if not isinstance(node, tuple):
+                raise TypeError(node)
+
+            self.hash_to_tuple[hash_node(node)] = node
 
         return MockNetwork(id=network_id)
 

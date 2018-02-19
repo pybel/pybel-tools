@@ -48,6 +48,7 @@ from __future__ import print_function
 
 import json
 import logging
+import types
 from functools import wraps
 from inspect import signature
 
@@ -203,8 +204,10 @@ class Pipeline:
         :return: This pipeline for fluid query building
         :rtype: Pipeline
         """
-        if not isinstance(name, str):
+        if isinstance(name, types.FunctionType):
             return self.append(name.__name__, *args, **kwargs)
+        elif not isinstance(name, str):
+            raise TypeError('invalid function argument: {}'.format(name))
 
         if not function_is_registered(name):
             raise KeyError(name)
