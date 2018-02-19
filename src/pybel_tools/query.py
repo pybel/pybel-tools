@@ -110,10 +110,20 @@ class Query:
         """
         return self.pipeline.append(name, *args, **kwargs)
 
-    def run(self, manager):
+    def __call__(self, manager, in_place=True):
+        """Runs this query and returns the resulting BEL graph with :meth:`Query.run`
+
+        :param pybel.manager.Manager manager: A cache manager
+        :param bool in_place: Should the graph be copied before applying the algorithm?
+        :rtype: Optional[pybel.BELGraph]
+        """
+        return self.run(manager, in_place=in_place)
+
+    def run(self, manager, in_place=True):
         """Runs this query and returns the resulting BEL graph
 
         :param pybel.manager.Manager manager: A cache manager
+        :param bool in_place: Should the graph be copied before applying the algorithm?
         :rtype: Optional[pybel.BELGraph]
         """
         log.debug('query universe consists of networks: %s', self.network_ids)
@@ -132,7 +142,7 @@ class Query:
         # parse seeding stuff
 
         if not self.seeding:
-            return self.pipeline.run(query_universe, universe=query_universe)
+            return self.pipeline.run(query_universe, universe=query_universe, in_place=in_place)
 
         subgraphs = []
         for seed in self.seeding:
@@ -141,7 +151,6 @@ class Query:
                 seed_method=seed[SEED_TYPE_KEY],
                 seed_data=seed[SEED_DATA_KEY]
             )
-
             if subgraph is None:
                 log.debug('Seed returned empty graph: %s', seed)
                 continue
@@ -149,11 +158,12 @@ class Query:
             subgraphs.append(subgraph)
 
         if not subgraphs:
+            log.debug('no subgraphs returned')
             return
 
         graph = union(subgraphs)
 
-        return self.pipeline.run(graph, universe=query_universe)
+        return self.pipeline.run(graph, universe=query_universe, in_place=in_place)
 
     def seeding_to_jsons(self):
         """Returns seeding JSON as a string
