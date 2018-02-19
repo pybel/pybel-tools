@@ -10,11 +10,18 @@ Reference for testing Flask
 import logging
 import unittest
 
+from pybel import BELGraph
+from pybel.examples import egf_graph
+from pybel.examples.homology_example import (
+    homology_graph, mouse_csf1_gene, mouse_csf1_protein, mouse_csf1_rna,
+    mouse_mapk1_gene, mouse_mapk1_protein, mouse_mapk1_rna,
+)
+from pybel.examples.sialic_acid_example import dap12, shp1, shp2, sialic_acid_graph, syk, trem2
 from pybel_tools.mutation import collapse_by_central_dogma_to_genes, infer_central_dogma
 from pybel_tools.pipeline import Pipeline
 from pybel_tools.query import Query
 from pybel_tools.selection import get_subgraph_by_annotation_value
-from tests.constants import ExampleNetworkMixin, make_graph_1, protein_a_tuple, protein_e_tuple, rna_d_tuple
+from tests.constants import ExampleNetworkMixin, make_graph_1, protein_a_tuple
 from tests.mocks import MockQueryManager
 
 log = logging.getLogger(__name__)
@@ -76,47 +83,83 @@ class QueryTest(ExampleNetworkMixin):
         ])
         query.pipeline = pipeline
 
-        result_graph = query.run(self.manager)
+        result = query.run(self.manager, in_place=False)
+        self.assertIsNotNone(result, msg='Query returned none')
 
-        self.assertEqual(3, result_graph.number_of_nodes())  # only expanded to node protein_a and gene_c
-        self.assertEqual(2, result_graph.number_of_edges())  # three nodes with two relationships
+        self.assertEqual(3, result.number_of_nodes())  # only expanded to node protein_a and gene_c
+        self.assertEqual(2, result.number_of_edges())  # three nodes with two relationships
 
     def test_query_multiple_networks(self):
-        test_network_1 = self.manager.insert_graph(self.graph_1)
-        test_network_2 = self.manager.insert_graph(self.network2)
+        egf_network = self.manager.insert_graph(sialic_acid_graph.copy())
+        sialic_acid_network = self.manager.insert_graph(egf_graph.copy())
 
         query = Query()
-        query.append_network(test_network_1.id)
-        query.append_network(test_network_2.id)
-        query.append_seeding_neighbors([
-            rna_d_tuple,
-            protein_e_tuple
-        ])
-        query.append_pipeline(get_subgraph_by_annotation_value, 'Annotation', 'foo')
-        query.append_pipeline(collapse_by_central_dogma_to_genes)
+        query.append_network(egf_network.id)
+        query.append_network(sialic_acid_network.id)
+        query.append_seeding_neighbors([syk.as_tuple()])
+        query.append_pipeline(infer_central_dogma)
 
-        result_graph = query.run(self.manager)
+        result = query.run(self.manager, in_place=False)
+        self.assertIsNotNone(result, msg='Query returned none')
 
-        self.assertEqual(4, result_graph.number_of_nodes())
-        # TODO: discuss this with Charlie. It would be cool to infer the edge between b and a
-        self.assertEqual(2, result_graph.number_of_edges())
+        self.assertIn(shp1.as_tuple(), result)
+        self.assertIn(shp2.as_tuple(), result)
+        self.assertIn(trem2.as_tuple(), result)
+        self.assertIn(dap12.as_tuple(), result)
+
+        self.assertEqual(15, result.number_of_nodes())
+        self.assertEqual(14, result.number_of_edges())
+
+    def test_get_subgraph_by_annotation_value(self):
+        graph = homology_graph.copy()
+
+        result = get_subgraph_by_annotation_value(graph, 'Species', '10090')
+        self.assertIsNotNone(result, msg='Query returned none')
+        self.assertIsInstance(result, BELGraph)
+
+        self.assertIn(mouse_mapk1_protein.as_tuple(), result)
+        self.assertIn(mouse_csf1_protein.as_tuple(), result)
+
+        self.assertEqual(2, result.number_of_nodes())
+        self.assertEqual(1, result.number_of_edges())
+
+    def test_seeding_1(self):
+        test_network_1 = self.manager.insert_graph(homology_graph.copy())
+
+        query = Query(network_ids=[test_network_1.id])
+        query.append_seeding_neighbors([mouse_csf1_rna, mouse_mapk1_rna])
+
+        result = query.run(self.manager, in_place=False)
+        self.assertIsNotNone(result, msg='Query returned none')
+        self.assertIsInstance(result, BELGraph)
+
+        self.assertIn(mouse_mapk1_rna.as_tuple(), result)
+        self.assertIn(mouse_csf1_rna.as_tuple(), result)
+        self.assertIn(mouse_mapk1_protein.as_tuple(), result)
+        self.assertIn(mouse_csf1_protein.as_tuple(), result)
+
+        self.assertEqual(4, result.number_of_nodes())
+        self.assertEqual(3, result.number_of_edges())
 
     def test_query_multiple_networks_with_api(self):
-        test_network_1 = self.manager.insert_graph(self.graph_1)
-        test_network_2 = self.manager.insert_graph(self.network2)
+        test_network_1 = self.manager.insert_graph(homology_graph.copy())
 
         pipeline = Pipeline()
-        pipeline.append(get_subgraph_by_annotation_value, 'Annotation', 'foo')
+        pipeline.append(get_subgraph_by_annotation_value, 'Species', '10090')
+        pipeline.append(infer_central_dogma)
         pipeline.append(collapse_by_central_dogma_to_genes)
 
         query = Query(
-            network_ids=[test_network_1.id, test_network_2.id],
+            network_ids=[test_network_1.id],
             pipeline=pipeline
         )
-        query.append_seeding_neighbors([rna_d_tuple, protein_e_tuple])
+        query.append_seeding_neighbors([mouse_csf1_rna, mouse_mapk1_rna])
 
-        result_graph = query.run(self.manager)
+        result = query.run(self.manager, in_place=False)
+        self.assertIsNotNone(result, msg='Query returned none')
 
-        self.assertEqual(4, result_graph.number_of_nodes())
-        # TODO: discuss this with Charlie. It would be cool to infer the edge between b and a
-        self.assertEqual(2, result_graph.number_of_edges())
+        self.assertIn(mouse_mapk1_gene.as_tuple(), result)
+        self.assertIn(mouse_csf1_gene.as_tuple(), result)
+
+        self.assertEqual(2, result.number_of_nodes())
+        self.assertEqual(1, result.number_of_edges())
