@@ -2,7 +2,7 @@ import unittest
 
 from pybel import BELGraph
 from pybel.constants import *
-from pybel_tools.selection.group_nodes import get_mapped
+from pybel_tools.selection.group_nodes import get_mapped_nodes
 
 
 class TestMapping(unittest.TestCase):
@@ -13,7 +13,7 @@ class TestMapping(unittest.TestCase):
         g.add_node('APP Fragment')
         g.add_edge('APP', 'APP Fragment', **{RELATION: HAS_VARIANT})
 
-        mapped_nodes = get_mapped(g, 'HGNC', {'APP'})
+        mapped_nodes = get_mapped_nodes(g, 'HGNC', {'APP'})
 
         self.assertEqual(1, len(mapped_nodes))
         self.assertIn('APP', mapped_nodes)
@@ -34,7 +34,7 @@ class TestMapping(unittest.TestCase):
         g.add_edge('complex(p(HGNC:CCL2), p(HGNC:CCR2))', 'CCL2', **{RELATION: HAS_COMPONENT})
         g.add_edge('complex(p(HGNC:CCL2), p(HGNC:CCR2))', 'CCR2', **{RELATION: HAS_COMPONENT})
 
-        mapped_nodes = get_mapped(g, 'HGNC', {'CCL2', 'CCR2'})
+        mapped_nodes = get_mapped_nodes(g, 'HGNC', {'CCL2', 'CCR2'})
 
         self.assertEqual(2, len(mapped_nodes))
         self.assertIn('CCL2', mapped_nodes)
@@ -52,7 +52,7 @@ class TestMapping(unittest.TestCase):
 
         g.add_edge('CCL2', 'Ccl2', **{RELATION: ORTHOLOGOUS})
 
-        mapped_nodes = get_mapped(g, 'HGNC', {'CCL2'})
+        mapped_nodes = get_mapped_nodes(g, 'HGNC', {'CCL2'})
 
         self.assertEqual(1, len(mapped_nodes))
         self.assertIn('CCL2', mapped_nodes)

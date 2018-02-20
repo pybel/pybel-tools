@@ -38,7 +38,7 @@ def overlay_data(graph, data, label, overwrite=False):
 
 # TODO switch label to be kwarg with default value DATA_WEIGHT
 @pipeline.in_place_mutator
-def overlay_type_data(graph, data, label, function, namespace, overwrite=False, impute=None):
+def overlay_type_data(graph, data, label, func, namespace, overwrite=False, impute=None):
     """Overlays tabular data on the network for data that comes from an data set with identifiers that lack
     namespaces.
 
@@ -47,16 +47,35 @@ def overlay_type_data(graph, data, label, function, namespace, overwrite=False, 
     that the entities to which they refer are RNA.
 
     :param pybel.BELGraph graph: A BEL Graph
-    :param dict data: A dictionary of {name: data}
+    :param dict[str,float] dict data: A dictionary of {name: data}
     :param str label: The annotation label to put in the node dictionary
-    :param str function: The function of the keys in the data dictionary
+    :param str func: The function of the keys in the data dictionary
     :param str namespace: The namespace of the keys in the data dictionary
     :param bool overwrite: Should old annotations be overwritten?
-    :param impute: The value to use for missing data
+    :param Optional[float] impute: The value to use for missing data
     """
     new_data = {
         node: data.get(graph.node[node][NAME], impute)
-        for node in filter_nodes(graph, function_namespace_inclusion_builder(function, namespace))
+        for node in filter_nodes(graph, function_namespace_inclusion_builder(func, namespace))
     }
 
     overlay_data(graph, new_data, label, overwrite=overwrite)
+
+
+def load_differential_gene_expression(data_path, gene_symbol_column='Gene.symbol', logfc_column='logFC'):
+    """Quick and dirty loader for differential gene expression data
+
+    :param str data_path:
+    :param str gene_symbol_column:
+    :param str logfc_colun:
+    :return: A dictionary of {gene symbol: log fold change}
+    :rtype: dict
+    """
+    import pandas as pd
+    df = pd.read_csv(data_path)
+    df = df.loc[df[gene_symbol_column].notnull(), [gene_symbol_column, logfc_column]]
+
+    return {
+        k: v
+        for _, k, v in df.itertuples()
+    }

@@ -48,6 +48,7 @@ from __future__ import print_function
 
 import json
 import logging
+import types
 from functools import wraps
 from inspect import signature
 
@@ -63,6 +64,9 @@ __all__ = [
 ]
 
 log = logging.getLogger(__name__)
+
+META_UNION = 'union'
+META_INTERSECTION = 'intersection'
 
 mapped = {}
 universe_map = {}
@@ -148,6 +152,7 @@ def function_is_registered(name):
 
     return name in mapped
 
+
 class Pipeline:
     """Builds and runs analytical pipelines on BEL graphs"""
 
@@ -158,6 +163,18 @@ class Pipeline:
         """
         self.universe = universe
         self.protocol = [] if protocol is None else protocol
+
+    @staticmethod
+    def from_functions(functions):
+        """Builds a pipeline from a list of functions
+
+        :param iter[(pybel.BELGraph) -> pybel.BELGraph or (pybel.BELGraph) -> None] functions: A list of functions
+        :rtype: Pipeline
+        """
+        result = Pipeline()
+        for func in functions:
+            result.append(func)
+        return result
 
     def get_function(self, name):
         """Wraps a function with the universe and in-place
@@ -187,8 +204,10 @@ class Pipeline:
         :return: This pipeline for fluid query building
         :rtype: Pipeline
         """
-        if not isinstance(name, str):
+        if isinstance(name, types.FunctionType):
             return self.append(name.__name__, *args, **kwargs)
+        elif not isinstance(name, str):
+            raise TypeError('invalid function argument: {}'.format(name))
 
         if not function_is_registered(name):
             raise KeyError(name)
@@ -224,13 +243,16 @@ class Pipeline:
 
         :param pybel.BELGraph graph: A BEL graph
         :param list[dict] protocol: The protocol to run, as JSON
+        :rtype: pybel.BELGraph
         """
         result = graph
 
         for entry in protocol:
-            if 'meta' not in entry:
-                f = self.get_function(entry['function'])
-                result = f(
+            meta_entry = entry.get('meta')
+
+            if meta_entry is None:
+                func = self.get_function(entry['function'])
+                result = func(
                     result,
                     *(entry.get('args', [])),
                     **(entry.get('kwargs', {}))
@@ -241,14 +263,14 @@ class Pipeline:
                     for subprotocol in entry['pipeline']
                 )
 
-                if entry['meta'] == 'union':
+                if meta_entry == META_UNION:
                     result = union(networks)
 
-                elif entry['meta'] == 'intersection':
+                elif meta_entry == META_INTERSECTION:
                     result = node_intersection(networks)
 
                 else:
-                    raise ValueError
+                    raise ValueError('invalid meta-command: {}'.format(meta_entry))
 
         return result
 
@@ -260,12 +282,34 @@ class Pipeline:
                                         Defaults to the given network.
         :param bool in_place: Should the graph be copied before applying the algorithm?
         :return: The new graph is returned if not applied in-place
+        :rtype: pybel.BELGraph
         """
         self.universe = graph if universe is None else universe
 
         result = graph if in_place else graph.copy()
         result = self._run_helper(result, self.protocol)
         return result
+
+    def __call__(self, graph, universe=None, in_place=True):
+        """Calls :meth:`Pipeline.run`
+
+        :param pybel.BELGraph graph: The seed BEL graph
+        :param pybel.BELGraph universe: Allows just-in-time setting of the universe in case it wasn't set before.
+                                        Defaults to the given network.
+        :param bool in_place: Should the graph be copied before applying the algorithm?
+        :return: The new graph is returned if not applied in-place
+        :rtype: pybel.BELGraph
+
+        Using __call__ allows for methods to be chained together then applied
+
+        >>> from pybel_tools.mutation import remove_associations, remove_pathologies
+        >>> from pybel_tools.pipeline import Pipeline
+        >>> from pybel import BELGraph
+        >>> pipe = Pipeline([remove_associations, remove_pathologies])
+        >>> graph = BELGraph() ...
+        >>> new_graph = pipe(graph)
+        """
+        return self.run(graph=graph, universe=universe, in_place=in_place)
 
     def wrap_universe(self, f):
         """Takes a function that needs a universe graph as the first argument and returns a wrapped one"""
@@ -335,10 +379,9 @@ class Pipeline:
     @staticmethod
     def _build_meta(meta, pipelines):
         """
-
-        :param str meta:
+        :param str meta: either union or intersection
         :param list[Pipeline] pipelines:
-        :return:
+        :rtype: Pipeline
         """
         return Pipeline.from_json([{
             'meta': meta,
@@ -349,21 +392,21 @@ class Pipeline:
         }])
 
     @staticmethod
-    def union(*pipelines):
+    def union(pipelines):
         """Takes the union of multiple pipelines
 
         :param list[Pipeline] pipelines: A list of pipelines
         :return: The union of the results from multiple pipelines
         :rtype: Pipeline
         """
-        return Pipeline._build_meta('union', pipelines)
+        return Pipeline._build_meta(META_UNION, pipelines)
 
     @staticmethod
-    def intersection(*pipelines):
+    def intersection(pipelines):
         """Takes the intersection of the results from multiple pipelines
 
         :param list[Pipeline] pipelines: A list of pipelines
         :return: The intersection of results from multiple pipelines
         :rtype: Pipeline
         """
-        return Pipeline._build_meta('intersection', pipelines)
+        return Pipeline._build_meta(META_INTERSECTION, pipelines)

@@ -1,6 +1,12 @@
 [run]
 branch = True
 source = pybel-tools
+omit =
+    src/pybel/__main__.py
+    src/pybel/cli.py
+    tests/*
+    docs/*
+    scripts/*
 
 [paths]
 source =
@@ -9,3 +15,6 @@ source =
 
 [report]
 show_missing = True
+exclude_lines =
+    def __str__
+    def __repr__

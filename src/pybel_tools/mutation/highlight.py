@@ -31,7 +31,7 @@ def highlight_nodes(graph, nodes=None, color=None):
     :param color: The color to highlight (use something that works with CSS)
     :type color: str
     """
-    for node in nodes if nodes is not None else graph.nodes_iter():
+    for node in nodes if nodes is not None else graph:
         graph.node[node][NODE_HIGHLIGHT] = NODE_HIGHLIGHT_DEFAULT_COLOR if color is None else color
 
 
@@ -55,7 +55,7 @@ def remove_highlight_nodes(graph, nodes=None):
     :param nodes: The list of nodes to un-highlight
     :type nodes: list
     """
-    for node in graph.nodes_iter() if nodes is None else nodes:
+    for node in graph if nodes is None else nodes:
         if is_node_highlighted(graph, node):
             del graph.node[node][NODE_HIGHLIGHT]
 
@@ -103,7 +103,7 @@ def highlight_subgraph(universe, graph):
     :param pybel.BELGraph universe: The universe of knowledge
     :type pybel.BELGraph graph: The BEL graph to mutate
     """
-    highlight_nodes(universe, graph.nodes_iter())
+    highlight_nodes(universe, graph)
     highlight_edges(universe, graph.edges_iter())
 
 
@@ -114,5 +114,5 @@ def remove_highlight_subgraph(graph, subgraph):
     :param pybel.BELGraph graph: The BEL graph to mutate
     :param pybel.BELGraph subgraph: The subgraph from which to remove the highlighting
     """
-    remove_highlight_nodes(graph, subgraph.nodes_iter())
+    remove_highlight_nodes(graph, subgraph)
     remove_highlight_edges(graph, subgraph.edges_iter())

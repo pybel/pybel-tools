@@ -51,9 +51,9 @@ def export_namespace(graph, namespace, directory=None, cacheable=False):
             namespace_name=namespace,
             namespace_keyword=namespace,
             namespace_domain='Other',
-            author_name=graph.document.get(METADATA_AUTHORS),
-            author_contact=graph.document.get(METADATA_CONTACT),
-            citation_name=graph.document.get(METADATA_NAME),
+            author_name=graph.authors,
+            author_contact=graph.contact,
+            citation_name=graph.name,
             values=names,
             cacheable=cacheable,
             file=file

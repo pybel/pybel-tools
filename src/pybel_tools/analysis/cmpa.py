@@ -12,10 +12,9 @@ from operator import itemgetter
 import numpy as np
 from scipy import stats
 
-from pybel.constants import BIOPROCESS, RELATION, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS
+from pybel.constants import BIOPROCESS, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, RELATION
 from ..filters.node_selection import get_nodes_by_function
-from ..generation import generate_bioprocess_mechanisms
-from ..generation import generate_mechanism
+from ..generation import generate_bioprocess_mechanisms, generate_mechanism
 from ..selection import get_subgraphs_by_annotation
 
 __all__ = [
@@ -69,7 +68,7 @@ class Runner:
         self.default_score = DEFAULT_SCORE if default_score is None else default_score
         self.tag = CMPA_SCORE if tag is None else tag
 
-        for node, data in self.graph.nodes_iter(data=True):
+        for node, data in self.graph.iter_node_data_pairs():
             if not self.graph.predecessors(node):
                 self.graph.node[node][self.tag] = data.get(key, 0)
                 log.log(5, 'initializing %s with %s', target_node, self.graph.node[node][self.tag])
@@ -83,7 +82,7 @@ class Runner:
         :return: An iterable over all leaf nodes
         :rtype: iter
         """
-        for node in self.graph.nodes_iter():
+        for node in self.graph:
             if self.tag in self.graph.node[node]:
                 continue
 
@@ -112,7 +111,7 @@ class Runner:
 
     def unscored_nodes_iter(self):
         """Iterates over all nodes without a CMPA score"""
-        for node, data in self.graph.nodes_iter(data=True):
+        for node, data in self.graph.iter_node_data_pairs():
             if self.tag not in data:
                 yield node
 

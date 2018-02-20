@@ -401,7 +401,7 @@ def expand_internal(universe, graph, edge_filters=None):
     """
     edge_filter = and_edge_predicates(*edge_filters) if edge_filters else keep_edge_permissive
 
-    for u, v in itt.product(graph.nodes_iter(), repeat=2):
+    for u, v in itt.product(graph, repeat=2):
         if graph.has_edge(u, v) or not universe.has_edge(u, v):
             continue
 

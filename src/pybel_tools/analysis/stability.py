@@ -143,7 +143,7 @@ def get_correlation_triangles(graph):
     """
     return {
         tuple(sorted([n, u, v], key=str))
-        for n in graph.nodes_iter()
+        for n in graph
         for u, v in itt.combinations(graph.edge[n], 2)
         if graph.has_edge(u, v)
     }
@@ -234,7 +234,7 @@ def jens_transformation_alpha(graph):
         elif relation in CAUSAL_DECREASE_RELATIONS:
             result.add_edge(v, u)
 
-    for node in result.nodes_iter():
+    for node in result:
         result.node[node].update(graph.node[node])
 
     return result
@@ -271,7 +271,7 @@ def jens_transformation_beta(graph):
         elif relation in CAUSAL_DECREASE_RELATIONS:
             result.add_edge(u, v)
 
-    for node in result.nodes_iter():
+    for node in result:
         result.node[node].update(graph.node[node])
 
     return result
@@ -295,7 +295,7 @@ def _get_mismatch_triplets_helper(graph, relation_set):
     :return: An iterable of mismatch triples
     :rtype iter[tuple]
     """
-    for node in graph.nodes_iter():
+    for node in graph:
         children = {
             target
             for _, target, data in graph.out_edges_iter(node, data=True)

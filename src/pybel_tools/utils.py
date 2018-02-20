@@ -13,19 +13,14 @@ from operator import itemgetter
 
 import jinja2
 import networkx as nx
-import pandas as pd
-from pkg_resources import get_distribution
 from six.moves import zip_longest
 
-from pybel.constants import (
-    CITATION_AUTHORS, CITATION_COMMENTS, CITATION_DATE, CITATION_NAME, CITATION_REFERENCE,
-    CITATION_TYPE, RELATION,
-)
+from pybel.constants import RELATION
+from .constants import VERSION
 
 log = logging.getLogger(__name__)
 
 CENTRALITY_SAMPLES = 200
-
 
 
 def pairwise(iterable):
@@ -266,24 +261,6 @@ def safe_add_edges(graph, edges):
         safe_add_edge(graph, source, target, key=key, attr_dict=attr_dict)
 
 
-def load_differential_gene_expression(data_path, gene_symbol_column='Gene.symbol', logfc_column='logFC'):
-    """Quick and dirty loader for differential gene expression data
-
-    :param str data_path:
-    :param str gene_symbol_column:
-    :param str logfc_colun:
-    :return: A dictionary of {gene symbol: log fold change}
-    :rtype: dict
-    """
-    df = pd.read_csv(data_path)
-    df = df.loc[df[gene_symbol_column].notnull(), [gene_symbol_column, logfc_column]]
-
-    return {
-        k: v
-        for _, k, v in df.itertuples()
-    }
-
-
 def prepare_c3(data, y_axis_label='y', x_axis_label='x'):
     """Prepares C3 JSON for making a bar chart from a Counter
 
@@ -326,15 +303,6 @@ def prepare_c3_time_series(data, y_axis_label='y', x_axis_label='x'):
         [x_axis_label] + list(years),
         [y_axis_label] + list(counter)
     ])
-
-
-def get_version():
-    """Gets the current PyBEL Tools version
-
-    :return: The current PyBEL Tools version
-    :rtype: str
-    """
-    return get_distribution('pybel_tools').version
 
 
 def build_template_environment(here):
@@ -439,3 +407,12 @@ def canonical_circulation(t, key=None):
     :return: The
     """
     return min(get_circulations(t), key=key)
+
+
+def get_version():
+    """Gets the current PyBEL Tools version
+
+    :return: The current PyBEL Tools version
+    :rtype: str
+    """
+    return VERSION

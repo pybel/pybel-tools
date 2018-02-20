@@ -147,7 +147,7 @@ def enrich_internal_unqualified_edges(graph, subgraph):
     :param pybel.BELGraph graph: The full BEL graph
     :param pybel.BELGraph subgraph: The query BEL subgraph
     """
-    for u, v in itt.combinations(subgraph.nodes_iter(), 2):
+    for u, v in itt.combinations(subgraph, 2):
         if not graph.has_edge(u, v):
             continue
 

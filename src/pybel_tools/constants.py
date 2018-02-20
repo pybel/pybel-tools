@@ -29,9 +29,11 @@ so_url_fmt = "http://togows.dbcls.jp/entry/ncbi-pubmed/{}/so"
 CNAME = 'cname'
 DATA_WEIGHT = 'weight'
 
+VERSION = '0.5.1'
+
 # Resources
 
-NAMED_COMPLEXES = 'http://resources.openbel.org/belframework/20150611/resource/named-complexes.bel'
+NAMED_COMPLEXES_URL = 'http://resources.openbel.org/belframework/20150611/resource/named-complexes.bel'
 
 #: Points to the env variable name for PyBEL resources
 PYBEL_RESOURCES_ENV = 'PYBEL_RESOURCES_BASE'

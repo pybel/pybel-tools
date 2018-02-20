@@ -3,7 +3,6 @@
 import codecs
 import os
 import re
-import sys
 
 import setuptools
 
@@ -20,14 +19,13 @@ CLASSIFIERS = [
     'Operating System :: OS Independent',
     'Programming Language :: Python',
     'Programming Language :: Python :: 3.6',
-    'Programming Language :: Python :: 3.5',
     'Topic :: Scientific/Engineering :: Bio-Informatics'
 ]
 INSTALL_REQUIRES = [
     'requests',
     'sqlalchemy==1.1.15',
     'networkx==1.11',
-    'pybel>=0.10.1',
+    'pybel>=0.11.0',
     'click',
     'pandas',
     'scipy',
@@ -36,11 +34,6 @@ INSTALL_REQUIRES = [
     'jinja2',
     'ols_client>=0.0.8',
 ]
-
-if sys.version_info < (3,):
-    INSTALL_REQUIRES.append('funcsigs')
-    INSTALL_REQUIRES.append('functools32')
-    INSTALL_REQUIRES.append('enum')
 
 EXTRAS_REQUIRE = {
     'obonet': [

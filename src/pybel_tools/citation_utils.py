@@ -41,7 +41,7 @@ class PubMedAnnotator:
             else:
                 to_query.append(pmid)
 
-        tr = get_citations_by_pmids(to_query, manager=self.manager, group_size=self.group_size)
+        tr, _ = get_citations_by_pmids(pmids=to_query, manager=self.manager, group_size=self.group_size)
 
         logging.warning('len tr: %s', len(tr))
 
