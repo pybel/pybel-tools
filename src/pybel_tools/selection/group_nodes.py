@@ -88,7 +88,7 @@ def get_mapped_nodes(graph, namespace, names):
     :param pybel.BELGraph graph: A BEL graph
     :param str namespace: Namespace
     :param list[str] or set[str] names: List or set of values from which we want to map nodes from
-    :rtype: defaultdict
+    :rtype: dict[tuple,set[tuple]]
     :return: Main node to variants/groups. E.g.,{('Protein', 'HGNC', 'AKT1'): {('Protein', 'HGNC', 'AKT1', ('pmod', ('bel', 'Ph'))}})
     """
     parent_to_variants = defaultdict(set)
