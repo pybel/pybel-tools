@@ -82,7 +82,7 @@ def group_nodes_by_annotation_filtered(graph, node_filters=None, annotation='Sub
     }
 
 
-def get_mapped(graph, namespace, names):
+def get_mapped_nodes(graph, namespace, names):
     """Returns defaultdict with keys: nodes that match the namespace and in names and values other nodes (complexes, variants, orthologous...) or this node.
     
     :param pybel.BELGraph graph: A BEL graph
