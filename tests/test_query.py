@@ -13,11 +13,11 @@ import unittest
 from pybel import BELGraph
 from pybel.examples import egf_graph
 from pybel.examples.homology_example import (
-    homology_graph, mouse_csf1_gene, mouse_csf1_protein, mouse_csf1_rna,
-    mouse_mapk1_gene, mouse_mapk1_protein, mouse_mapk1_rna,
+    homology_graph, mouse_csf1_protein, mouse_csf1_rna,
+    mouse_mapk1_protein, mouse_mapk1_rna,
 )
 from pybel.examples.sialic_acid_example import dap12, shp1, shp2, sialic_acid_graph, syk, trem2
-from pybel_tools.mutation import collapse_by_central_dogma_to_genes, infer_central_dogma
+from pybel_tools.mutation import collapse_by_central_dogma_to_genes, expand_internal, infer_central_dogma
 from pybel_tools.pipeline import Pipeline
 from pybel_tools.query import Query
 from pybel_tools.selection import get_subgraph_by_annotation_value
@@ -138,16 +138,33 @@ class QueryTest(ExampleNetworkMixin):
         self.assertIn(mouse_mapk1_protein.as_tuple(), result)
         self.assertIn(mouse_csf1_protein.as_tuple(), result)
 
-        self.assertEqual(4, result.number_of_nodes())
-        self.assertEqual(3, result.number_of_edges())
+        self.assertEqual(6, result.number_of_nodes())
+        self.assertEqual(4, result.number_of_edges())
+
+    def test_seeding_with_pipeline(self):
+        test_network_1 = self.manager.insert_graph(homology_graph.copy())
+
+        query = Query(network_ids=[test_network_1.id])
+        query.append_seeding_neighbors([mouse_csf1_rna, mouse_mapk1_rna])
+        query.append_pipeline(expand_internal)
+        result = query.run(self.manager, in_place=False)
+        self.assertIsNotNone(result, msg='Query returned none')
+        self.assertIsInstance(result, BELGraph)
+
+        self.assertIn(mouse_mapk1_rna.as_tuple(), result)
+        self.assertIn(mouse_csf1_rna.as_tuple(), result)
+        self.assertIn(mouse_mapk1_protein.as_tuple(), result)
+        self.assertIn(mouse_csf1_protein.as_tuple(), result)
+
+        self.assertEqual(6, result.number_of_nodes())
+        self.assertEqual(5, result.number_of_edges())
 
     def test_query_multiple_networks_with_api(self):
         test_network_1 = self.manager.insert_graph(homology_graph.copy())
 
         pipeline = Pipeline()
+        pipeline.append(expand_internal)
         pipeline.append(get_subgraph_by_annotation_value, 'Species', '10090')
-        pipeline.append(infer_central_dogma)
-        pipeline.append(collapse_by_central_dogma_to_genes)
 
         query = Query(
             network_ids=[test_network_1.id],
@@ -158,8 +175,8 @@ class QueryTest(ExampleNetworkMixin):
         result = query.run(self.manager, in_place=False)
         self.assertIsNotNone(result, msg='Query returned none')
 
-        self.assertIn(mouse_mapk1_gene.as_tuple(), result)
-        self.assertIn(mouse_csf1_gene.as_tuple(), result)
-
         self.assertEqual(2, result.number_of_nodes())
+        self.assertIn(mouse_mapk1_protein.as_tuple(), result)
+        self.assertIn(mouse_csf1_protein.as_tuple(), result)
+
         self.assertEqual(1, result.number_of_edges())
