@@ -29,7 +29,7 @@ so_url_fmt = "http://togows.dbcls.jp/entry/ncbi-pubmed/{}/so"
 CNAME = 'cname'
 DATA_WEIGHT = 'weight'
 
-VERSION = '0.5.1-dev'
+VERSION = '0.5.1'
 
 # Resources
 
