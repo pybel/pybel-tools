@@ -83,27 +83,28 @@ def group_nodes_by_annotation_filtered(graph, node_filters=None, annotation='Sub
 
 
 def get_mapped(graph, namespace, names):
-    """ Returns defaultdict with keys: nodes that match the namespace and in names and values other nodes (complexes, variants, orthologous...) or this node.
+    """Returns defaultdict with keys: nodes that match the namespace and in names and values other nodes (complexes, variants, orthologous...) or this node.
     
     :param pybel.BELGraph graph: A BEL graph
     :param str namespace: Namespace
     :param list[str] or set[str] names: List or set of values from which we want to map nodes from
-    :return:
+    :rtype: defaultdict
+    :return: Main node to variants/groups. E.g.,{('Protein', 'HGNC', 'AKT1'): {('Protein', 'HGNC', 'AKT1', ('pmod', ('bel', 'Ph'))}})
     """
-    mapped_nodes = defaultdict(set)
+    parent_to_variants = defaultdict(set)
 
     for u, v, d in graph.edges_iter(data=True):
 
         if d[RELATION] in {HAS_MEMBER, HAS_COMPONENT} and NAMESPACE in graph.node[v] and graph.node[v][
             NAMESPACE] == namespace and graph.node[v][NAME] in names:
-            mapped_nodes[v].add(u)
+            parent_to_variants[v].add(u)
 
         elif d[RELATION] == HAS_VARIANT and NAMESPACE in graph.node[u] and graph.node[u][NAMESPACE] == namespace and \
                         graph.node[u][NAME] in names:
-            mapped_nodes[u].add(v)
+            parent_to_variants[u].add(v)
 
         elif d[RELATION] == ORTHOLOGOUS and NAMESPACE in graph.node[u] and graph.node[u][NAMESPACE] == namespace and \
                         graph.node[u][NAME] in names:
-            mapped_nodes[u].add(v)
+            parent_to_variants[u].add(v)
 
-    return dict(mapped_nodes)
+    return dict(parent_to_variants)
