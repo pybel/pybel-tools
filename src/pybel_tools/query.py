@@ -95,6 +95,7 @@ class Query:
         """
         self._append_seed(SEED_TYPE_INDUCTION, _handle_nodes(nodes))
 
+    def append_seeding_neighbors(self, nodes):
         """Adds a seed by neighbors
 
         :param list[tuple or Node or BaseEntity] nodes: A list of PyBEL node tuples
