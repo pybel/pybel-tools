@@ -1,6 +1,32 @@
 # -*- coding: utf-8 -*-
 
-"""An variant of the Network Perturbation Amplitude algorithm"""
+"""An variant of the Network Perturbation Amplitude algorithm
+
+
+In this algorithm, heat is applied to the nodes based on the data set. For the differential gene expression experiment,
+the log-fold-change values are used instead of the corrected p-values to allow for the effects of up- and
+down-regulation to be admitted in the analysis. Finally, heat diffusion is run with the constraint that decreases
+edges cause the sign of the heat to be flipped. Because of the construction of unbiased candidate mechanisms, all
+heat will flow towards their seed biological process nodes. The amount of heat on the biological process node after
+heat diffusion stops becomes the score for the whole candidate mechanism.
+
+The issue of inconsistent causal networks addressed by the SST algorithm does not affect heat diffusion algorithms
+since it can quantify multiple conflicting pathways. However, it does not address the possibility of contradictory
+edges, for example, when A increases B and A decreases B are both true. A random sampling approach is used on networks
+with contradictory edges and aggregate statistics over multiple trials are used to assess the robustness of the
+scores as a function of the topology of the underlying candidate mechanisms.
+
+Invariants
+~~~~~~~~~~
+- Because heat always flows towards the biological process node, it is possible to remove leaf nodes (nodes with no
+  incoming edges) after each step, since their heat will never change.
+
+Future Work
+~~~~~~~~~~~
+This algorithm can be tuned to allow the use of correlative relationships. Because many multi-scale and multi-modal
+data are often measured with correlations to molecular features, this enables experiments to be run using SNP or
+brain imaging features, whose experiments often measure their correlation with the activity of gene products.
+"""
 
 from __future__ import print_function
 
