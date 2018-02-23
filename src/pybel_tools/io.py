@@ -33,10 +33,10 @@ def from_path_ensure_pickle(path, manager=None, **kwargs):
     gpickle_path = path[:-len(_bel_extension)] + _gpickle_extension
 
     if os.path.exists(gpickle_path):
-        return from_pickle(path)
+        return from_pickle(path=path)
 
     graph = from_path(path, manager=manager, **kwargs)
-    to_pickle(graph, gpickle_path)
+    to_pickle(graph, file=gpickle_path)
 
     return graph
 

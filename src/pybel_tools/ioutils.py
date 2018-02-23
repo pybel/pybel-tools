@@ -5,7 +5,6 @@
 import logging
 import os
 
-import pybel
 from pybel import from_pickle, to_database, to_pickle, to_web
 from pybel.io.exc import ImportVersionWarning
 from pybel.manager import Manager
@@ -54,14 +53,15 @@ def convert_paths(paths, connection=None, upload=False, canonicalize=True, infer
     :param bool enrich_citations: Should the citations be enriched using Entrez Utils?
     :param bool send: Send to PyBEL Web?
     :param kwargs: Parameters to pass to :func:`pybel.from_path`
+    :return: A pair of a dictionary {path: bel graph} and list of failed paths
+    :rtype: tuple[dict[str,pybel.BELGraph],list[str]]
     """
     manager = Manager.ensure(connection)
 
+    successes = {}
     failures = []
 
     for path in paths:
-        log.info('parsing: %s', path)
-
         try:
             graph = from_path_ensure_pickle(path, manager=manager, **kwargs)
         except Exception as e:
@@ -85,7 +85,9 @@ def convert_paths(paths, connection=None, upload=False, canonicalize=True, infer
             response = to_web(graph)
             log.info('sent to PyBEL Web with response: %s', response.json())
 
-    return failures
+        successes[path] = graph
+
+    return successes, failures
 
 
 def convert_directory(directory, connection=None, upload=False, pickle=False, canonicalize=True,
