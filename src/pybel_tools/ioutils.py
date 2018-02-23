@@ -6,10 +6,10 @@ import logging
 import os
 
 import pybel
-from pybel import from_path, from_pickle, to_database, to_pickle, to_web
+from pybel import from_pickle, to_database, to_pickle, to_web
 from pybel.io.exc import ImportVersionWarning
 from pybel.manager import Manager
-from pybel.utils import get_version as get_pybel_version
+from .io import from_path_ensure_pickle
 from .mutation import add_canonical_names, enrich_pubmed_citations, infer_central_dogma as infer_central_dogma_mutator
 from .selection import get_subgraph_by_annotation_value
 from .summary import get_annotation_values
@@ -65,7 +65,7 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, canonicali
         log.info('parsing: %s', path)
 
         try:
-            graph = from_path(path, manager=manager, **kwargs)
+            graph = from_path_ensure_pickle(path, manager=manager, **kwargs)
         except Exception as e:
             log.exception('problem parsing %s', path)
             failures.append((path, e))
@@ -82,18 +82,6 @@ def convert_paths(paths, connection=None, upload=False, pickle=False, canonicali
 
         if upload:
             to_database(graph, connection=manager, store_parts=True)
-
-        if pickle:
-            name = path[:-len('.bel')]  # gets rid of .bel at the end of the file name
-
-            if version_in_path:
-                new_path = '{}-{}.gpickle'.format(name, get_pybel_version())
-            else:
-                new_path = '{}.gpickle'.format(name)
-
-            to_pickle(graph, new_path)
-
-            log.info('output pickle: %s', new_path)
 
         if send:
             response = to_web(graph)
