@@ -35,7 +35,7 @@ def from_path_ensure_pickle(path, manager=None, **kwargs):
     if os.path.exists(gpickle_path):
         return from_pickle(path)
 
-    graph = from_path(path, manager=manager ** kwargs)
+    graph = from_path(path, manager=manager, **kwargs)
     to_pickle(graph, gpickle_path)
 
     return graph
