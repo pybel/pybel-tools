@@ -346,8 +346,8 @@ def build_template_renderer(file):
 
 def enable_cool_mode():
     log.info('enabled cool mode')
-    logging.getLogger('urllib3.connectionpool').setLevel(logging.WARNING)
-    logging.getLogger('pybel.parser').setLevel(logging.WARNING)
+    logging.getLogger('urllib3.connectionpool').setLevel(logging.ERROR)
+    logging.getLogger('pybel.parser').setLevel(logging.ERROR)
 
 
 def calculate_betweenness_centality(graph, k=CENTRALITY_SAMPLES):
