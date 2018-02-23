@@ -84,7 +84,7 @@ def ensure(ctx, connection):
 def help_ensure(debug, url, enrich_authors, manager):
     set_debug_param(debug)
     from pybel import from_url
-    graph = from_url(SMALL_CORPUS_URL, manager=manager, citation_clearing=False, allow_nested=True)
+    graph = from_url(url, manager=manager, citation_clearing=False, allow_nested=True)
     if enrich_authors:
         from .mutation.metadata import enrich_pubmed_citations
         enrich_pubmed_citations(graph, manager=manager)
