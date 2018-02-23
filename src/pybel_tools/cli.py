@@ -171,7 +171,7 @@ def post(path, url, skip_check_version):
 
 @io.command()
 @click.option('-u', '--enable-upload', is_flag=True, help='Enable automatic database uploading')
-@click.option('--no-enrich-authors', is_flag=True, help="Don't enrich authors. Makes faster.")
+@click.option('--enrich-citations', is_flag=True, help="Enrich citations and authors. Makes slower.")
 @click.option('-c', '--no-citation-clearing', is_flag=True, help='Turn off citation clearing')
 @click.option('-n', '--allow-nested', is_flag=True, help="Enable lenient parsing for nested statements")
 @click.option('-d', '--directory', default=os.getcwd(),
@@ -179,12 +179,11 @@ def post(path, url, skip_check_version):
 @click.option('-i', '--use-stdin', is_flag=True, help='Use stdin for paths')
 @click.option('-w', '--send-pybel-web', is_flag=True, help='Send to PyBEL Web')
 @click.option('--exclude-directory-pattern', help="Pattern to match for bad directories")
-@click.option('--version-in-path', is_flag=True, help="Adds version to end of path string")
 @click.option('-v', '--debug', count=True, help="Turn on debugging. More v's, more debugging")
 @click.option('--uncool', is_flag=True, help='disable cool mode')
 @click.pass_obj
-def convert(manager, enable_upload, no_enrich_authors, no_citation_clearing, allow_nested, directory, use_stdin,
-            send_pybel_web, exclude_directory_pattern, version_in_path, debug, uncool):
+def convert(manager, enable_upload, enrich_citations, no_citation_clearing, allow_nested, directory, use_stdin,
+            send_pybel_web, exclude_directory_pattern, debug, uncool):
     """Recursively walks the file tree and converts BEL scripts to gpickles. Optional uploader"""
     set_debug_param(debug)
 
@@ -200,12 +199,10 @@ def convert(manager, enable_upload, no_enrich_authors, no_citation_clearing, all
         paths=paths,
         connection=manager,
         upload=enable_upload,
-        pickle=True,
-        enrich_citations=(not no_enrich_authors),
+        enrich_citations=enrich_citations,
         citation_clearing=(not no_citation_clearing),
         allow_nested=allow_nested,
         send=send_pybel_web,
-        version_in_path=version_in_path,
         use_tqdm=True
     )
 

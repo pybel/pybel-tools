@@ -41,20 +41,18 @@ def get_paths_recursive(directory, extension='.bel', exclude_directory_pattern=N
                 yield os.path.join(root, file)
 
 
-def convert_paths(paths, connection=None, upload=False, pickle=False, canonicalize=True, infer_central_dogma=True,
-                  enrich_citations=False, send=False, version_in_path=False, **kwargs):
+def convert_paths(paths, connection=None, upload=False, canonicalize=True, infer_central_dogma=True,
+                  enrich_citations=False, send=False, **kwargs):
     """Recursively parses and either uploads/pickles graphs in a given set of files
 
     :param iter[str] paths: The paths to convert
     :param connection: The connection
     :type connection: None or str or pybel.manager.Manager
     :param bool upload: Should the networks be uploaded to the cache?
-    :param bool pickle: Should the networks be saved as pickles?
     :param bool canonicalize: Calculate canonical nodes?
     :param bool infer_central_dogma: Should the central dogma be inferred for all proteins, RNAs, and miRNAs
     :param bool enrich_citations: Should the citations be enriched using Entrez Utils?
     :param bool send: Send to PyBEL Web?
-    :param bool version_in_path: Add the current pybel version to the pathname
     :param kwargs: Parameters to pass to :func:`pybel.from_path`
     """
     manager = Manager.ensure(connection)
