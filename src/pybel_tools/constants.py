@@ -3,7 +3,6 @@
 from __future__ import print_function
 
 from pybel.constants import HAS_COMPONENT, HAS_PRODUCT, HAS_REACTANT, HAS_VARIANT, TRANSCRIBED_TO, TRANSLATED_TO
-from pybel.resources.constants import citation_format, evidence_format
 
 IS_PRODUCT_OF = 'isProductOf'
 IS_REACTANT_OF = 'isReactantOf'

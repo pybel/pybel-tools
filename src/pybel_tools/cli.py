@@ -17,25 +17,22 @@ Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 from __future__ import print_function
 
 import hashlib
-import json
 import logging
 import os
 import sys
 from getpass import getuser
 
 import click
-
 from ols_client.constants import BASE_URL
+
 from pybel.constants import (
     BELNS_ENCODING_STR, LARGE_CORPUS_URL, NAMESPACE_DOMAIN_OTHER, NAMESPACE_DOMAIN_TYPES,
-    PYBEL_CONNECTION, SMALL_CORPUS_URL, get_cache_connection,
+    SMALL_CORPUS_URL, get_cache_connection,
 )
-from pybel.manager.cache_manager import Manager
 from pybel.resources.definitions import (
-    get_bel_resource_hash, hash_names, parse_bel_resource, write_annotation, write_namespace,
+    get_bel_resource_hash, hash_names, parse_bel_resource, write_namespace,
 )
-from pybel.resources.document import get_bel_knowledge_hash
-from pybel.struct.summary import get_pubmed_identifiers
+from pybel.struct import get_pubmed_identifiers, union
 from pybel.utils import get_version as pybel_version
 from .constants import DEFAULT_SERVICE_URL, NAMED_COMPLEXES_URL
 from .ioutils import convert_paths, get_paths_recursive, upload_recursive
@@ -78,6 +75,7 @@ def main():
 @click.pass_context
 def ensure(ctx, connection):
     """Utilities for ensuring data"""
+    from pybel.manager.cache_manager import Manager
     ctx.obj = Manager(connection=connection)
 
 
@@ -120,14 +118,10 @@ def named_complexes(manager, enrich_authors, debug):
 
 @main.group()
 @click.option('-c', '--connection', help='Cache connection. Defaults to {}'.format(get_cache_connection()))
-@click.option('--config', type=click.File('r'), help='Specify configuration JSON file')
 @click.pass_context
-def io(ctx, connection, config):
+def io(ctx, connection):
     """Upload and conversion utilities"""
-    if config:
-        file = json.load(config)
-        connection = file.get(PYBEL_CONNECTION, get_cache_connection())
-
+    from pybel.manager.cache_manager import Manager
     ctx.obj = Manager(connection=connection)
 
 
@@ -172,7 +166,7 @@ def post(path, url, skip_check_version):
 @io.command()
 @click.option('-u', '--enable-upload', is_flag=True, help='Enable automatic database uploading')
 @click.option('--enrich-citations', is_flag=True, help="Enrich citations and authors. Makes slower.")
-@click.option('-c', '--no-citation-clearing', is_flag=True, help='Turn off citation clearing')
+@click.option('--no-citation-clearing', is_flag=True, help='Turn off citation clearing')
 @click.option('-n', '--allow-nested', is_flag=True, help="Enable lenient parsing for nested statements")
 @click.option('-d', '--directory', default=os.getcwd(),
               help='The directory to search. Defaults to cwd: {}'.format(os.getcwd()))
@@ -181,9 +175,10 @@ def post(path, url, skip_check_version):
 @click.option('--exclude-directory-pattern', help="Pattern to match for bad directories")
 @click.option('-v', '--debug', count=True, help="Turn on debugging. More v's, more debugging")
 @click.option('--uncool', is_flag=True, help='disable cool mode')
+@click.option('-c', '--collate', is_flag=True, help='Make a single graph')
 @click.pass_obj
 def convert(manager, enable_upload, enrich_citations, no_citation_clearing, allow_nested, directory, use_stdin,
-            send_pybel_web, exclude_directory_pattern, debug, uncool):
+            send_pybel_web, exclude_directory_pattern, debug, uncool, collate):
     """Recursively walks the file tree and converts BEL scripts to gpickles. Optional uploader"""
     set_debug_param(debug)
 
@@ -195,7 +190,7 @@ def convert(manager, enable_upload, enrich_citations, no_citation_clearing, allo
     else:
         paths = get_paths_recursive(directory, exclude_directory_pattern=exclude_directory_pattern)
 
-    failures = convert_paths(
+    successes, failures = convert_paths(
         paths=paths,
         connection=manager,
         upload=enable_upload,
@@ -208,6 +203,13 @@ def convert(manager, enable_upload, enrich_citations, no_citation_clearing, allo
 
     for path, e in failures:
         click.echo('FAILED {} {}'.format(path, e))
+
+    if collate:
+        from pybel import to_pickle
+
+        collated_graph = union(networks=successes.values())
+        collated_path = os.path.join(directory, '{}-collated.gpickle'.format(directory))
+        to_pickle(collated_graph, file=collated_path)
 
 
 @io.command()
@@ -231,7 +233,6 @@ def merge_directory(manager, directory, name, debug):
     enable_cool_mode()
 
     graph = from_directory(directory, connection=manager)
-
     to_pickle(graph, file=path)
 
 
@@ -306,7 +307,10 @@ def history(namespace):
               help="Path to output converted BEL Annotation file")
 def convert_to_annotation(file, output):
     """Convert a namespace file to an annotation file"""
+    from pybel.resources.definitions import write_annotation
+
     resource = parse_bel_resource(file)
+
     write_annotation(
         keyword=resource['Namespace']['Keyword'],
         values={k: '' for k in resource['Values']},
@@ -400,6 +404,7 @@ def from_ols(ontology, domain, function, encoding, ols_base, output):
 def history(name):
     """Outputs the hashes for the BEL scripts' versions"""
     from pybel.resources.arty import get_knowledge_history
+    from pybel.resources.document import get_bel_knowledge_hash
 
     for path in get_knowledge_history(name):
         h = get_bel_knowledge_hash(path.as_posix())
