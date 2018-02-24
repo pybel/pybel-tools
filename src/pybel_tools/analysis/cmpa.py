@@ -37,6 +37,7 @@ from operator import itemgetter
 
 import numpy as np
 from scipy import stats
+from tqdm import tqdm
 
 from pybel.constants import BIOPROCESS, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, RELATION
 from ..filters.node_selection import get_nodes_by_function
@@ -75,7 +76,7 @@ RESULT_LABELS = [
 
 
 class Runner:
-    """The NpaRunner class houses the data related to a single run of the CMPA analysis"""
+    """This class houses the data related to a single run of the CMPA analysis"""
 
     def __init__(self, graph, target_node, key, tag=None, default_score=None):
         """Initializes the CMPA runner class
@@ -272,8 +273,8 @@ class Runner:
         return self.graph.subgraph(self.unscored_nodes_iter())
 
 
-def multirun(graph, node, key, tag=None, default_score=None, runs=None):
-    """Runs CMPA multiple times and yields the NpaRunner object after each run has been completed
+def multirun(graph, node, key, tag=None, default_score=None, runs=None, use_tqdm=False):
+    """Runs CMPA multiple times and yields the :class:`Runner` object after each run has been completed
 
     :param pybel.BELGraph graph: A BEL graph
     :param tuple node: The BEL node that is the focus of this analysis
@@ -281,12 +282,17 @@ def multirun(graph, node, key, tag=None, default_score=None, runs=None):
     :param str tag: The key for the nodes' data dictionaries where the CMPA scores will be put. Defaults to 'score'
     :param float default_score: The initial CMPA score for all nodes. This number can go up or down.
     :param int runs: The number of times to run the CMPA algorithm. Defaults to 1000.
+    :param bool use_tqdm: Should there be a progress bar for runners?
     :return: An iterable over the runners after each iteration
-    :rtype: iter[NpaRunner]
+    :rtype: iter[Runner]
     """
     runs = 1000 if runs is None else runs
+    it = range(runs)
 
-    for i in range(runs):
+    if use_tqdm:
+        it = tqdm(it, total=runs, desc=str(graph))
+
+    for i in it:
         try:
             runner = Runner(graph, node, key, tag=tag, default_score=default_score)
             runner.run()
@@ -319,7 +325,7 @@ def workflow(graph, node, key, tag=None, default_score=None, runs=None):
 def workflow_average(graph, node, key, tag=None, default_score=None, runs=None):
     """Gets the average CMPA score over multiple runs.
 
-    This function is very simple, and can be copied to do more interesting statistics over the :class:`NpaRunner`
+    This function is very simple, and can be copied to do more interesting statistics over the :class:`Runner`
     instances. To iterate over the runners themselves, see :func:`workflow`
 
     :param pybel.BELGraph graph: A BEL graph
@@ -358,8 +364,10 @@ def workflow_all(graph, key, tag=None, default_score=None, runs=None):
     :rtype: dict
     """
     results = {}
+
     for node in get_nodes_by_function(graph, BIOPROCESS):
         results[node] = workflow(graph, node, key, tag=tag, default_score=default_score, runs=runs)
+
     return results
 
 
@@ -391,7 +399,8 @@ def workflow_all_average(graph, key, tag=None, default_score=None, runs=None):
     return results
 
 
-def calculate_average_scores_on_subgraphs(candidate_mechanisms, key, tag=None, default_score=None, runs=None):
+def calculate_average_scores_on_subgraphs(candidate_mechanisms, key, tag=None, default_score=None, runs=None,
+                                          use_tqdm=False):
     """Calculates the scores over precomputed candidate mechanisms
     
     :param candidate_mechanisms: A dictionary of {tuple node: pybel.BELGraph candidate mechanism}
@@ -417,7 +426,14 @@ def calculate_average_scores_on_subgraphs(candidate_mechanisms, key, tag=None, d
     """
     results = {}
 
-    for node, subgraph in candidate_mechanisms.items():
+    log.info('calculating results for %d candidate mechanisms using %d permutations', len(candidate_mechanisms), runs)
+
+    it = candidate_mechanisms.items()
+
+    if use_tqdm:
+        it = tqdm(it, total=len(candidate_mechanisms), desc='Candidate mechanisms')
+
+    for node, subgraph in it:
         number_first_neighbors = subgraph.in_degree(node)
         number_first_neighbors = 0 if isinstance(number_first_neighbors, dict) else number_first_neighbors
         mechanism_size = subgraph.number_of_nodes()
