@@ -33,6 +33,7 @@ INSTALL_REQUIRES = [
     'artifactory',
     'jinja2',
     'ols_client>=0.0.8',
+    'tqdm',
 ]
 
 EXTRAS_REQUIRE = {
