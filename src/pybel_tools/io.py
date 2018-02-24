@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
+"""Additional input and output methods"""
 
 import logging
 import os
 
-from pybel import from_json_path, from_path, from_pickle, to_json_path, to_pickle, union
+from pybel import from_path, from_pickle, to_pickle, union
 from pybel.manager import Manager
 
 __all__ = [
@@ -22,34 +23,6 @@ _json_extension = '.gpickle'
 
 def get_corresponding_gpickle_path(path):
     return path[:-len(_bel_extension)] + _gpickle_extension
-
-
-def get_corresponding_json_path(path):
-    return path[:-len(_bel_extension)] + _gpickle_extension
-
-
-def from_path_ensure_json(path, connection=None, **kwargs):
-    """Parses a path exactly like :func:`pybel.from_path` unless a corresponding .gpickle file is available
-
-    :param str path: A file path
-    :param connection: database connection string to cache, pre-built :class:`Manager`, or None to use default cache
-    :type connection: Optional[str or pybel.manager.Manager]
-    :param kwargs:
-    :rtype: pybel.BELGraph
-    """
-    if not path.endswith(_bel_extension):
-        raise ValueError
-
-    json_path = get_corresponding_json_path(path)
-
-    if os.path.exists(json_path):
-        return from_json_path(path=path)
-
-    manager = Manager.ensure(connection=connection)
-    graph = from_path(path, manager=manager, **kwargs)
-    to_json_path(graph, path=json_path)
-
-    return graph
 
 
 def from_path_ensure_pickle(path, connection=None, **kwargs):
