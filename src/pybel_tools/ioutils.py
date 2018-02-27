@@ -63,7 +63,7 @@ def convert_paths(paths, connection=None, upload=False, canonicalize=True, infer
 
     for path in paths:
         try:
-            graph = from_path_ensure_pickle(path, manager=manager, **kwargs)
+            graph = from_path_ensure_pickle(path, connection=manager, **kwargs)
         except Exception as e:
             log.exception('problem parsing %s', path)
             failures.append((path, e))
