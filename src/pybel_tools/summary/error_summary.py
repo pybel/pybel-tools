@@ -235,8 +235,9 @@ def get_most_common_errors(graph, number=20):
 
 
 def get_names_including_errors_by_namespace(graph, namespace):
-    """Takes the names from the graph in a given namespace and the erroneous names from the same namespace and returns
-    them together as a unioned set
+    """Takes the names from the graph in a given namespace (:func:`pybel.struct.summary.get_names_by_namespace`) and
+    the erroneous names from the same namespace (:func:`get_incorrect_names_by_namespace`) and returns them together
+    as a unioned set
 
     :param pybel.BELGraph graph: A BEL graph
     :param str namespace: The namespace to filter by
