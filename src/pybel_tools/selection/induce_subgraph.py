@@ -289,8 +289,12 @@ def get_subgraphs_by_annotation(graph, annotation, sentinel='Undefined'):
             for value in annotation_dict[annotation]:
                 safe_add_edge(result[value], source, target, key, data)
 
-    for value in result:
-        update_node_helper(graph, result[value])
+    for value in result.values():
+        update_node_helper(graph, value)
+
+        # FIXME defer to a new function that's just for updating metadata
+        value.namespace_url.update(graph.namespace_url)
+        value.annotation_url.update(graph.annotation_url)
 
     return dict(result)
 
