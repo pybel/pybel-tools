@@ -307,17 +307,18 @@ def get_subgraphs_by_annotation(graph, annotation, sentinel='Undefined'):
 
 # TODO move to pybel_tools.grouping.get_subgraphs_by_annotation_filtered
 @pipeline.splitter
-def get_subgraphs_by_annotation_filtered(graph, annotation, annotation_values):
+def get_subgraphs_by_annotation_filtered(graph, annotation, values):
     """Stratifies the given graph into subgraphs based on the values for edges' annotations, but filter by a set
     of given values
 
     :param pybel.BELGraph graph: A BEL graph
     :param str annotation: The annotation to group by
-    :param set[str] annotation_values: The values to keep
+    :param iter[str] values: The values to keep
     :param str sentinel: The value to stick unannotated edges into
     :rtype: dict[str,pybel.BELGraph]
     """
     result = defaultdict(BELGraph)
+    values = set(values)
 
     for source, target, key, data in graph.edges_iter(keys=True, data=True):
         annotation_dict = data.get(ANNOTATIONS)
@@ -326,7 +327,7 @@ def get_subgraphs_by_annotation_filtered(graph, annotation, annotation_values):
             continue
 
         for value in annotation_dict[annotation]:
-            if value in annotation_values:
+            if value in values:
                 safe_add_edge(result[value], source, target, key, data)
 
     for value in result.values():
