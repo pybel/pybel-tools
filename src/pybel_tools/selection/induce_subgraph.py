@@ -272,10 +272,18 @@ def get_subgraph_by_annotation_value(graph, annotation, value):
 
 # FIXME update function for reusability
 def _update_metadata(value, graph):
+    """
+
+    :param pybel.BELGraph value:
+    :param pybel.BELGraph graph:
+    """
     update_node_helper(graph, value)
 
     value.namespace_url.update(graph.namespace_url)
+    value.namespace_pattern.update(graph.namespace_pattern)
     value.annotation_url.update(graph.annotation_url)
+    value.annotation_pattern.update(graph.annotation_pattern)
+    value.annotation_list.update(graph.annotation_list)
 
 
 # TODO move to pybel_tools.grouping.get_subgraphs_by_annotation
