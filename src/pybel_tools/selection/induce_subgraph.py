@@ -209,7 +209,7 @@ def get_subgraph_by_edge_filter(graph, edge_filters):
     
     :param pybel.BELGraph graph: A BEL graph 
     :param edge_filters: A predicate or list of predicates (graph, node, node, key, data) -> bool
-    :type edge_filters: list or tuple or lambda
+    :type edge_filters: (pybel.BELGraph, tuple, tuple, int) -> bool or list[(pybel.BELGraph, tuple, tuple, int) -> bool]
     :return: A BEL subgraph induced over the edges passing the given filters
     :rtype: pybel.BELGraph
     """
