@@ -49,6 +49,7 @@ __all__ = [
     'get_causal_subgraph',
     'get_subgraph',
     'get_subgraphs_by_annotation',
+    'get_subgraphs_by_annotation_filtered',
     'get_multi_causal_upstream',
     'get_multi_causal_downstream',
     'get_random_subgraph',
@@ -269,6 +270,15 @@ def get_subgraph_by_annotation_value(graph, annotation, value):
     return get_subgraph_by_annotations(graph, {annotation: {value}})
 
 
+# FIXME update function for reusability
+def _update_metadata(value, graph):
+    update_node_helper(graph, value)
+
+    value.namespace_url.update(graph.namespace_url)
+    value.annotation_url.update(graph.annotation_url)
+
+
+# TODO move to pybel_tools.grouping.get_subgraphs_by_annotation
 @pipeline.splitter
 def get_subgraphs_by_annotation(graph, annotation, sentinel='Undefined'):
     """Stratifies the given graph into subgraphs based on the values for edges' annotations
@@ -290,11 +300,37 @@ def get_subgraphs_by_annotation(graph, annotation, sentinel='Undefined'):
                 safe_add_edge(result[value], source, target, key, data)
 
     for value in result.values():
-        update_node_helper(graph, value)
+        _update_metadata(value, graph)
 
-        # FIXME defer to a new function that's just for updating metadata
-        value.namespace_url.update(graph.namespace_url)
-        value.annotation_url.update(graph.annotation_url)
+    return dict(result)
+
+
+# TODO move to pybel_tools.grouping.get_subgraphs_by_annotation_filtered
+@pipeline.splitter
+def get_subgraphs_by_annotation_filtered(graph, annotation, annotation_values):
+    """Stratifies the given graph into subgraphs based on the values for edges' annotations, but filter by a set
+    of given values
+
+    :param pybel.BELGraph graph: A BEL graph
+    :param str annotation: The annotation to group by
+    :param set[str] annotation_values: The values to keep
+    :param str sentinel: The value to stick unannotated edges into
+    :rtype: dict[str,pybel.BELGraph]
+    """
+    result = defaultdict(BELGraph)
+
+    for source, target, key, data in graph.edges_iter(keys=True, data=True):
+        annotation_dict = data.get(ANNOTATIONS)
+
+        if annotation_dict is None or annotation not in annotation_dict:
+            continue
+
+        for value in annotation_dict[annotation]:
+            if value in annotation_values:
+                safe_add_edge(result[value], source, target, key, data)
+
+    for value in result.values():
+        _update_metadata(value, graph)
 
     return dict(result)
 
