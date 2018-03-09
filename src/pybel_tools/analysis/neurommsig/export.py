@@ -173,8 +173,8 @@ def write_neurommsig_biolerplate(disease, file):
     write_boilerplate(
         name='NeuroMMSigDB for {}'.format(disease),
         description='SNP and Clinical Features for Subgraphs in {}'.format(disease),
-        authors='Daniel Domingo, Charles Tapley Hoyt, Mufassra Naz, Aybuge Altay, Anandhi Iyappan',
-        contact='charles.hoyt@scai.fraunhofer.de',
+        authors='Daniel Domingo-Fernandez, Charles Tapley Hoyt, Mufassra Naz, Aybuge Altay, Anandhi Iyappan',
+        contact='daniel.domingo.fernandez@scai.fraunhofer.de',
         version=time.strftime('%Y%m%d'),
         namespace_url={
             'NIFT': NIFT,
