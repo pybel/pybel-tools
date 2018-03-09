@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
-"""This workflow has three parts:
+"""The Candidate Mechanism Pertubation Amplitude (CMPA) workflow has four parts:
 
-1) Build a knowledge assembly and overlaying data
-2) Generate candidate mechanisms and random subsamples
-3) Apply standard heat diffusion
+1) Assembling a network, pre-processing, and overlaying data
+2) Generating unbiased candidate mechanisms from the network
+3) Generating random subgraphs from each unbiased candidate mechanism
+4) Appling standard heat diffusion to each subgraph and calculating scores for each candidate mechanism based on the
+   distribution of scores for its subgraph
 
 In this algorithm, heat is applied to the nodes based on the data set. For the differential gene expression experiment,
 the log-fold-change values are used instead of the corrected p-values to allow for the effects of up- and
@@ -24,6 +26,13 @@ Invariants
 ~~~~~~~~~~
 - Because heat always flows towards the biological process node, it is possible to remove leaf nodes (nodes with no
   incoming edges) after each step, since their heat will never change.
+
+Examples
+~~~~~~~~
+This workflow has been applied in several Jupyter notebooks:
+
+- `Candidate Mechanism Pertubation Amplitude Algorithm <http://nbviewer.jupyter.org/github/pybel/pybel-notebooks/blob/master/algorithms/Candidate%20Mechanism%20Perturbation%20Amplitude%20Algorithm.ipynb>`_
+- `Time Series CMPA <http://nbviewer.jupyter.org/github/pybel/pybel-notebooks/blob/master/algorithms/Time%20Series%20CMPA.ipynb>`_
 
 Future Work
 ~~~~~~~~~~~
