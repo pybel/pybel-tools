@@ -17,8 +17,6 @@ from __future__ import print_function
 
 from collections import Iterable
 
-from six import string_types
-
 from pybel.constants import *
 from pybel.struct.filters.node_filters import count_passed_node_filter
 from pybel.struct.filters.node_predicates import node_predicate
@@ -145,7 +143,7 @@ def function_inclusion_filter_builder(func):
     :return: A node filter (graph, node) -> bool
     :rtype: types.FunctionType
     """
-    if isinstance(func, string_types):
+    if isinstance(func, str):
         return _single_function_inclusion_filter_builder(func)
 
     elif isinstance(func, Iterable):
@@ -162,7 +160,7 @@ def function_exclusion_filter_builder(func):
     :return: A node filter (graph, node) -> bool
     :rtype: types.FunctionType
     """
-    if isinstance(func, string_types):
+    if isinstance(func, str):
         def function_exclusion_filter(graph, node):
             """Passes only for a node that doesn't have the enclosed function
 
@@ -343,6 +341,7 @@ def node_is_upstream_leaf(graph, node):
     :rtype: bool
     """
     return 0 == len(graph.predecessors(node)) and 1 == len(graph.successors(node))
+
 
 # TODO node filter that is false for abundances with no in-edges
 
