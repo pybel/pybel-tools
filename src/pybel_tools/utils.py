@@ -9,11 +9,11 @@ import logging
 import os
 import time
 from collections import Counter, defaultdict
+from itertools import zip_longest
 from operator import itemgetter
 
 import jinja2
 import networkx as nx
-from six.moves import zip_longest
 
 from pybel.constants import RELATION
 from .constants import VERSION
