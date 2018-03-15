@@ -320,7 +320,7 @@ def multirun(graph, node, key, tag=None, default_score=None, runs=None, use_tqdm
             runner = Runner(graph, node, key, tag=tag, default_score=default_score)
             runner.run()
             yield runner
-        except:
+        except Exception:
             log.debug('Run %s failed for %s', i, node)
 
 
@@ -416,7 +416,7 @@ def workflow_all_average(graph, key, tag=None, default_score=None, runs=None):
         sg = generate_mechanism(graph, node, key)
         try:
             results[node] = workflow_average(sg, node, key, tag=tag, default_score=default_score, runs=runs)
-        except:
+        except Exception:
             log.exception('could not run on %', node)
 
     return results
