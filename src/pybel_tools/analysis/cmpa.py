@@ -413,6 +413,9 @@ def workflow_all_aggregate(graph, key, tag=None, default_score=None, runs=None, 
     :param str tag: The key for the nodes' data dictionaries where the CMPA scores will be put. Defaults to 'score'
     :param float default_score: The initial CMPA score for all nodes. This number can go up or down.
     :param int runs: The number of times to run the CMPA algorithm. Defaults to 1000.
+    :param aggregator: A function that aggregates a list of scores. Defaults to :func:`numpy.average`.
+                       Could also use: :func:`numpy.mean`, :func:`numpy.median`, :func:`numpy.min`, :func:`numpy.max`
+    :type aggregator: Optional[list[float] -> float]
     :return: A dictionary of {node: upstream causal subgraph}
     :rtype: dict
     """
