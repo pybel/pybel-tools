@@ -69,9 +69,9 @@ def load_differential_gene_expression(data_path, gene_symbol_column='Gene.symbol
                                       aggregator=None):
     """Quick and dirty loader for differential gene expression data
 
-    :param str data_path:
-    :param str gene_symbol_column:
-    :param str logfc_colun:
+    :param str data_path: The path to the CSV
+    :param str gene_symbol_column: The header of the gene symbol column in the data frame
+    :param str logfc_column: The header of the log-fold-change column in the data frame
     :param aggregator: A function that aggregates a list of differential gene expression values. Defaults to
                        :func:`numpy.median`. Could also use: :func:`numpy.mean`, :func:`numpy.average`,
                        :func:`numpy.min`, or :func:`numpy.max`
