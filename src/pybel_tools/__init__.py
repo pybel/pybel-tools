@@ -44,7 +44,7 @@ installation difficult for Windows users, for whom Python cannot easily build C 
 `Anaconda <https://www.continuum.io/downloads>`_ distribution of Python, which includes these precompiled.
 """
 
-from . import io
+from . import io, utils
 from .io import *
 
 __all__ = io.__all__
