@@ -14,7 +14,6 @@ from operator import itemgetter
 
 import networkx as nx
 
-from pybel.constants import RELATION
 from .constants import VERSION
 
 log = logging.getLogger(__name__)
@@ -53,6 +52,7 @@ def count_defaultdict(dict_of_lists):
         k: Counter(v)
         for k, v in dict_of_lists.items()
     }
+
 
 def count_dict_values(dict_of_counters):
     """Counts the number of elements in each value (can be list, Counter, etc)
@@ -217,21 +217,6 @@ def barv(d, plt, title=None, rotation='vertical'):
 
     if title is not None:
         plt.title(title)
-
-
-def is_edge_consistent(graph, u, v):
-    """Checks if all edges between two nodes have the same relation
-
-    :param pybel.BELGraph graph: A BEL Graph
-    :param tuple u: The source BEL node
-    :param tuple v: The target BEL node
-    :return: If all edges from the source to target node have the same relation
-    :rtype: bool
-    """
-    if not graph.has_edge(u, v):
-        raise ValueError('{} does not contain an edge ({}, {})'.format(graph, u, v))
-
-    return 0 == len(set(d[RELATION] for d in graph.edge[u][v].values()))
 
 
 def safe_add_edge(graph, u, v, key, attr_dict, **attr):
