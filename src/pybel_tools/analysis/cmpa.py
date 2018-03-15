@@ -5,7 +5,7 @@
 1) Assembling a network, pre-processing, and overlaying data
 2) Generating unbiased candidate mechanisms from the network
 3) Generating random subgraphs from each unbiased candidate mechanism
-4) Appling standard heat diffusion to each subgraph and calculating scores for each candidate mechanism based on the
+4) Applying standard heat diffusion to each subgraph and calculating scores for each candidate mechanism based on the
    distribution of scores for its subgraph
 
 In this algorithm, heat is applied to the nodes based on the data set. For the differential gene expression experiment,
@@ -71,10 +71,10 @@ __all__ = [
     'RESULT_LABELS',
     'Runner',
     'multirun',
-    'workflow_average',
+    'workflow_aggregate',
     'workflow',
     'workflow_all',
-    'workflow_all_average',
+    'workflow_all_aggregate',
     'calculate_average_score_by_annotation',
     'calculate_average_scores_on_subgraphs',
 ]
@@ -325,7 +325,7 @@ def multirun(graph, node, key, tag=None, default_score=None, runs=None, use_tqdm
 
 
 def workflow(graph, node, key, tag=None, default_score=None, runs=None):
-    """Generates candidate mechanism and runs CMPA.
+    """Generates candidate mechanisms and runs CMPA.
 
     :param pybel.BELGraph graph: A BEL graph
     :param tuple node: The BEL node that is the focus of this analysis
@@ -345,7 +345,7 @@ def workflow(graph, node, key, tag=None, default_score=None, runs=None):
     return list(runners)
 
 
-def workflow_average(graph, node, key, tag=None, default_score=None, runs=None):
+def workflow_aggregate(graph, node, key, tag=None, default_score=None, runs=None, aggregator=None):
     """Gets the average CMPA score over multiple runs.
 
     This function is very simple, and can be copied to do more interesting statistics over the :class:`Runner`
@@ -357,6 +357,9 @@ def workflow_average(graph, node, key, tag=None, default_score=None, runs=None):
     :param str tag: The key for the nodes' data dictionaries where the CMPA scores will be put. Defaults to 'score'
     :param float default_score: The initial CMPA score for all nodes. This number can go up or down.
     :param int runs: The number of times to run the CMPA algorithm. Defaults to 1000.
+    :param aggregator: A function that aggregates a list of scores. Defaults to :func:`numpy.average`.
+                       Could also use: :func:`numpy.mean`, :func:`numpy.median`, :func:`numpy.min`, :func:`numpy.max`
+    :type aggregator: Optional[list[float] -> float]
     :return: The average score for the target node
     :rtype: float
     """
@@ -367,7 +370,10 @@ def workflow_average(graph, node, key, tag=None, default_score=None, runs=None):
         log.warning('Unable to run CMPA on %s', node)
         return None
 
-    return np.average(scores)
+    if aggregator is None:
+        return np.average(scores)
+
+    return aggregator(scores)
 
 
 def workflow_all(graph, key, tag=None, default_score=None, runs=None):
@@ -394,7 +400,7 @@ def workflow_all(graph, key, tag=None, default_score=None, runs=None):
     return results
 
 
-def workflow_all_average(graph, key, tag=None, default_score=None, runs=None):
+def workflow_all_aggregate(graph, key, tag=None, default_score=None, runs=None, aggregator=None):
     """Runs CMPA to get average score for every possible candidate mechanism
 
     1. Get all biological processes
@@ -414,8 +420,17 @@ def workflow_all_average(graph, key, tag=None, default_score=None, runs=None):
 
     for node in get_nodes_by_function(graph, BIOPROCESS):
         sg = generate_mechanism(graph, node, key)
+
         try:
-            results[node] = workflow_average(sg, node, key, tag=tag, default_score=default_score, runs=runs)
+            results[node] = workflow_aggregate(
+                graph=sg,
+                node=node,
+                key=key,
+                tag=tag,
+                default_score=default_score,
+                runs=runs,
+                aggregator=aggregator
+            )
         except Exception:
             log.exception('could not run on %', node)
 
