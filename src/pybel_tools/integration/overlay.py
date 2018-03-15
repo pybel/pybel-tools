@@ -3,6 +3,9 @@
 """This module contains functions that help overlay tabular data to nodes in a graph"""
 
 import logging
+from collections import defaultdict
+
+import numpy as np
 
 from pybel.constants import NAME
 from pybel.struct.filters import filter_nodes
@@ -62,20 +65,32 @@ def overlay_type_data(graph, data, label, func, namespace, overwrite=False, impu
     overlay_data(graph, new_data, label, overwrite=overwrite)
 
 
-def load_differential_gene_expression(data_path, gene_symbol_column='Gene.symbol', logfc_column='logFC'):
+def load_differential_gene_expression(data_path, gene_symbol_column='Gene.symbol', logfc_column='logFC',
+                                      aggregator=None):
     """Quick and dirty loader for differential gene expression data
 
     :param str data_path:
     :param str gene_symbol_column:
     :param str logfc_colun:
+    :param aggregator: A function that aggregates a list of differential gene expression values. Defaults to
+                       :func:`numpy.median`. Could also use: :func:`numpy.mean`, :func:`numpy.average`,
+                       :func:`numpy.min`, or :func:`numpy.max`
+    :type aggregator: Optional[list[float] -> float]
     :return: A dictionary of {gene symbol: log fold change}
     :rtype: dict
     """
     import pandas as pd
+    aggregator = aggregator or np.median
+
     df = pd.read_csv(data_path)
     df = df.loc[df[gene_symbol_column].notnull(), [gene_symbol_column, logfc_column]]
 
+    values = defaultdict(list)
+
+    for _, k, v in df.itertuples():
+        values[k].append(v)
+
     return {
-        k: v
-        for _, k, v in df.itertuples()
+        k: aggregator(vs)
+        for k, vs in values.items()
     }
