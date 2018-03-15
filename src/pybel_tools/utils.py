@@ -12,7 +12,6 @@ from collections import Counter, defaultdict
 from itertools import zip_longest
 from operator import itemgetter
 
-import jinja2
 import networkx as nx
 
 from pybel.constants import RELATION
@@ -311,6 +310,8 @@ def build_template_environment(here):
     :param str here: Give this the result of :code:`os.path.dirname(os.path.abspath(__file__))`
     :rtype: jinja2.Environment
     """
+    import jinja2
+
     template_environment = jinja2.Environment(
         autoescape=False,
         loader=jinja2.FileSystemLoader(os.path.join(here, 'templates')),
