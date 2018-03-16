@@ -199,7 +199,7 @@ def function_namespace_inclusion_builder(func, namespace):
     :return: A node filter (graph, node) -> bool
     :rtype: types.FunctionType
     """
-    if isinstance(namespace, string_types):
+    if isinstance(namespace, str):
         def function_namespace_filter(graph, node):
             """Passes only for nodes that have the enclosed function and enclosed namespace
 
@@ -239,7 +239,7 @@ def namespace_inclusion_builder(namespace):
     :return: A node filter (graph, node) -> bool
     :rtype: types.FunctionType
     """
-    if isinstance(namespace, string_types):
+    if isinstance(namespace, str):
 
         def namespace_filter(graph, node):
             """Passes only for a node that has the enclosed namespace
@@ -377,7 +377,7 @@ def build_node_key_search(query, key):
     :type query: str or iter[str]
     :param str key: The key for the node data dictionary. Should refer only to entries that have str values
     """
-    if isinstance(query, string_types):
+    if isinstance(query, str):
         return build_node_data_search(key, lambda s: query.lower() in s.lower())
 
     if isinstance(query, Iterable):
