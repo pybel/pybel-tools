@@ -3,11 +3,11 @@
 import unittest
 
 import pybel
-from pybel.constants import PROTEIN, BIOPROCESS, RELATION, INCREASES, DECREASES
-from pybel_tools.analysis import cmpa
+from pybel.constants import BIOPROCESS, DECREASES, INCREASES, PROTEIN, RELATION
+from pybel_tools.analysis.ucmpa import generate_bioprocess_mechanisms
 
 
-class TestCmpa(unittest.TestCase):
+class TestUCMPA(unittest.TestCase):
     def test_simple(self):
         graph = pybel.BELGraph()
 
@@ -32,7 +32,7 @@ class TestCmpa(unittest.TestCase):
         graph.add_edge(a, c, attr_dict={RELATION: INCREASES})
         graph.add_edge(c, d, attr_dict={RELATION: INCREASES})
 
-        candidate_mechanisms = cmpa.generate_bioprocess_mechanisms(graph, key)
+        candidate_mechanisms = generate_bioprocess_mechanisms(graph, key)
 
         self.assertEqual(1, len(candidate_mechanisms))
         self.assertIn(d, candidate_mechanisms)

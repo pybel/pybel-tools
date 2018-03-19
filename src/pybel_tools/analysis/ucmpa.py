@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
-"""The Candidate Mechanism Pertubation Amplitude (CMPA) workflow has four parts:
+"""The Unbiased Candidate Mechanism Pertubation Amplitude (UCMPA) workflow has four parts:
 
 1) Assembling a network, pre-processing, and overlaying data
 2) Generating unbiased candidate mechanisms from the network
 3) Generating random subgraphs from each unbiased candidate mechanism
-4) Applying standard heat diffusion to each subgraph and calculating scores for each candidate mechanism based on the
-   distribution of scores for its subgraph
+4) Applying standard heat diffusion to each subgraph and calculating scores for each unbiased candidate mechanism based
+   on the distribution of scores for its subgraph
 
 In this algorithm, heat is applied to the nodes based on the data set. For the differential gene expression experiment,
 the log-fold-change values are used instead of the corrected p-values to allow for the effects of up- and
@@ -14,13 +14,13 @@ down-regulation to be admitted in the analysis. Finally, heat diffusion inspired
 systems and networks biology [1]_ [2]_ is run with the constraint that decreases
 edges cause the sign of the heat to be flipped. Because of the construction of unbiased candidate mechanisms, all
 heat will flow towards their seed biological process nodes. The amount of heat on the biological process node after
-heat diffusion stops becomes the score for the whole candidate mechanism.
+heat diffusion stops becomes the score for the whole unbiased candidate mechanism.
 
 The issue of inconsistent causal networks addressed by SST [3]_ does not affect heat diffusion algorithms
 since it can quantify multiple conflicting pathways. However, it does not address the possibility of contradictory
 edges, for example, when ``A increases B`` and ``A decreases B`` are both true. A random sampling approach is used on
 networks with contradictory edges and aggregate statistics over multiple trials are used to assess the robustness of the
-scores as a function of the topology of the underlying candidate mechanisms.
+scores as a function of the topology of the underlying unbiases candidate mechanisms.
 
 Invariants
 ~~~~~~~~~~
@@ -31,8 +31,8 @@ Examples
 ~~~~~~~~
 This workflow has been applied in several Jupyter notebooks:
 
-- `Candidate Mechanism Pertubation Amplitude Algorithm <http://nbviewer.jupyter.org/github/pybel/pybel-notebooks/blob/master/algorithms/Candidate%20Mechanism%20Perturbation%20Amplitude%20Algorithm.ipynb>`_
-- `Time Series CMPA <http://nbviewer.jupyter.org/github/pybel/pybel-notebooks/blob/master/algorithms/Time%20Series%20CMPA.ipynb>`_
+- `Unbiased Candidate Mechanism Pertubation Amplitude Workflow <http://nbviewer.jupyter.org/github/pybel/pybel-notebooks/blob/master/algorithms/Candidate%20Mechanism%20Perturbation%20Amplitude%20Algorithm.ipynb>`_
+- `Time Series UCMPA <http://nbviewer.jupyter.org/github/pybel/pybel-notebooks/blob/master/algorithms/Time%20Series%20CMPA.ipynb>`_
 
 Future Work
 ~~~~~~~~~~~
@@ -536,7 +536,7 @@ def calculate_average_score_by_annotation(graph, key, annotation, runs=None):
 
     >>> import pybel
     >>> from pybel_tools.integration import overlay_data
-    >>> from pybel_tools.analysis.cmpa import calculate_average_score_by_annotation
+    >>> from pybel_tools.analysis.ucmpa import calculate_average_score_by_annotation
     >>> graph = pybel.from_path(...)
     >>> key = ...
     >>>
