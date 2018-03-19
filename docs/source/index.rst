@@ -54,7 +54,7 @@ Links
    stability
    expansion
    generation
-   cmpa
+   ucmpa
 
 .. toctree::
    :caption: Other Utilities
