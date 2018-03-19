@@ -17,8 +17,7 @@ Examples
 ~~~~~~~~
 This method has been applied in the following Jupyter Notebooks:
 
-- `Generating Candidate Mechanisms <http://nbviewer.jupyter.org/github/pybel/pybel-notebooks/blob/master/algorithms/Generating%20Candidate%20Mechanisms.ipynb>`_
-
+- `Generating Unbiased Candidate Mechanisms <http://nbviewer.jupyter.org/github/pybel/pybel-notebooks/blob/master/algorithms/Generating%20Candidate%20Mechanisms.ipynb>`_
 """
 
 from pybel.constants import BIOPROCESS
