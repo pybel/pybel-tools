@@ -198,7 +198,8 @@ class Pipeline:
     def append(self, name, *args, **kwargs):
         """Adds a function and arguments to the pipeline
 
-        :param str name: The name of the function
+        :param name: The name of the function
+        :type name: str or types.FunctionType
         :param args: The positional arguments to call in the function
         :param kwargs: The keyword arguments to call in the function
         :return: This pipeline for fluid query building

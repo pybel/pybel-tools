@@ -127,9 +127,10 @@ class Query:
         self._append_seed(SEED_TYPE_SAMPLE, data)
 
     def append_pipeline(self, name, *args, **kwargs):
-        """Adds an entry to the pipeline
+        """Adds an entry to the pipeline. Defers to :meth:`pybel_tools.pipeline.Pipeline.append`.
 
-        :param str name: The name of the function
+        :param name: The name of the function
+        :type name: str or types.FunctionType
         :return: This pipeline for fluid query building
         :rtype: Pipeline
         """
