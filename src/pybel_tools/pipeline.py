@@ -196,10 +196,10 @@ class Pipeline:
         return f
 
     def append(self, name, *args, **kwargs):
-        """Adds a function and arguments to the pipeline
+        """Adds a function (either as a reference, or by name) and arguments to the pipeline
 
         :param name: The name of the function
-        :type name: str or types.FunctionType
+        :type name: str or (pybel.BELGraph -> pybel.BELGraph)
         :param args: The positional arguments to call in the function
         :param kwargs: The keyword arguments to call in the function
         :return: This pipeline for fluid query building
