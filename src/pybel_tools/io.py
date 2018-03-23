@@ -49,10 +49,11 @@ def from_path_ensure_pickle(path, connection=None, **kwargs):
     return graph
 
 
-def iter_pickle_paths_from_directory(directory):
+def iter_pickle_paths_from_directory(directory, blacklist=None):
     """Iterates over file paths in a directory that are gpickles
 
     :param str directory: The directory
+    :param Optional[list[str]] blacklist: An optional list of file names not to use
     :rtype: iter[str]
     :raises: ValueError
     """
@@ -60,8 +61,13 @@ def iter_pickle_paths_from_directory(directory):
         raise ValueError('Not a directory: {}'.format(directory))
 
     for path in os.listdir(directory):
-        if path.endswith('.gpickle'):
-            yield os.path.join(directory, path)
+        if blacklist and path in blacklist:
+            continue
+
+        if not path.endswith('.gpickle'):
+            continue
+
+        yield os.path.join(directory, path)
 
 
 def iter_from_pickles(paths):
@@ -77,13 +83,14 @@ def iter_from_pickles(paths):
         yield from_pickle(path)
 
 
-def iter_from_pickles_from_directory(directory):
+def iter_from_pickles_from_directory(directory, blacklist=None):
     """Iterates over the pickled BEL graphs in a directory
 
     :param str directory:
+    :param Optional[list[str]] blacklist: An optional list of file names not to use
     :rtype: iter[pybel.BELGraph]
     """
-    return iter_from_pickles(iter_pickle_paths_from_directory(directory))
+    return iter_from_pickles(iter_pickle_paths_from_directory(directory, blacklist=blacklist))
 
 
 def from_pickles(paths):
