@@ -5,13 +5,15 @@ language: python
 
 python:
     - 3.6
-
+    - 3.4
 env:
-  matrix:
-    - TOXENV=py
-    - TOXENV=rst-lint
-    - TOXENV=manifest
-    - TOXENV=docs
+  - TOXENV=py
+
+matrix:
+  include:
+    - env: TOXENV=docs
+    - env: TOXENV=manifest
+    - env: TOXENV=rst-lint
 
 before_install:
     - pip install codecov
