@@ -30,7 +30,7 @@ __all__ = [
 log = logging.getLogger(__name__)
 
 
-def plot_summary_axes(graph, lax, rax):
+def plot_summary_axes(graph, lax, rax, logx=True):
     """Plots your graph summary statistics on the given axes.
 
     After, you should run :func:`plt.tight_layout` and you must run :func:`plt.show` to view.
@@ -60,14 +60,14 @@ def plot_summary_axes(graph, lax, rax):
     df = pd.DataFrame.from_dict(dict(ntc), orient='index')
     df_ec = pd.DataFrame.from_dict(dict(etc), orient='index')
 
-    df.sort_values(0, ascending=True).plot(kind='barh', logx=True, ax=lax)
+    df.sort_values(0, ascending=True).plot(kind='barh', logx=logx, ax=lax)
     lax.set_title('Number of nodes: {}'.format(graph.number_of_nodes()))
 
-    df_ec.sort_values(0, ascending=True).plot(kind='barh', logx=True, ax=rax)
+    df_ec.sort_values(0, ascending=True).plot(kind='barh', logx=logx, ax=rax)
     rax.set_title('Number of edges: {}'.format(graph.number_of_edges()))
 
 
-def plot_summary(graph, plt, **kwargs):
+def plot_summary(graph, plt, logx=True, **kwargs):
     """Plots your graph summary statistics. This function is a thin wrapper around :func:`plot_summary_axis`. It
     automatically takes care of building figures given matplotlib's pyplot module as an argument. After, you need
     to run :func:`plt.show`.
@@ -96,7 +96,7 @@ def plot_summary(graph, plt, **kwargs):
     lax = axes[0]
     rax = axes[1]
 
-    plot_summary_axes(graph, lax, rax)
+    plot_summary_axes(graph, lax, rax, logx=logx)
     plt.tight_layout()
 
     return fig, axes
