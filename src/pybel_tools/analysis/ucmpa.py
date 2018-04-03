@@ -65,7 +65,7 @@ from tqdm import tqdm
 from pybel.constants import BIOPROCESS, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, RELATION
 from ..filters.node_selection import get_nodes_by_function
 from ..generation import generate_bioprocess_mechanisms, generate_mechanism
-from ..selection import get_subgraphs_by_annotation
+from ..grouping import get_subgraphs_by_annotation
 
 __all__ = [
     'RESULT_LABELS',
