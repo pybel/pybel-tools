@@ -17,7 +17,7 @@ from pybel.constants import (
 )
 from ..mutation import collapse_all_variants, collapse_by_central_dogma_to_genes_out_place
 from ..mutation.random import random_by_edges, shuffle_relations, shuffle_node_data
-from ..selection import get_subgraphs_by_annotation
+from ..grouping import get_subgraphs_by_annotation
 
 __all__ = [
     'Concordance',
