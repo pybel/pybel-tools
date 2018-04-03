@@ -47,3 +47,5 @@ DEFAULT_SERVICE_URL = 'https://pybel.scai.fraunhofer.de'
 
 #: How many edges should be sampled from a graph that's still reasonable to display
 SAMPLE_RANDOM_EDGE_COUNT = 250
+#: How many edges should be sampled as "seed" edges
+SAMPLE_RANDOM_EDGE_SEED_COUNT = 5

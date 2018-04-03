@@ -11,8 +11,8 @@ from collections import Counter
 
 from pybel.constants import GENE
 from ...filters.node_selection import get_nodes_by_function
+from ...grouping import get_subgraphs_by_annotation
 from ...mutation.inference import infer_central_dogma
-from ...selection import get_subgraphs_by_annotation
 from ...utils import calculate_betweenness_centality
 
 

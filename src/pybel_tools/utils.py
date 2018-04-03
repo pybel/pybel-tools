@@ -7,9 +7,7 @@ import itertools as itt
 import json
 import logging
 import os
-import time
 from collections import Counter, defaultdict
-from itertools import zip_longest
 from operator import itemgetter
 
 import networkx as nx
@@ -189,10 +187,10 @@ def all_edges_iter(graph, u, v):
     :return: A list of (node, node, key)
     :rtype: list[tuple]
     """
-    if u not in graph.edge or v not in graph.edge[u]:
+    if u not in graph or v not in graph[u]:
         raise ValueError('Graph has no edges')
 
-    for k in graph.edge[u][v].keys():
+    for k in graph[u][v].keys():
         yield u, v, k
 
 
@@ -347,32 +345,8 @@ def calculate_betweenness_centality(graph, k=CENTRALITY_SAMPLES):
     try:
         res = Counter(nx.betweenness_centrality(graph, k=k))
         return res
-    except:
+    except Exception:
         return Counter(nx.betweenness_centrality(graph))
-
-
-def grouper(n, iterable, fillvalue=None):
-    "grouper(3, 'ABCDEFG', 'x') --> ABC DEF Gxx"
-    args = [iter(iterable)] * n
-    return zip_longest(*args, fillvalue=fillvalue)
-
-
-def get_iso_8601_date():
-    """Gets the current ISO 8601 date as a string
-
-    :rtype: str
-    """
-    return time.strftime('%Y%m%d')
-
-
-def hash_str_to_int(hash_str, length=16):
-    """Hashes a tuple to the given number of digits
-
-    :param str hash_str: Basically anything that can be pickled deterministically
-    :param int length: The length of the hash to keep
-    :rtype: int
-    """
-    return int(hash_str, 16) % (10 ** length)
 
 
 def get_circulations(t):

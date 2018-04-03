@@ -108,6 +108,7 @@ class Query:
         :param str annotation: The annotation to filter by
         :param set[str] values: The values of the annotation to keep
         """
+        log.debug('appending seed by annotation=%s and values=%s', annotation, values)
         self._append_seed(SEED_TYPE_ANNOTATION, {
             'annotations': {
                 annotation: values
@@ -155,6 +156,7 @@ class Query:
         log.debug('query universe consists of networks: %s', self.network_ids)
 
         if not self.network_ids:
+            log.debug('can not run query without network identifiers')
             return
 
         universe = manager.get_graph_by_ids(self.network_ids)
@@ -174,10 +176,12 @@ class Query:
 
         for seed in self.seeding:
             seed_method, seed_data = seed[SEED_METHOD], seed[SEED_DATA]
+
+            log.debug('seeding with %s: %s', seed_method, seed_data)
             subgraph = get_subgraph(universe, seed_method=seed_method, seed_data=seed_data)
 
             if subgraph is None:
-                log.debug('Seed returned empty graph: %s', seed)
+                log.debug('seed returned empty graph: %s', seed)
                 continue
 
             subgraphs.append(subgraph)
