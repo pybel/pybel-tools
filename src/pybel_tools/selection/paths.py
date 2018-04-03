@@ -3,7 +3,7 @@
 
 import itertools as itt
 from itertools import product, tee
-from random import choices
+from random import sample
 
 import networkx as nx
 from networkx import all_shortest_paths
@@ -198,8 +198,11 @@ def get_random_path(graph):
     nodes = graph.nodes()
 
     def pick_random_pair():
-        """Gets a random node"""
-        return choices(nodes, k=2)
+        """Gets a pair of random nodes
+
+        :rtype: tuple
+        """
+        return sample(nodes, k=2)
 
     source, target = pick_random_pair()
 
