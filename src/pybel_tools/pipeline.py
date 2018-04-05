@@ -60,7 +60,8 @@ __all__ = [
     'uni_in_place_mutator',
     'uni_mutator',
     'mutator',
-    'splitter'
+    'splitter',
+    'MissingPipelineFunctionError',
 ]
 
 log = logging.getLogger(__name__)
