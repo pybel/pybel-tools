@@ -2,8 +2,8 @@
 branch = True
 source = pybel-tools
 omit =
-    src/pybel/__main__.py
-    src/pybel/cli.py
+    src/pybel_tools/__main__.py
+    src/pybel_tools/cli.py
     tests/*
     docs/*
     scripts/*
