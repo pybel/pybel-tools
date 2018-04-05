@@ -207,7 +207,7 @@ def convert(manager, enable_upload, enrich_citations, no_citation_clearing, allo
     if collate:
         from pybel import to_pickle
 
-        collated_graph = union(networks=successes.values())
+        collated_graph = union(successes.values())
         collated_path = os.path.join(directory, '{}-collated.gpickle'.format(directory))
         to_pickle(collated_graph, file=collated_path)
 

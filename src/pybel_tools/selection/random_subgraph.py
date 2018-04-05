@@ -11,6 +11,11 @@ from .. import pipeline
 from ..constants import SAMPLE_RANDOM_EDGE_COUNT, SAMPLE_RANDOM_EDGE_SEED_COUNT
 from ..mutation.utils import remove_isolated_nodes, update_node_helper
 
+__all__ = [
+    'randomly_select_node',
+    'get_random_subgraph',
+]
+
 log = logging.getLogger(__name__)
 
 
