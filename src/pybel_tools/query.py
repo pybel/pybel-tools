@@ -22,6 +22,10 @@ SEED_METHOD = 'type'
 SEED_DATA = 'data'
 
 
+class QueryMissingNetworks(KeyError):
+    """Raised if a query is created from json but doesn't have a listing of network identifiers"""
+
+
 def _handle_node(node):
     """Handles different types of PyBEL node types
 
@@ -231,6 +235,7 @@ class Query:
 
         :param str s: A stringified JSON query
         :rtype: Query
+        :raises: QueryMissingNetworks
         """
         return Query.from_json(json.loads(s))
 
@@ -240,8 +245,13 @@ class Query:
 
         :param dict d: A JSON dictionary
         :rtype: Query
+        :raises: QueryMissingNetworks
         """
-        rv = Query(network_ids=d['network_ids'])
+        network_ids = d.get('network_ids')
+        if network_ids is None:
+            raise QueryMissingNetworks
+
+        rv = Query(network_ids=network_ids)
 
         if 'seeding' in d:
             rv.seeding = process_seeding(d['seeding'])
@@ -252,8 +262,12 @@ class Query:
         return rv
 
 
-def process_seeding(seeds):
-    """Makes sure nodes are tuples and not lists once back in"""
+def process_seeding(seeds):  # TODO write documentation
+    """Makes sure nodes are tuples and not lists once back in
+
+    :param seeds:
+    :rtype: list[dict]
+    """
     return [
         {
             SEED_METHOD: seed[SEED_METHOD],
