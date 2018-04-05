@@ -240,26 +240,32 @@ class Query:
         return Query.from_json(json.loads(s))
 
     @staticmethod
-    def from_json(d):
+    def from_json(data):
         """Loads a query from a JSON dictionary
 
-        :param dict d: A JSON dictionary
+        :param dict data: A JSON dictionary
         :rtype: Query
         :raises: QueryMissingNetworks
         """
-        network_ids = d.get('network_ids')
+        network_ids = data.get('network_ids')
         if network_ids is None:
             raise QueryMissingNetworksError('query JSON did not have key "network_ids"')
 
-        rv = Query(network_ids=network_ids)
+        if 'pipeline' in data:
+            pipeline = Pipeline.from_json(data['pipeline'])
+        else:
+            pipeline = None
 
-        if 'seeding' in d:
-            rv.seeding = process_seeding(d['seeding'])
+        if 'seeding' in data:
+            seeding = process_seeding(data['seeding'])
+        else:
+            seeding = None
 
-        if 'pipeline' in d:
-            rv.pipeline.protocol = d['pipeline']
-
-        return rv
+        return Query(
+            network_ids=network_ids,
+            seeding=seeding,
+            pipeline=pipeline
+        )
 
 
 def process_seeding(seeds):  # TODO write documentation
