@@ -12,7 +12,7 @@ from pybel import BELGraph
 from pybel.constants import INCREASES, PROTEIN
 from pybel.dsl import protein
 from pybel_tools.selection import get_random_subgraph
-from pybel_tools.selection.induce_subgraph import randomly_select_node
+from pybel_tools.selection.random_subgraph import randomly_select_node
 
 
 def n():
