@@ -80,6 +80,10 @@ no_arguments_map = {}
 splitter_map = {}
 
 
+class MissingPipelineFunctionError(KeyError):
+    """Raised when trying to run the pipeline with a function that isn't registered"""
+
+
 def _register(universe, in_place, **kwargs):
     """Builds a decorator function to tag mutator functions
 
@@ -182,7 +186,9 @@ class Pipeline:
         :param str name: The name of the function
         :rtype: types.FunctionType
         """
-        f = mapped[name]
+        f = mapped.get(name)
+        if f is None:
+            raise MissingPipelineFunctionError('{} is not registered as a pipeline function'.format(name))
 
         if name in universe_map and name in in_place_map:
             return self.wrap_in_place(self.wrap_universe(f))

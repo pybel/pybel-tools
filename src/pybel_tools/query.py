@@ -22,7 +22,7 @@ SEED_METHOD = 'type'
 SEED_DATA = 'data'
 
 
-class QueryMissingNetworks(KeyError):
+class QueryMissingNetworksError(KeyError):
     """Raised if a query is created from json but doesn't have a listing of network identifiers"""
 
 
@@ -249,7 +249,7 @@ class Query:
         """
         network_ids = d.get('network_ids')
         if network_ids is None:
-            raise QueryMissingNetworks
+            raise QueryMissingNetworksError('query JSON did not have key "network_ids"')
 
         rv = Query(network_ids=network_ids)
 
