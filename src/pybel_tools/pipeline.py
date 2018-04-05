@@ -135,6 +135,15 @@ mutator = _register(universe=False, in_place=False)
 SET_UNIVERSE = 'UNIVERSE'
 
 
+def assert_is_mapped_to_pipeline(name):
+    """
+    :param str name:
+    :raises: MissingPipelineFunctionError
+    """
+    if name not in mapped:
+        raise MissingPipelineFunctionError('{} is not registered as a pipeline function'.format(name))
+
+
 def splitter(f):
     """A function decorator that signifies a function that takes in a graph and returns a dictionary of keys to graphs
 
@@ -185,10 +194,11 @@ class Pipeline:
 
         :param str name: The name of the function
         :rtype: types.FunctionType
+        :raises: MissingPipelineFunctionError
         """
-        f = mapped.get(name)
-        if f is None:
-            raise MissingPipelineFunctionError('{} is not registered as a pipeline function'.format(name))
+        assert_is_mapped_to_pipeline(name)
+
+        f = mapped[name]
 
         if name in universe_map and name in in_place_map:
             return self.wrap_in_place(self.wrap_universe(f))
@@ -210,10 +220,13 @@ class Pipeline:
         :param kwargs: The keyword arguments to call in the function
         :return: This pipeline for fluid query building
         :rtype: Pipeline
+        :raises: MissingPipelineFunctionError
         """
         if isinstance(name, types.FunctionType):
             return self.append(name.__name__, *args, **kwargs)
-        elif not isinstance(name, str):
+        elif isinstance(name, str):
+            assert_is_mapped_to_pipeline(name)
+        else:
             raise TypeError('invalid function argument: {}'.format(name))
 
         if not function_is_registered(name):
