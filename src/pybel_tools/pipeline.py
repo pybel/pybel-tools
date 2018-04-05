@@ -166,7 +166,26 @@ def function_is_registered(name):
     return name in mapped
 
 
-class Pipeline:
+def get_function(name):
+    """Gets a pipeline function by name or raises an error if it doesnt exist
+
+    :param str name:
+    :raises: MissingPipelineFunctionError
+    """
+    assert_is_mapped_to_pipeline(name)
+    return mapped[name]
+
+
+def _get_protocol_tuple(data):
+    """Converts a dictionary to a tuple
+
+    :param dict data:
+    :rtype: tuple[str,list,dict]
+    """
+    return data['function'], data.get('args', []), data.get('kwargs', {})
+
+
+class Pipeline(object):
     """Builds and runs analytical pipelines on BEL graphs"""
 
     def __init__(self, protocol=None, universe=None):
@@ -175,7 +194,10 @@ class Pipeline:
         :param pybel.BELGraph universe: The entire set of known knowledge to draw from
         """
         self.universe = universe
-        self.protocol = [] if protocol is None else protocol
+        self.protocol = []
+
+        if protocol is not None:
+            self._extend_helper(protocol)
 
     @staticmethod
     def from_functions(functions):
@@ -185,8 +207,13 @@ class Pipeline:
         :rtype: Pipeline
         """
         result = Pipeline()
+
         for func in functions:
+            if isinstance(func, str):
+                raise TypeError('should only pass functions to Pipeline.from_functions')
+
             result.append(func)
+
         return result
 
     def get_function(self, name):
@@ -196,9 +223,7 @@ class Pipeline:
         :rtype: types.FunctionType
         :raises: MissingPipelineFunctionError
         """
-        assert_is_mapped_to_pipeline(name)
-
-        f = mapped[name]
+        f = get_function(name)
 
         if name in universe_map and name in in_place_map:
             return self.wrap_in_place(self.wrap_universe(f))
@@ -245,6 +270,16 @@ class Pipeline:
         self.protocol.append(av)
         return self
 
+    def _extend_helper(self, protocol):
+        """Extends this pipeline's protocol with another protocol
+
+        :param list[dict] protocol:
+        """
+        if protocol:
+            for data in protocol:
+                name, args, kwargs = _get_protocol_tuple(data)
+                self.append(name, *args, **kwargs)
+
     def extend(self, pipeline):
         """Adds another pipeline to the end of the current pipeline
 
@@ -252,7 +287,7 @@ class Pipeline:
         :return: This pipeline for fluid query building
         :rtype: Pipeline
         """
-        self.protocol.extend(pipeline.protocol)
+        self._extend_helper(pipeline.protocol)
         return self
 
     def __nonzero__(self):
@@ -271,12 +306,9 @@ class Pipeline:
             meta_entry = entry.get('meta')
 
             if meta_entry is None:
-                func = self.get_function(entry['function'])
-                result = func(
-                    result,
-                    *(entry.get('args', [])),
-                    **(entry.get('kwargs', {}))
-                )
+                name, args, kwargs = _get_protocol_tuple(entry)
+                func = self.get_function(name)
+                result = func(result, *args, **kwargs)
             else:
                 networks = (
                     self._run_helper(graph, subprotocol)
@@ -371,7 +403,10 @@ class Pipeline:
         return json.dumps(self.to_json())
 
     def dump_json(self, file):
-        """Dumps this protocol to a file in JSON"""
+        """Dumps this protocol to a file in JSON
+
+        :param file: A file or file-like to pass to :func:`json.dump`
+        """
         return json.dump(self.protocol, file)
 
     @staticmethod
@@ -381,6 +416,7 @@ class Pipeline:
         :param list[dict] protocol:
         :return: The pipeline represented by the JSON
         :rtype: Pipeline
+        :raises: MissingPipelineFunctionError
         """
         return Pipeline(protocol=protocol)
 
@@ -390,6 +426,7 @@ class Pipeline:
 
         :return: The pipeline represented by the JSON in the file
         :rtype: Pipeline
+        :raises: MissingPipelineFunctionError
         """
         return Pipeline.from_json(json.load(file))
 

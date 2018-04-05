@@ -8,7 +8,7 @@ import pybel_tools.pipeline
 from pybel.examples import egf_example
 from pybel.utils import hash_node
 from pybel_tools.mutation import build_delete_node_by_hash, build_expand_node_neighborhood_by_hash, infer_central_dogma
-from pybel_tools.pipeline import Pipeline
+from pybel_tools.pipeline import MissingPipelineFunctionError, Pipeline, assert_is_mapped_to_pipeline, mapped
 from tests.mocks import MockQueryManager
 
 log = logging.getLogger(__name__)
@@ -28,6 +28,41 @@ class TestEgfExample(unittest.TestCase):
                          msg='original graph nodes should remain unchanged')
         self.assertEqual(self.original_number_edges, self.graph.number_of_edges(),
                          msg='original graph edges should remain unchanged')
+
+
+class TestPipelineFailures(unittest.TestCase):
+
+    def test_assert_failure(self):
+        with self.assertRaises(MissingPipelineFunctionError):
+            assert_is_mapped_to_pipeline('missing function')
+
+    def test_assert_success(self):
+        m = list(mapped)
+        self.assertLess(0, len(m))
+        m = m[0]
+        assert_is_mapped_to_pipeline(m)
+
+    def test_get_function_failure(self):
+        pass
+
+    def test_get_function_success(self):
+        pass
+
+    def test_fail_add(self):
+        pipeline = Pipeline()
+
+        with self.assertRaises(MissingPipelineFunctionError):
+            pipeline.append('missing function')
+
+    def test_fail_build(self):
+        protocol = [{'function': 'missing function'}]
+        with self.assertRaises(MissingPipelineFunctionError):
+            Pipeline(protocol=protocol)
+
+    def test_fail_from_json(self):
+        protocol = [{'function': 'missing function'}]
+        with self.assertRaises(MissingPipelineFunctionError):
+            Pipeline.from_json(protocol)
 
 
 class TestPipeline(TestEgfExample):
