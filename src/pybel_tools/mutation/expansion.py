@@ -8,7 +8,7 @@ from pybel import BELGraph
 from pybel.constants import *
 from pybel.struct import left_full_join
 from pybel.struct.filters import and_edge_predicates, concatenate_node_predicates
-from pybel.struct.filters.edge_predicates import edge_has_annotation, is_causal_relation, keep_edge_permissive
+from pybel.struct.filters.edge_predicates import edge_has_annotation, is_causal_relation
 from pybel.struct.filters.node_predicates import keep_node_permissive
 from .utils import ensure_node_from_universe, update_node_helper
 from .. import pipeline
@@ -293,7 +293,7 @@ def enrich_grouping(universe, graph, function, relation):
             if v not in graph:
                 graph.add_node(v, attr_dict=universe.node[v])
 
-            if v not in graph.edge[u] or unqualified_edge_code[relation] not in graph.edge[u][v]:
+            if v not in graph[u] or unqualified_edge_code[relation] not in graph[u][v]:
                 graph.add_unqualified_edge(u, v, relation)
 
 
@@ -352,7 +352,7 @@ def enrich_variants(universe, graph, function=None):
         if u not in graph:
             graph.add_node(u, attr_dict=universe.node[u])
 
-        if v not in graph.edge[u] or unqualified_edge_code[HAS_VARIANT] not in graph.edge[u][v]:
+        if v not in graph[u] or unqualified_edge_code[HAS_VARIANT] not in graph[u][v]:
             graph.add_unqualified_edge(u, v, HAS_VARIANT)
 
 
@@ -367,10 +367,10 @@ def enrich_unqualified(universe, graph):
     but the unqualified edges that don't have annotations that most likely connect elements within your graph are
     not included.
 
-    .. seealso:: 
-        
+    .. seealso::
+
         This function thinly wraps the successive application of the following functions:
-        
+
         - :func:`enrich_complexes`
         - :func:`enrich_composites`
         - :func:`enrich_reactions`
@@ -399,15 +399,15 @@ def expand_internal(universe, graph, edge_filters=None):
     :param edge_filters: Optional list of edge filter functions (graph, node, node, key, data) -> bool
     :type edge_filters: list or lambda
     """
-    edge_filter = and_edge_predicates(*edge_filters) if edge_filters else keep_edge_permissive
+    edge_filter = and_edge_predicates(edge_filters)
 
     for u, v in itt.product(graph, repeat=2):
         if graph.has_edge(u, v) or not universe.has_edge(u, v):
             continue
 
         rs = defaultdict(list)
-        for k, d in universe.edge[u][v].items():
-            if not edge_filter(universe, u, v, k, d):
+        for k, d in universe[u][v].items():
+            if not edge_filter(universe, u, v, k):
                 continue
 
             rs[d[RELATION]].append(d)
@@ -440,7 +440,7 @@ def expand_internal_causal(universe, graph):
 def expand_node_predecessors(universe, graph, node):
     """Expands around the predecessors of the given node in the result graph by looking at the universe graph,
     in place.
-    
+
     :param pybel.BELGraph universe: The graph containing the stuff to add
     :param pybel.BELGraph graph: The graph to add stuff to
     :param tuple node: A node tuple from the query graph
@@ -464,7 +464,7 @@ def expand_node_predecessors(universe, graph, node):
 def expand_node_successors(universe, graph, node):
     """Expands around the successors of the given node in the result graph by looking at the universe graph,
     in place.
-    
+
     :param pybel.BELGraph universe: The graph containing the stuff to add
     :param pybel.BELGraph graph: The graph to add stuff to
     :param tuple node: A node tuples from the query graph
@@ -513,7 +513,7 @@ def expand_nodes_neighborhoods(universe, graph, nodes):
 @pipeline.uni_in_place_mutator
 def expand_all_node_neighborhoods(universe, graph, filter_pathologies=False):
     """Expands the neighborhoods of all nodes in the given graph based on the universe graph.
-    
+
     :param pybel.BELGraph universe: The graph containing the stuff to add
     :param pybel.BELGraph  graph: The graph to add stuff to
     :param bool filter_pathologies: Should expansion take place around pathologies?
