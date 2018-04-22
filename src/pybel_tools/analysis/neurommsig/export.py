@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-"""
+"""This module contains the functions needed to process the NeuroMMSig excel sheets as well as export as BEL.
+
 To run, type :code:`python3 -m pybel_tools.analysis.neurommsig.export` in the command line
 """
 
@@ -194,7 +195,7 @@ def write_neurommsig_biolerplate(disease, file):
     print('SET Evidence = "Serialized from NeuroMMSigDB"', file=file)
     print('SET MeSHDisease = "{}"\n'.format(disease), file=file)
 
-
+# TODO re-write with DSL
 def write_neurommsig_bel(file, df, disease, nift_values):
     """Writes the NeuroMMSigDB excel sheet to BEL
 
