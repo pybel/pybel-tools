@@ -74,21 +74,32 @@ def _get_drug_target_interactions():
     return rv
 
 
-def _run_graph(graph, dtis):
+def _preprocess_dtis(dtis):
+    return {
+        drug: [gene_dsl(namespace='HGNC', name=target).as_tuple() for target in targets]
+        for drug, targets in dtis.items()
+    }
+
+
+def epicom_on_graph(graph, dtis, preprocess=True):
     """
     :param pybel.BELGraph graph:
-    :param dict[str,list[str]] dtis:
+    :param dict[str,list[tuple]] dtis:
+    :param bool preprocess: If true, preprocess the graph with :func:`neurommsig_graph_preprocessor`.
     :rtype: iter[tuple[str,str,float]]
     """
-    log.info('stratifying %s', dtis)
-    subgraph_strata = get_subgraphs_by_annotation(graph, annotation='Subgraph')
+    if preprocess:
+        log.info('preprocessing %s', graph)
+        graph = neurommsig_graph_preprocessor(graph)
+
+    log.info('stratifying %s', graph)
+    subgraphs = get_subgraphs_by_annotation(graph, annotation='Subgraph')
 
     log.info('running subgraphs x drugs for %s', graph)
-    it = itt.product(subgraph_strata.items(), dtis.items())
-    it = tqdm(it, total=len(subgraph_strata) * len(dtis))
+    it = itt.product(subgraphs.items(), dtis.items())
+    it = tqdm(it, total=len(subgraphs) * len(dtis))
+
     for (subgraph_name, subgraph), (drug, genes) in it:
-        genes = [gene_dsl(namespace='HGNC', name=gene) for gene in genes]
-        genes = [gene.as_tuple() for gene in genes]
         score = get_neurommsig_score(subgraph, genes)
 
         if score is None:
@@ -97,33 +108,33 @@ def _run_graph(graph, dtis):
         yield drug, subgraph_name, score
 
 
-def _run_helper(graphs, dtis):
+def _run_helper(graphs):
     """
     :param iter[pybel.BELGraph] graphs: A list of BEL grahs
     :param dict[str,list[str]] dtis: A dictionary of drugs mapping to their targets
     :rtype: iter[tuple[str,str,str,float]]
     """
-    rv = {}
+    dtis = _preprocess_dtis(_get_drug_target_interactions())
 
     for graph in graphs:
-
-        log.info('preprocessing %s', graph)
-        graph_preprocessed = neurommsig_graph_preprocessor(graph)
-
-        for drug, subgraph_name, score in _run_graph(graph_preprocessed, dtis):
+        for drug, subgraph_name, score in epicom_on_graph(graph, dtis):
             yield graph.name, subgraph_name, drug, score
 
-    return rv
+
+def _run_helper_file_wrapper(graphs, file):
+    for row in _run_helper(graphs):
+        print(*row, sep='\t', file=file)
 
 
 def run_epicom(graphs, path):
     """Run EpiCom analysis  on many graphs
 
     :param iter[pybel.BELGraph] graphs:
-    :param str path: output file path
+    :param str or file path: output file path
     """
-    dtis = _get_drug_target_interactions()
+    if isinstance(path, str):
+        with open(path, 'w') as file:
+            _run_helper_file_wrapper(graphs, file)
 
-    with open(path, 'w') as file:
-        for row in _run_helper(graphs, dtis):
-            print(*row, sep='\t', file=file)
+    else:
+        _run_helper_file_wrapper(graphs, path)
