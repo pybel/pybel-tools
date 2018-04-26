@@ -6,7 +6,7 @@ import logging
 
 import time
 
-from .algorithm import _run_graph
+from .algorithm import epicom_on_graph
 from .models import Score
 
 log = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ def build_database(manager, annotation_url=None):
     for network in networks:
         graph = network.as_bel()
 
-        scores = _run_graph(graph, dtis)
+        scores = epicom_on_graph(graph, dtis)
 
         for (drug_name, subgraph_name), score in scores.items():
             drug_model = get_drug_model(manager, drug_name)
