@@ -27,7 +27,7 @@ INSTALL_REQUIRES = [
     'networkx==1.11',
     'pybel>=0.11.0',
     'click',
-    'pandas',
+    'pandas==0.20.3',
     'scipy',
     'numpy',
     'artifactory',
