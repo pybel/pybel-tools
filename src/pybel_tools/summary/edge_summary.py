@@ -87,9 +87,14 @@ def count_unique_relations(graph):
 
 
 def _annotation_iter_helper(graph):
+    """Iterates over the annotation keys
+
+    :param pybel.BELGraph graph:
+    :rtype: iter[str]
+    """
     return (
         key
-        for _, _, data in graph.edges_iter(data=True)
+        for _, _, data in graph.edges(data=True)
         if ANNOTATIONS in data
         for key in data[ANNOTATIONS]
     )
