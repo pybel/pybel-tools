@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""This module supports the drug-based analysis of neurommsig graphs"""
+"""This module supports the drug-based analysis of NeuroMMSig graphs"""
 
 from .algorithm import *
 from .build import *

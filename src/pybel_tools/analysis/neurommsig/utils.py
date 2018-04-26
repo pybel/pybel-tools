@@ -5,7 +5,11 @@ import os
 import pybel
 
 __all__ = [
+    'get_bms_base',
+    'get_neurommsig_base',
     'get_ad_graph',
+    'get_pd_graph',
+    'get_ep_graph',
 ]
 
 
@@ -26,6 +30,25 @@ def get_bms_base():
         """)
 
     return bms_base
+
+
+def get_neurommsig_base():
+    neurommsig_base = os.environ.get('NEUROMMSIG_BASE')
+
+    if neurommsig_base is None:
+        raise RuntimeError("""
+        
+        NEUROMMSIG_BASE environment variable is not set.
+        
+        1. Change to home directory with `cd ~`
+        2. Create a folder called dev with `mkdir dev` and enter with `cd dev`
+        3. Clone NeuroMMSig with `git clone https://gitlab.scai.fraunhofer.de/daniel.domingo.fernandez/neurommsig.git`
+        4. Set the environment variable NEUROMMSIG_BASE in the current session with 
+           `export NEUROMMSIG_BASE="~/dev/bms"` or add to your .bashrc
+           
+        """)
+
+    return neurommsig_base
 
 
 def get_aetionomy_path():
