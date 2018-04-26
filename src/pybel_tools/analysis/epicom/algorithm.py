@@ -9,7 +9,6 @@
 """
 
 import itertools as itt
-import json
 import logging
 import os
 
@@ -20,6 +19,7 @@ from tqdm import tqdm
 from pybel.dsl import gene as gene_dsl
 from pybel_tools.analysis.neurommsig import get_neurommsig_score, neurommsig_graph_preprocessor
 from pybel_tools.grouping import get_subgraphs_by_annotation
+from pybel_tools.summary import get_annotation_values
 
 log = logging.getLogger(__name__)
 
@@ -31,23 +31,11 @@ def _get_drug_target_interactions():
 
     :rtype: dict[str,list[str]]
     """
-
-    if os.path.exists(_dti_cache_path):
-        log.info('loading cached DTIs')
-        with open(_dti_cache_path) as file:
-            return json.load(file)
-
     drugbank_manager = bio2bel_drugbank.Manager()
     if not drugbank_manager.is_populated():
         drugbank_manager.populate()
 
-    rv = drugbank_manager.get_drug_to_hgnc_symbols()
-
-    with open(_dti_cache_path, 'w') as file:
-        log.info('dumping cached DTIs')
-        json.dump(rv, file)
-
-    return rv
+    return drugbank_manager.get_drug_to_hgnc_symbols()
 
 
 def _preprocess_dtis(dtis):
@@ -72,11 +60,20 @@ def epicom_on_graph(graph, dtis, preprocess=True):
     subgraphs = get_subgraphs_by_annotation(graph, annotation='Subgraph')
 
     log.info('running subgraphs x drugs for %s', graph)
-    it = itt.product(subgraphs.items(), dtis.items())
+    it = itt.product(sorted(subgraphs), sorted(dtis))
     it = tqdm(it, total=len(subgraphs) * len(dtis))
 
-    for (subgraph_name, subgraph), (drug, genes) in it:
-        score = get_neurommsig_score(subgraph, genes)
+    def get_score(subgraph_name, drug):
+        """Gets the score
+
+        :param str subgraph_name:
+        :param str drug:
+        :rtype: Optional[float]
+        """
+        return get_neurommsig_score(subgraphs[subgraph_name], dtis[drug])
+
+    for subgraph_name, drug in it:
+        score = get_score(subgraph_name, drug)
 
         if score is None:
             continue
@@ -84,9 +81,9 @@ def epicom_on_graph(graph, dtis, preprocess=True):
         yield drug, subgraph_name, score
 
 
-def _run_helper(graphs):
+def _multi_run_helper(graphs):
     """
-    :param iter[pybel.BELGraph] graphs: A list of BEL grahs
+    :param iter[pybel.BELGraph] graphs: A BEL Graph
     :param dict[str,list[str]] dtis: A dictionary of drugs mapping to their targets
     :rtype: iter[tuple[str,str,str,float]]
     """
@@ -97,12 +94,12 @@ def _run_helper(graphs):
             yield graph.name, subgraph_name, drug, score
 
 
-def _run_helper_file_wrapper(graphs, file):
-    for row in _run_helper(graphs):
+def _multi_run_helper_file_wrapper(graphs, file):
+    for row in _multi_run_helper(graphs):
         print(*row, sep='\t', file=file)
 
 
-def run_epicom(graphs, path):
+def multi_run_epicom(graphs, path):
     """Run EpiCom analysis  on many graphs
 
     :param iter[pybel.BELGraph] graphs:
@@ -110,7 +107,43 @@ def run_epicom(graphs, path):
     """
     if isinstance(path, str):
         with open(path, 'w') as file:
-            _run_helper_file_wrapper(graphs, file)
+            _multi_run_helper_file_wrapper(graphs, file)
 
     else:
-        _run_helper_file_wrapper(graphs, path)
+        _multi_run_helper_file_wrapper(graphs, path)
+
+
+def run_epicom(graph, directory):
+    """
+    :param pybel.BELGraph graph: A BEL Graph
+    :param dict[str,list[str]] dtis: A dictionary of drugs mapping to their targets
+    :rtype: iter[tuple[str,str,str,float]]
+    """
+    dtis = _preprocess_dtis(_get_drug_target_interactions())
+
+    drugs = list(dtis)
+    subgraphs = get_annotation_values(graph, annotation='Subgraph')
+
+    subgraph_name_to_id = {name: i for i, name in enumerate(sorted(subgraphs))}
+    drug_name_to_id = {name: i for i, name in enumerate(sorted(drugs))}
+
+    with open(os.path.join(directory, 'subgraphs.tsv'), 'w') as file:
+        print('id', 'name', sep='\t', file=file)
+        for i, name in enumerate(sorted(subgraphs)):
+            print(i, name, sep='\t', file=file)
+
+    with open(os.path.join(directory, 'drugs.tsv'), 'w') as file:
+        print('id', 'name', sep='\t', file=file)
+        for i, name in enumerate(sorted(dtis)):
+            print(i, name, sep='\t', file=file)
+
+    with open(os.path.join(directory, 'scores.tsv'), 'w') as file:
+        print('subgraph', 'drug', 'score', sep='\t', file=file)
+        for drug, subgraph_name, score in epicom_on_graph(graph, dtis):
+            print(
+                subgraph_name_to_id[subgraph_name],
+                drug_name_to_id[drug],
+                score,
+                sep='\t',
+                file=file
+            )

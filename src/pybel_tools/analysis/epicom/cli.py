@@ -1,23 +1,38 @@
 # -*- coding: utf-8 -*-
 
+import os
 import sys
 
 import click
 
-from .algorithm import run_epicom
+from .algorithm import multi_run_epicom, run_epicom
 from ..neurommsig import get_ad_graph, get_ep_graph, get_pd_graph
 
 
-@click.command()
+@click.group()
+def main():
+    """Run epicom reloaded"""
+
+
+@main.command()
+@click.option('-d', '--directory', default=os.getcwd())
+def ad(directory):
+    """Run EpiCom on AD"""
+    graph = get_ad_graph()
+    run_epicom(graph, directory)
+
+
+@main.command()
 @click.option('-o', '--output', type=click.File('w'), default=sys.stdout)
-def main(output):
+def multi(output):
+    """Run EpiCom on all of NeuroMMSig"""
     graphs = [
         get_ad_graph(),
         get_ep_graph(),
         get_pd_graph(),
     ]
 
-    run_epicom(graphs, output)
+    multi_run_epicom(graphs, output)
 
 
 if __name__ == '__main__':
