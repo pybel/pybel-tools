@@ -33,8 +33,9 @@ def get_subgraphs_by_annotation(graph, annotation, keep_undefined=True, sentinel
     for source, target, key, data in graph.edges_iter(keys=True, data=True):
         annotation_dict = data.get(ANNOTATIONS)
 
-        if (annotation_dict is None or annotation not in annotation_dict) and keep_undefined:
-            safe_add_edge(result[sentinel], source, target, key, data)
+        if annotation_dict is None or annotation not in annotation_dict:
+            if keep_undefined:
+                safe_add_edge(result[sentinel], source, target, key, data)
         else:
             for value in annotation_dict[annotation]:
                 safe_add_edge(result[value], source, target, key, data)
