@@ -57,25 +57,25 @@ def epicom_on_graph(graph, dtis, preprocess=True):
         graph = neurommsig_graph_preprocessor(graph)
 
     log.info('stratifying %s', graph)
-    subgraphs = get_subgraphs_by_annotation(graph, annotation='Subgraph')
+    subgraphs = get_subgraphs_by_annotation(graph, annotation='Subgraph', keep_undefined=False)
 
     log.info('running subgraphs x drugs for %s', graph)
     it = itt.product(sorted(subgraphs), sorted(dtis))
     it = tqdm(it, total=len(subgraphs) * len(dtis))
 
-    def get_score(subgraph_name, drug):
+    def get_score(s, d):
         """Gets the score
 
-        :param str subgraph_name:
-        :param str drug:
+        :param str s: name of the subgraph
+        :param str d: name of the drug
         :rtype: Optional[float]
         """
-        return get_neurommsig_score(subgraphs[subgraph_name], dtis[drug])
+        return get_neurommsig_score(subgraphs[s], dtis[d])
 
     for subgraph_name, drug in it:
         score = get_score(subgraph_name, drug)
 
-        if score is None:
+        if score is None or score == 0.0:
             continue
 
         yield drug, subgraph_name, score
@@ -116,9 +116,11 @@ def multi_run_epicom(graphs, path):
 def run_epicom(graph, directory):
     """
     :param pybel.BELGraph graph: A BEL Graph
-    :param dict[str,list[str]] dtis: A dictionary of drugs mapping to their targets
+    :param str directory: The directory in which the algorithm is run
     :rtype: iter[tuple[str,str,str,float]]
     """
+    os.makedirs(directory, exist_ok=True)
+
     dtis = _preprocess_dtis(_get_drug_target_interactions())
 
     drugs = list(dtis)
