@@ -11,7 +11,7 @@ from ..neurommsig import get_ad_graph, get_ep_graph, get_pd_graph
 
 @click.group()
 def main():
-    """Run epicom reloaded"""
+    """Run EpiCom-Reloaded"""
 
 
 @main.command()
@@ -19,6 +19,22 @@ def main():
 def ad(directory):
     """Run EpiCom on AD"""
     graph = get_ad_graph()
+    run_epicom(graph, directory)
+
+
+@main.command()
+@click.option('-d', '--directory', default=os.getcwd())
+def pd(directory):
+    """Run EpiCom on PD"""
+    graph = get_pd_graph()
+    run_epicom(graph, directory)
+
+
+@main.command()
+@click.option('-d', '--directory', default=os.getcwd())
+def ep(directory):
+    """Run EpiCom on Epilepsy"""
+    graph = get_ep_graph()
     run_epicom(graph, directory)
 
 
