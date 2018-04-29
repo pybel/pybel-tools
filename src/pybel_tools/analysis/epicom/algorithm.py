@@ -61,7 +61,7 @@ def epicom_on_graph(graph, dtis, preprocess=True):
 
     log.info('running subgraphs x drugs for %s', graph)
     it = itt.product(sorted(subgraphs), sorted(dtis))
-    it = tqdm(it, total=len(subgraphs) * len(dtis))
+    it = tqdm(it, total=len(subgraphs) * len(dtis), desc='Calculating scores')
 
     def get_score(s, d):
         """Gets the score
