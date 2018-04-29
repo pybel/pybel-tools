@@ -18,21 +18,23 @@ CLASSIFIERS = [
     'License :: OSI Approved :: Apache Software License',
     'Operating System :: OS Independent',
     'Programming Language :: Python',
+    'Programming Language :: Python :: 3.4',
+    'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: 3.6',
     'Topic :: Scientific/Engineering :: Bio-Informatics'
 ]
 INSTALL_REQUIRES = [
-    'requests',
-    'sqlalchemy==1.1.15',
-    'networkx==1.11',
-    'pybel>=0.11.0',
-    'click',
+    'pybel>=0.11.1',
     'pandas==0.20.3',
+    'ols_client>=0.0.8',
+    'requests',
+    'sqlalchemy',
+    'networkx',
+    'click',
     'scipy',
     'numpy',
     'artifactory',
     'jinja2',
-    'ols_client>=0.0.8',
     'tqdm',
 ]
 
