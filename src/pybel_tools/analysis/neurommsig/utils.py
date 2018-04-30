@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 
+"""Utilities for getting NeuroMMSig graphs."""
+
 import os
 
 import pybel
+from ...io import from_path_ensure_pickle
 
 __all__ = [
     'get_bms_base',
@@ -14,6 +17,10 @@ __all__ = [
 
 
 def get_bms_base():
+    """
+    :rtype: str
+    :raises: RuntimeError
+    """
     bms_base = os.environ.get('BMS_BASE')
 
     if bms_base is None:
@@ -33,6 +40,10 @@ def get_bms_base():
 
 
 def get_neurommsig_base():
+    """
+    :rtype: str
+    :raises: RuntimeError
+    """
     neurommsig_base = os.environ.get('NEUROMMSIG_BASE')
 
     if neurommsig_base is None:
@@ -52,63 +63,93 @@ def get_neurommsig_base():
 
 
 def get_aetionomy_path():
+    """
+    :rtype: str
+    """
     path = os.path.join(get_bms_base(), 'aetionomy')
     assert os.path.exists(path)
     return path
 
 
 def get_ad_path():
+    """
+    :rtype: str
+    """
     path = os.path.join(get_aetionomy_path(), 'alzheimers', 'alzheimers.bel')
     assert os.path.exists(path)
     return path
 
 
 def get_ad_pickle_path():
+    """
+    :rtype: str
+    """
     return os.path.join(get_aetionomy_path(), 'alzheimers', 'alzheimers.gpickle')
 
 
 def get_ad_graph():
+    """
+    :rtype: pybel.BELGraph
+    """
     pickle_path = get_ad_pickle_path()
 
     if os.path.exists(pickle_path):
         return pybel.from_pickle(pickle_path)
 
-    raise RuntimeError('need to compile the AD knowledge assembly')
+    return from_path_ensure_pickle(get_ad_path())
 
 
 def get_pd_path():
+    """
+    :rtype: str
+    """
     path = os.path.join(get_aetionomy_path(), 'parkinsons', 'parkinsons.bel')
     assert os.path.exists(path)
     return path
 
 
 def get_pd_pickle_path():
+    """
+    :rtype: str
+    """
     return os.path.join(get_aetionomy_path(), 'parkinsons', 'parkinsons.gpickle')
 
 
 def get_pd_graph():
+    """
+    :rtype: pybel.BELGraph
+    """
     pickle_path = get_pd_pickle_path()
 
     if os.path.exists(pickle_path):
         return pybel.from_pickle(pickle_path)
 
-    raise RuntimeError('need to compile the PD knowledge assembly')
+    return from_path_ensure_pickle(get_pd_path())
 
 
 def get_ep_path():
+    """
+    :rtype: str
+    """
     path = os.path.join(get_aetionomy_path(), 'epilepsy', 'epilepsy.bel')
     assert os.path.exists(path)
     return path
 
 
 def get_ep_pickle_path():
+    """
+    :rtype: str
+    """
     return os.path.join(get_aetionomy_path(), 'epilepsy', 'epilepsy.gpickle')
 
 
 def get_ep_graph():
+    """
+    :rtype: pybel.BELGraph
+    """
     pickle_path = get_ep_pickle_path()
 
     if os.path.exists(pickle_path):
         return pybel.from_pickle(pickle_path)
 
-    raise RuntimeError('need to compile the Epilepsy knowledge assembly')
+    return from_path_ensure_pickle(get_ep_path())
