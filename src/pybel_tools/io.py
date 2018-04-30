@@ -18,11 +18,15 @@ log = logging.getLogger(__name__)
 
 _bel_extension = '.bel'
 _gpickle_extension = '.gpickle'
-_json_extension = '.gpickle'
+_json_extension = '.json'
 
 
 def get_corresponding_gpickle_path(path):
     return path[:-len(_bel_extension)] + _gpickle_extension
+
+
+def get_corresponding_json_path(path):
+    return path[:-len(_bel_extension)] + _json_extension
 
 
 def from_path_ensure_pickle(path, connection=None, **kwargs):
@@ -35,7 +39,7 @@ def from_path_ensure_pickle(path, connection=None, **kwargs):
     :rtype: pybel.BELGraph
     """
     if not path.endswith(_bel_extension):
-        raise ValueError
+        raise ValueError('Wrong extension. Should be .bel for file: {}'.format(path))
 
     gpickle_path = get_corresponding_gpickle_path(path)
 
@@ -78,7 +82,7 @@ def iter_from_pickles(paths):
     """
     for path in paths:
         if not path.endswith('.gpickle'):
-            log.info('not a gpickle: %s', path)
+            log.info('Wrong extension. Should be .gpickle: %s', path)
             continue
         yield from_pickle(path)
 
