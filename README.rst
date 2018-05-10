@@ -11,9 +11,9 @@ Development |develop_build| |develop_coverage| |develop_documentation|
 
 Citation
 --------
-If you use PyBEL and PyBEL Tools in your work, please cite:
+If you use PyBEL in your work, please cite:
 
-.. [1] Hoyt *et al.*, 2017. `PyBEL: a computational framework for Biological Expression Language <https://doi.org/10.1093/bioinformatics/btx660>`_. Bioinformatics, btx660
+.. [1] Hoyt, C. T., *et al.* (2017). `PyBEL: a Computational Framework for Biological Expression Language <https://doi.org/10.1093/bioinformatics/btx660>`_. Bioinformatics, 34(December), 1–2.
 
 Installation |pypi_version| |python_versions| |pypi_license|
 ------------------------------------------------------------
@@ -41,9 +41,7 @@ Documentation and Examples
 Acknowledgements
 ----------------
 This package was originally developed as part of the master's work of
-`Charles Tapley Hoyt <https://github.com/cthoyt>`_ at `Fraunhofer SCAI <https://www.scai.fraunhofer.de/>`_ with
-partial support from the `IMI <https://www.imi.europa.eu/>`_ projects: `AETIONOMY <http://www.aetionomy.eu/>`_ and
-`PHAGO <http://www.phago.eu/>`_.
+`Charles Tapley Hoyt <https://github.com/cthoyt>`_ at `Fraunhofer SCAI <https://www.scai.fraunhofer.de/>`_.
 
 Links
 -----

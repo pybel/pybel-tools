@@ -16,7 +16,7 @@ matrix:
     - env: TOXENV=rst-lint
 
 before_install:
-    - pip install codecov
+    - pip install codecov coverage
 
 install:
     - pip install tox
