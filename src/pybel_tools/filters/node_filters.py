@@ -417,7 +417,7 @@ def iter_undefined_families(graph, namespace):
 
     :param pybel.BELGraph graph: A BEL graph
     :param namespace: The namespace to filter by
-    :type namespace: str or set[str]
+    :type namespace: str or iter[str]
     :return: An iterator over nodes that don't
     :rtype: iter[tuple]
     """

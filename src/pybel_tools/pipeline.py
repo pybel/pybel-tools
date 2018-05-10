@@ -52,7 +52,7 @@ import types
 from functools import wraps
 from inspect import signature
 
-from pybel.struct.operations import node_intersection, union
+from pybel.struct import node_intersection, union
 
 __all__ = [
     'Pipeline',

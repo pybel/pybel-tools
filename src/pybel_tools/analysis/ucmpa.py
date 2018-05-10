@@ -110,7 +110,6 @@ class Runner:
         :param str tag: The key for the nodes' data dictionaries where the CMPA scores will be put. Defaults to 'score'
         :param float default_score: The initial CMPA score for all nodes. This number can go up or down.
         """
-
         self.graph = graph.copy()
         self.target_node = target_node
         self.key = key
@@ -180,7 +179,12 @@ class Runner:
         :return: A random in-edge to the lowest in/out degree ratio node. This is a 3-tuple of (node, node, key)
         :rtype: tuple
         """
-        nodes = [(n, self.in_out_ratio(n)) for n in self.unscored_nodes_iter() if n != self.target_node]
+        nodes = [
+            (n, self.in_out_ratio(n))
+            for n in self.unscored_nodes_iter()
+            if n != self.target_node
+        ]
+
         node, deg = min(nodes, key=itemgetter(1))
         log.log(5, 'checking %s (in/out ratio: %.3f)', node, deg)
 
