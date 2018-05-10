@@ -10,20 +10,28 @@ __all__ = [
 
 
 def search_node_names(graph, query):
-    """Searches for nodes containing a given string
+    """Search for nodes containing a given string(s).
 
     :param pybel.BELGraph graph: A BEL graph
     :param query: The search query
     :type query: str or iter[str]
     :return: An iterator over nodes whose names match the search query
     :rtype: iter
-    """
 
+    Example:
+
+    .. code-block:: python
+
+        >>> from pybel.examples import sialic_acid_graph
+        >>> from pybel_tools.selection import search_node_names
+        >>> list(search_node_names(sialic_acid_graph, 'CD33'))
+        [('Protein', 'HGNC', 'CD33'), ('Protein', 'HGNC', 'CD33', ('pmod', ('bel', 'Ph')))]
+    """
     return filter_nodes(graph, build_node_name_search(query))
 
 
 def search_node_cnames(graph, query):
-    """Searches for nodes whose canonical names contain a given string(s)
+    """Search for nodes whose canonical names contain a given string(s).
 
     :param pybel.BELGraph graph: A BEL graph
     :param query: The search query
