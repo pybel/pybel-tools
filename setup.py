@@ -25,6 +25,7 @@ CLASSIFIERS = [
 ]
 INSTALL_REQUIRES = [
     'pybel>=0.11.1',
+    'pybel-artifactory',
     'pandas==0.20.3',
     'ols_client>=0.0.8',
     'networkx==1.11',
@@ -33,7 +34,6 @@ INSTALL_REQUIRES = [
     'click',
     'scipy',
     'numpy',
-    'artifactory',
     'jinja2',
     'tqdm',
 ]
