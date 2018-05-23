@@ -10,7 +10,6 @@ from xml.etree import ElementTree
 import requests
 
 from pybel.resources.constants import *
-from pybel.resources.defaults import default_annotations, default_namespace_patterns, default_namespaces
 from pybel.resources.document import make_knowledge_header
 from pybel_tools.constants import abstract_url_fmt, title_url_fmt
 
@@ -122,10 +121,10 @@ def write_boilerplate(name, version=None, description=None, authors=None, contac
         copyright=copyright,
         licenses=licenses,
         disclaimer=disclaimer,
-        namespace_url=namespace_url or default_namespaces,
+        namespace_url=namespace_url,
         namespace_owl=namespace_owl,
-        namespace_patterns=namespace_patterns or default_namespace_patterns,
-        annotation_url=annotation_url or default_annotations,
+        namespace_patterns=namespace_patterns,
+        annotation_url=annotation_url,
         annotation_owl=annotation_owl,
         annotation_patterns=annotation_patterns,
         annotation_list=annotation_list,
