@@ -216,43 +216,6 @@ class OlsNamespaceOntology(OlsOntology):
         self._write_hierarchy_header(file=file)
         self._write_hierarchy_body(file=file)
 
-    def deploy_namespace(self, hash_check=True):
-        """Gets the data and writes BEL namespace file to Artifactory
-
-        :param bool hash_check: Ensure the hash is unique before deploying
-        :return: The path, if it was deployed successfully, else none.
-        :rtype: str or None
-        """
-        file_name = get_today_arty_namespace(self.ontology)
-
-        with open(file_name, 'w') as file:
-            self.write_namespace(file)
-
-        return deploy_namespace(file_name, self.ontology, hash_check=hash_check, auth=self.auth)
-
-    def deploy_namespace_hierarchy(self):
-        """Gets the data and writes BEL hierarchy file to Artifactory
-
-        :return: The path, if it was deployed successfully, else none.
-        :rtype: str or None
-        """
-        file_name = get_today_arty_knowledge(self.ontology)
-
-        with open(file_name, 'w') as file:
-            self.write_namespace_hierarchy(file)
-
-        return deploy_knowledge(file_name, self.ontology, auth=self.auth)
-
-    def deploy(self, hash_check=True):
-        """Gets the data and writes BEL namespace file to Artifactory
-
-        :param bool hash_check: Ensure the hash is unique before deploying
-        """
-        namespace_url = self.deploy_namespace(hash_check=hash_check)
-
-        if not namespace_url:
-            self.deploy_namespace_hierarchy()
-
 
 class OlsAnnotationOntology(OlsOntology):
     def write_annotation(self, file=None):
@@ -271,20 +234,6 @@ class OlsAnnotationOntology(OlsOntology):
             author_copyright='Creative Commons by 4.0',
             file=file
         )
-
-    def deploy_annotation(self, hash_check=True):
-        """Gets the data and writes BEL annotation file to Artifactory
-
-       :param bool hash_check: Ensure the hash is unique before deploying
-       :return: The path, if it was deployed successfully, else none.
-       :rtype: str or None
-       """
-        file_name = get_today_arty_annotation(self.ontology)
-
-        with open(file_name, 'w') as file:
-            self.write_annotation(file)
-
-        return deploy_annotation(file_name, self.ontology, hash_check=hash_check, auth=self.auth)
 
 
 class OlsConstrainedOntology(OlsOntology):
