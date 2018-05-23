@@ -272,34 +272,6 @@ def write(name, keyword, domain, citation, author, description, species, version
     )
 
 
-def _hash_helper(file):
-    resource = parse_bel_resource(file)
-
-    result = hash_names(
-        resource['Values'],
-        hash_function=hashlib.md5
-    )
-
-    click.echo(result)
-
-
-@namespace.command()
-@click.option('-f', '--file', type=click.File('r'), default=sys.stdin)
-def semhash(file):
-    """Semantic hash a namespace file"""
-    _hash_helper(file)
-
-
-@namespace.command()
-@click.argument('namespace')
-def history(namespace):
-    """Hash all versions on Arty"""
-    from pybel.resources.arty import get_namespace_history
-
-    for path in get_namespace_history(namespace):
-        h = get_bel_resource_hash(path.as_posix())
-        click.echo('{}\t{}'.format(path, h))
-
 
 @namespace.command()
 @click.option('-f', '--file', type=click.File('r'), default=sys.stdin, help="Path to input BEL Namespace file")
@@ -325,41 +297,12 @@ def convert_to_annotation(file, output):
 @click.option('-e', '--encoding', default=BELNS_ENCODING_STR, help='The BEL Namespace encoding')
 @click.option('-d', '--domain', type=click.Choice(NAMESPACE_DOMAIN_TYPES), default=NAMESPACE_DOMAIN_OTHER)
 @click.option('-b', '--ols-base-url', default=BASE_URL, help='Default: {}'.format(BASE_URL))
-@click.option('--deploy', is_flag=True, help='Deploy to artifactory')
-@click.option('--no-hash-check', is_flag=True, help='Do not check if already deployed first')
 @click.option('-o', '--output', type=click.File('w'), default=sys.stdout,
               help='The file to output to. Defaults to standard out.')
-def from_ols(ontology, domain, encoding, ols_base_url, deploy, no_hash_check, output):
+def from_ols(ontology, domain, encoding, ols_base_url, output):
     """Creates a namespace from the ontology lookup service given the internal ontology keyword"""
     ont = OlsNamespaceOntology(ontology, domain, encoding=encoding, ols_base=ols_base_url)
     ont.write_namespace(output)
-
-    if deploy:
-        ont.deploy_namespace(hash_check=(not no_hash_check))
-
-
-@main.group()
-def annotation():
-    """Annotation file utilities"""
-
-
-@annotation.command()
-@click.argument('annotation')
-def history(annotation):
-    """Outputs the hashes for the annotation's versions"""
-    from pybel.resources.arty import get_annotation_history
-
-    for path in get_annotation_history(annotation):
-        h = get_bel_resource_hash(path.as_posix())
-        click.echo('{}\t{}'.format(path, h))
-
-
-@annotation.command()
-@click.option('-f', '--file', type=click.File('r'), default=sys.stdin)
-def semhash(file):
-    """Semantic hash a BEL annotation"""
-    _hash_helper(file)
-
 
 @annotation.command()
 @click.option('-f', '--file', type=click.File('r'), default=sys.stdin, help="Path to input BEL Namespace file")
@@ -397,18 +340,6 @@ def from_ols(ontology, domain, function, encoding, ols_base, output):
     """Creates a hierarchy from the ontology lookup service"""
     ont = OlsNamespaceOntology(ontology, domain, bel_function=function, encoding=encoding, ols_base=ols_base)
     ont.write_namespace_hierarchy(output)
-
-
-@document.command()
-@click.argument('name')
-def history(name):
-    """Outputs the hashes for the BEL scripts' versions"""
-    from pybel.resources.arty import get_knowledge_history
-    from pybel.resources.document import get_bel_knowledge_hash
-
-    for path in get_knowledge_history(name):
-        h = get_bel_knowledge_hash(path.as_posix())
-        click.echo('{}\t{}'.format(path, h))
 
 
 @document.command()
@@ -452,17 +383,6 @@ def serialize_namespaces(namespaces, connection, path, directory):
 
     graph = from_lines(path, manager=connection)
     export_namespaces(namespaces, graph, directory)
-
-
-@main.command()
-@click.argument('directory')
-@click.option('-v', '--debug', count=True, help="Turn on debugging. More v's, more debugging")
-def upload_resources(directory, debug):
-    """Uploads the resources in a directory to arty"""
-    from pybel.resources.deploy import deploy_directory
-
-    set_debug_param(debug)
-    deploy_directory(directory)
 
 
 @io.command()
