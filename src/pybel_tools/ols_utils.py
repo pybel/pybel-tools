@@ -4,13 +4,11 @@ import os
 from collections import defaultdict
 
 from ols_client import OlsClient
+
 from pybel.constants import CITATION_TYPE_URL, IS_A, NAMESPACE_DOMAIN_TYPES, belns_encodings, rev_abundance_labels
-from pybel.resources.arty import (
-    get_latest_arty_namespace, get_today_arty_annotation, get_today_arty_knowledge, get_today_arty_namespace,
-)
 from pybel.resources.definitions import write_annotation, write_namespace
-from pybel.resources.deploy import deploy_annotation, deploy_knowledge, deploy_namespace
 from pybel.utils import ensure_quotes
+from pybel_artifactory import get_namespace_latest
 from pybel_tools.document_utils import write_boilerplate
 
 __all__ = [
@@ -36,8 +34,7 @@ class OlsOntology(object):
         :param str ontology: The name of the ontology. Ex: ``uberon``, ``go``, etc.
         :param Optional[str] ols_base: An optional, custom OLS base url
         :param auth: A pair of (str username, str password) to give to the auth keyword of the constructor of
-                     :class:`artifactory.ArtifactoryPath`. Defaults to the result of
-                     :func:`pybel_tools.resources.get_arty_auth`.
+                     :class:`artifactory.ArtifactoryPath`. Looks up from environment by default.
         :type auth:  Optional[tuple[str,str]]
         """
         self.ontology = ontology
@@ -185,7 +182,7 @@ class OlsNamespaceOntology(OlsOntology):
             authors='Charles Tapley Hoyt',
             contact='charles.hoyt@scai.fraunhofer.de',
             version=self.version,
-            namespace_url={self.preferred_prefix: get_latest_arty_namespace(self.ontology)},
+            namespace_url={self.preferred_prefix: get_namespace_latest(self.ontology)},
             annotation_url={},
             annotation_patterns={},
             namespace_patterns={},

@@ -6,17 +6,17 @@ To run, type :code:`python3 -m pybel_tools.analysis.neurommsig` in the command l
 """
 
 import itertools as itt
+
 import logging
 import os
+import pandas as pd
 import re
 import time
 from functools import partial
 
-import pandas as pd
-
-from pybel.resources.defaults import DBSNP_PATTERN, HGNC_HUMAN_GENES, MESHD, NEUROMMSIG, NIFT
 from pybel.resources.definitions import get_bel_resource
 from pybel.utils import ensure_quotes
+from pybel_artifactory.defaults import DBSNP_PATTERN, HGNC_HUMAN_GENES, MESHD, NEUROMMSIG, NIFT
 from ...document_utils import write_boilerplate
 
 log = logging.getLogger(__name__)
