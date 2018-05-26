@@ -6,18 +6,18 @@ To run, type :code:`python3 -m pybel_tools.analysis.neurommsig` in the command l
 """
 
 import itertools as itt
-
 import logging
 import os
-import pandas as pd
 import re
 import time
 from functools import partial
 
+import pandas as pd
+
 from pybel.resources.definitions import get_bel_resource
+from pybel.resources.document import make_knowledge_header
 from pybel.utils import ensure_quotes
 from pybel_artifactory.defaults import DBSNP_PATTERN, HGNC_HUMAN_GENES, MESHD, NEUROMMSIG, NIFT
-from ...document_utils import write_boilerplate
 
 log = logging.getLogger(__name__)
 
@@ -171,7 +171,7 @@ def get_nift_values():
 
 
 def write_neurommsig_biolerplate(disease, file):
-    write_boilerplate(
+    lines = make_knowledge_header(
         name='NeuroMMSigDB for {}'.format(disease),
         description='SNP and Clinical Features for Subgraphs in {}'.format(disease),
         authors='Daniel Domingo-Fernandez, Charles Tapley Hoyt, Mufassra Naz, Aybuge Altay, Anandhi Iyappan',
@@ -188,8 +188,10 @@ def write_neurommsig_biolerplate(disease, file):
             'Subgraph': NEUROMMSIG,
             'MeSHDisease': MESHD
         },
-        file=file
     )
+
+    for line in lines:
+        print(line, file=file)
 
     print('SET Citation = {"PubMed", "NeuroMMSigDB", "28651363"}', file=file)
     print('SET Evidence = "Serialized from NeuroMMSigDB"', file=file)
