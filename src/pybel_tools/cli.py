@@ -16,27 +16,23 @@ Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 
 from __future__ import print_function
 
-import hashlib
 import logging
 import os
 import sys
 from getpass import getuser
 
 import click
-from ols_client.constants import BASE_URL
 
 from pybel.constants import (
-    BELNS_ENCODING_STR, LARGE_CORPUS_URL, NAMESPACE_DOMAIN_OTHER, NAMESPACE_DOMAIN_TYPES,
-    SMALL_CORPUS_URL, get_cache_connection,
+    LARGE_CORPUS_URL, NAMESPACE_DOMAIN_OTHER, SMALL_CORPUS_URL, get_cache_connection,
 )
 from pybel.resources.definitions import (
-    get_bel_resource_hash, hash_names, parse_bel_resource, write_namespace,
+    parse_bel_resource, write_namespace,
 )
 from pybel.struct import get_pubmed_identifiers, union
 from pybel.utils import get_version as pybel_version
 from .constants import DEFAULT_SERVICE_URL, NAMED_COMPLEXES_URL
 from .ioutils import convert_paths, get_paths_recursive, upload_recursive
-from .ols_utils import OlsNamespaceOntology
 from .utils import enable_cool_mode, get_version
 
 log = logging.getLogger(__name__)
@@ -272,7 +268,6 @@ def write(name, keyword, domain, citation, author, description, species, version
     )
 
 
-
 @namespace.command()
 @click.option('-f', '--file', type=click.File('r'), default=sys.stdin, help="Path to input BEL Namespace file")
 @click.option('-o', '--output', type=click.File('w'), default=sys.stdout,
@@ -292,17 +287,6 @@ def convert_to_annotation(file, output):
     )
 
 
-@namespace.command()
-@click.argument('ontology')
-@click.option('-e', '--encoding', default=BELNS_ENCODING_STR, help='The BEL Namespace encoding')
-@click.option('-d', '--domain', type=click.Choice(NAMESPACE_DOMAIN_TYPES), default=NAMESPACE_DOMAIN_OTHER)
-@click.option('-b', '--ols-base-url', default=BASE_URL, help='Default: {}'.format(BASE_URL))
-@click.option('-o', '--output', type=click.File('w'), default=sys.stdout,
-              help='The file to output to. Defaults to standard out.')
-def from_ols(ontology, domain, encoding, ols_base_url, output):
-    """Creates a namespace from the ontology lookup service given the internal ontology keyword"""
-    ont = OlsNamespaceOntology(ontology, domain, encoding=encoding, ols_base=ols_base_url)
-    ont.write_namespace(output)
 @main.group()
 def annotation():
     """Annotation file utilities"""
@@ -331,19 +315,6 @@ def convert_to_namespace(file, output, keyword):
 @main.group()
 def document():
     """BEL document utilities"""
-
-
-@document.command()
-@click.argument('ontology')
-@click.argument('domain')
-@click.option('--function')
-@click.option('--encoding')
-@click.option('-b', '--ols-base')
-@click.option('-o', '--output', type=click.File('w'), default=sys.stdout)
-def from_ols(ontology, domain, function, encoding, ols_base, output):
-    """Creates a hierarchy from the ontology lookup service"""
-    ont = OlsNamespaceOntology(ontology, domain, bel_function=function, encoding=encoding, ols_base=ols_base)
-    ont.write_namespace_hierarchy(output)
 
 
 @document.command()
