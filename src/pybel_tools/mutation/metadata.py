@@ -4,18 +4,17 @@ import logging
 
 from pybel.canonicalize import calculate_canonical_name
 from pybel.constants import CITATION, CITATION_AUTHORS, CITATION_REFERENCE, HASH
+from pybel.manager.citation_utils import get_citations_by_pmids
 from pybel.struct.filters import filter_edges, filter_nodes
 from pybel.struct.filters.edge_predicates import has_authors, has_pubmed
+from pybel.struct.summary import get_pubmed_identifiers
 from pybel.struct.summary.node_summary import get_namespaces
 from pybel.tokens import node_to_tuple
 from pybel.utils import hash_edge, hash_node
 from .. import pipeline
-from ..citation_utils import get_citations_by_pmids
 from ..constants import CNAME
 from ..filters.node_filters import node_missing_cname
 from ..summary.edge_summary import get_annotations
-from pybel.struct.summary import get_pubmed_identifiers
-
 
 __all__ = [
     'parse_authors',
@@ -169,7 +168,7 @@ def update_context(universe, graph):
             log.warning('annotation: %s missing from universe', annotation)
 
 
-def add_identifiers(graph): # FIXME this function shouldn't have to exist.
+def add_identifiers(graph):  # FIXME this function shouldn't have to exist.
     """Adds stable node and edge identifiers to the graph, in-place using the PyBEL
     node and edge hashes as a hexadecimal str.
 
