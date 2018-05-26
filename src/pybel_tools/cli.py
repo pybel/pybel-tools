@@ -303,6 +303,10 @@ def from_ols(ontology, domain, encoding, ols_base_url, output):
     """Creates a namespace from the ontology lookup service given the internal ontology keyword"""
     ont = OlsNamespaceOntology(ontology, domain, encoding=encoding, ols_base=ols_base_url)
     ont.write_namespace(output)
+@main.group()
+def annotation():
+    """Annotation file utilities"""
+
 
 @annotation.command()
 @click.option('-f', '--file', type=click.File('r'), default=sys.stdin, help="Path to input BEL Namespace file")
