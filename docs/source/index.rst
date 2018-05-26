@@ -63,7 +63,6 @@ Links
    ioutils
    documentutils
    utilities
-   lexer
 
 
 Indices and tables

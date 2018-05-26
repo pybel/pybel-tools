@@ -2,8 +2,6 @@
 
 """Utilities to merge multiple BEL documents on the same topic"""
 
-from __future__ import print_function
-
 import logging
 from xml.etree import ElementTree
 
@@ -14,7 +12,6 @@ from pybel.resources.document import make_knowledge_header
 from pybel_tools.constants import abstract_url_fmt, title_url_fmt
 
 __all__ = [
-    'get_entrez_gene_data',
     'write_boilerplate',
 ]
 
@@ -88,9 +85,8 @@ def make_pubmed_gene_group(entrez_ids):
 
 
 def write_boilerplate(name, version=None, description=None, authors=None, contact=None, copyright=None, licenses=None,
-                      disclaimer=None, namespace_url=None, namespace_owl=None, namespace_patterns=None,
-                      annotation_url=None, annotation_owl=None, annotation_patterns=None, annotation_list=None,
-                      pmids=None, entrez_ids=None, file=None):
+                      disclaimer=None, namespace_url=None, namespace_patterns=None, annotation_url=None,
+                      annotation_patterns=None, annotation_list=None, pmids=None, entrez_ids=None, file=None):
     """Writes a boilerplate BEL document, with standard document metadata, definitions.
 
     :param str name: The unique name for this BEL document
@@ -102,10 +98,8 @@ def write_boilerplate(name, version=None, description=None, authors=None, contac
     :param str licenses: The license applied to this document
     :param str disclaimer: The disclaimer for this document
     :param dict[str,str] namespace_url: an optional dictionary of {str name: str URL} of namespaces
-    :param dict[str,str] namespace_owl: an optional dictionary of {str name: str URL} of namespaces
     :param dict[str,str] namespace_patterns: An optional dictionary of {str name: str regex} namespaces
     :param dict[str,str] annotation_url: An optional dictionary of {str name: str URL} of annotations
-    :param dict[str,str] annotation_owl: An optional dictionary of {str name: str URL} of OWL annotations
     :param dict[str,str] annotation_patterns: An optional dictionary of {str name: str regex} of regex annotations
     :param dict[str,set[str]] annotation_list: An optional dictionary of {str name: set of names} of list annotations
     :param iter[str] or iter[int] pmids: A list of PubMed identifiers to auto-populate with citation and abstract
@@ -122,10 +116,8 @@ def write_boilerplate(name, version=None, description=None, authors=None, contac
         licenses=licenses,
         disclaimer=disclaimer,
         namespace_url=namespace_url,
-        namespace_owl=namespace_owl,
         namespace_patterns=namespace_patterns,
         annotation_url=annotation_url,
-        annotation_owl=annotation_owl,
         annotation_patterns=annotation_patterns,
         annotation_list=annotation_list,
     )

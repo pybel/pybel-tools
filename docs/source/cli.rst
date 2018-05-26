@@ -64,23 +64,3 @@ Multiple networks in a given directory and sub-directories can be uploaded by ad
 
     $ pybel-tools io upload -p ~/bms/aetionomy/ -r
 
-Building Resources via OLS
---------------------------
-Namespaces, annotations, and hierarchies can be created by querying the ontologies stored in the EBI Ontology Lookup
-Service.
-
-Namespace
-~~~~~~~~~
-In order to convert UBERON to a namespace, the keyword inside the OLS, ``uberon`` is used as well as specifying the
-encoding type and the applicability domain. The ``-o`` option can be used to specify which file to write the output
-to.
-
-.. code-block:: bash
-
-    $ pybel-tools namespace from_ols uberon --domain Other --encoding A
-
-Alternatively, the '-b' option can be used to specify an alternate OLS instance
-
-.. code-block:: bash
-
-    $ pybel-tools namespace from_ols uberon --domain Other --encoding A -b https://localhost/ols
