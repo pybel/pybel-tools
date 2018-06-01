@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-"""
-To run, type :code:`python3 -m pybel_tools.analysis.neurommsig.export` in the command line
+"""This module contains the functions needed to process the NeuroMMSig excel sheets as well as export as BEL.
+
+To run, type :code:`python3 -m pybel_tools.analysis.neurommsig` in the command line
 """
 
 import itertools as itt
@@ -13,10 +14,10 @@ from functools import partial
 
 import pandas as pd
 
-from pybel.resources.defaults import DBSNP_PATTERN, HGNC_HUMAN_GENES, MESHD, NEUROMMSIG, NIFT
 from pybel.resources.definitions import get_bel_resource
+from pybel.resources.document import make_knowledge_header
 from pybel.utils import ensure_quotes
-from pybel_tools.document_utils import write_boilerplate
+from pybel_artifactory.defaults import DBSNP_PATTERN, HGNC_HUMAN_GENES, MESHD, NEUROMMSIG, NIFT
 
 log = logging.getLogger(__name__)
 
@@ -170,11 +171,11 @@ def get_nift_values():
 
 
 def write_neurommsig_biolerplate(disease, file):
-    write_boilerplate(
+    lines = make_knowledge_header(
         name='NeuroMMSigDB for {}'.format(disease),
         description='SNP and Clinical Features for Subgraphs in {}'.format(disease),
-        authors='Daniel Domingo, Charles Tapley Hoyt, Mufassra Naz, Aybuge Altay, Anandhi Iyappan',
-        contact='charles.hoyt@scai.fraunhofer.de',
+        authors='Daniel Domingo-Fernandez, Charles Tapley Hoyt, Mufassra Naz, Aybuge Altay, Anandhi Iyappan',
+        contact='daniel.domingo.fernandez@scai.fraunhofer.de',
         version=time.strftime('%Y%m%d'),
         namespace_url={
             'NIFT': NIFT,
@@ -187,14 +188,17 @@ def write_neurommsig_biolerplate(disease, file):
             'Subgraph': NEUROMMSIG,
             'MeSHDisease': MESHD
         },
-        file=file
     )
+
+    for line in lines:
+        print(line, file=file)
 
     print('SET Citation = {"PubMed", "NeuroMMSigDB", "28651363"}', file=file)
     print('SET Evidence = "Serialized from NeuroMMSigDB"', file=file)
     print('SET MeSHDisease = "{}"\n'.format(disease), file=file)
 
 
+# TODO re-write with DSL
 def write_neurommsig_bel(file, df, disease, nift_values):
     """Writes the NeuroMMSigDB excel sheet to BEL
 
@@ -257,28 +261,3 @@ def write_neurommsig_bel(file, df, disease, nift_values):
         log.warning('Fixed capitalization')
     for broken, fixed in fixed_caps:
         log.warning('%s -> %s', broken, fixed)
-
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
-    log.setLevel(logging.INFO)
-
-    bms_base = os.environ['BMS_BASE']
-    neurommsig_base = os.environ['NEUROMMSIG_BASE']
-    neurommsig_excel_dir = os.path.join(neurommsig_base, 'resources', 'excels', 'neurommsig')
-
-    nift_values = get_nift_values()
-
-    log.info('Starting Alzheimers')
-
-    ad_path = os.path.join(neurommsig_excel_dir, 'alzheimers', 'alzheimers.xlsx')
-    ad_df = preprocess(ad_path)
-    with open(os.path.join(bms_base, 'aetionomy', 'alzheimers', 'neurommsigdb_ad.bel'), 'w') as ad_file:
-        write_neurommsig_bel(ad_file, ad_df, mesh_alzheimer, nift_values)
-
-    log.info('Starting Parkinsons')
-
-    pd_path = os.path.join(neurommsig_excel_dir, 'parkinsons', 'parkinsons.xlsx')
-    pd_df = preprocess(pd_path)
-    with open(os.path.join(bms_base, 'aetionomy', 'parkinsons', 'neurommsigdb_pd.bel'), 'w') as pd_file:
-        write_neurommsig_bel(pd_file, pd_df, mesh_parkinson, nift_values)

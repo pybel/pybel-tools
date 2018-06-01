@@ -7,25 +7,16 @@ import itertools as itt
 import json
 import logging
 import os
-import time
 from collections import Counter, defaultdict
 from operator import itemgetter
 
-import jinja2
 import networkx as nx
-import pandas as pd
-from pkg_resources import get_distribution
-from six.moves import zip_longest
 
-from pybel.constants import (
-    CITATION_AUTHORS, CITATION_COMMENTS, CITATION_DATE, CITATION_NAME, CITATION_REFERENCE,
-    CITATION_TYPE, RELATION,
-)
+from .constants import VERSION
 
 log = logging.getLogger(__name__)
 
 CENTRALITY_SAMPLES = 200
-
 
 
 def pairwise(iterable):
@@ -59,6 +50,7 @@ def count_defaultdict(dict_of_lists):
         k: Counter(v)
         for k, v in dict_of_lists.items()
     }
+
 
 def count_dict_values(dict_of_counters):
     """Counts the number of elements in each value (can be list, Counter, etc)
@@ -195,10 +187,10 @@ def all_edges_iter(graph, u, v):
     :return: A list of (node, node, key)
     :rtype: list[tuple]
     """
-    if u not in graph.edge or v not in graph.edge[u]:
+    if u not in graph or v not in graph[u]:
         raise ValueError('Graph has no edges')
 
-    for k in graph.edge[u][v].keys():
+    for k in graph[u][v].keys():
         yield u, v, k
 
 
@@ -225,21 +217,6 @@ def barv(d, plt, title=None, rotation='vertical'):
         plt.title(title)
 
 
-def is_edge_consistent(graph, u, v):
-    """Checks if all edges between two nodes have the same relation
-
-    :param pybel.BELGraph graph: A BEL Graph
-    :param tuple u: The source BEL node
-    :param tuple v: The target BEL node
-    :return: If all edges from the source to target node have the same relation
-    :rtype: bool
-    """
-    if not graph.has_edge(u, v):
-        raise ValueError('{} does not contain an edge ({}, {})'.format(graph, u, v))
-
-    return 0 == len(set(d[RELATION] for d in graph.edge[u][v].values()))
-
-
 def safe_add_edge(graph, u, v, key, attr_dict, **attr):
     """Adds an edge while preserving negative keys, and paying no respect to positive ones
 
@@ -264,24 +241,6 @@ def safe_add_edges(graph, edges):
     """
     for source, target, key, attr_dict in edges:
         safe_add_edge(graph, source, target, key=key, attr_dict=attr_dict)
-
-
-def load_differential_gene_expression(data_path, gene_symbol_column='Gene.symbol', logfc_column='logFC'):
-    """Quick and dirty loader for differential gene expression data
-
-    :param str data_path:
-    :param str gene_symbol_column:
-    :param str logfc_colun:
-    :return: A dictionary of {gene symbol: log fold change}
-    :rtype: dict
-    """
-    df = pd.read_csv(data_path)
-    df = df.loc[df[gene_symbol_column].notnull(), [gene_symbol_column, logfc_column]]
-
-    return {
-        k: v
-        for _, k, v in df.itertuples()
-    }
 
 
 def prepare_c3(data, y_axis_label='y', x_axis_label='x'):
@@ -328,21 +287,14 @@ def prepare_c3_time_series(data, y_axis_label='y', x_axis_label='x'):
     ])
 
 
-def get_version():
-    """Gets the current PyBEL Tools version
-
-    :return: The current PyBEL Tools version
-    :rtype: str
-    """
-    return get_distribution('pybel_tools').version
-
-
 def build_template_environment(here):
     """Builds a custom templating enviroment so Flask apps can get data from lots of different places
     
     :param str here: Give this the result of :code:`os.path.dirname(os.path.abspath(__file__))`
     :rtype: jinja2.Environment
     """
+    import jinja2
+
     template_environment = jinja2.Environment(
         autoescape=False,
         loader=jinja2.FileSystemLoader(os.path.join(here, 'templates')),
@@ -378,7 +330,8 @@ def build_template_renderer(file):
 
 def enable_cool_mode():
     log.info('enabled cool mode')
-    logging.getLogger('pybel.parser').setLevel(50)
+    logging.getLogger('urllib3.connectionpool').setLevel(logging.ERROR)
+    logging.getLogger('pybel.parser').setLevel(logging.CRITICAL)
 
 
 def calculate_betweenness_centality(graph, k=CENTRALITY_SAMPLES):
@@ -392,32 +345,8 @@ def calculate_betweenness_centality(graph, k=CENTRALITY_SAMPLES):
     try:
         res = Counter(nx.betweenness_centrality(graph, k=k))
         return res
-    except:
+    except Exception:
         return Counter(nx.betweenness_centrality(graph))
-
-
-def grouper(n, iterable, fillvalue=None):
-    "grouper(3, 'ABCDEFG', 'x') --> ABC DEF Gxx"
-    args = [iter(iterable)] * n
-    return zip_longest(*args, fillvalue=fillvalue)
-
-
-def get_iso_8601_date():
-    """Gets the current ISO 8601 date as a string
-
-    :rtype: str
-    """
-    return time.strftime('%Y%m%d')
-
-
-def hash_str_to_int(hash_str, length=16):
-    """Hashes a tuple to the given number of digits
-
-    :param str hash_str: Basically anything that can be pickled deterministically
-    :param int length: The length of the hash to keep
-    :rtype: int
-    """
-    return int(hash_str, 16) % (10 ** length)
 
 
 def get_circulations(t):
@@ -439,3 +368,12 @@ def canonical_circulation(t, key=None):
     :return: The
     """
     return min(get_circulations(t), key=key)
+
+
+def get_version():
+    """Gets the current PyBEL Tools version
+
+    :return: The current PyBEL Tools version
+    :rtype: str
+    """
+    return VERSION

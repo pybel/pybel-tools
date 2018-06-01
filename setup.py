@@ -3,7 +3,6 @@
 import codecs
 import os
 import re
-import sys
 
 import setuptools
 
@@ -19,39 +18,29 @@ CLASSIFIERS = [
     'License :: OSI Approved :: Apache Software License',
     'Operating System :: OS Independent',
     'Programming Language :: Python',
-    'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.4',
     'Programming Language :: Python :: 3.5',
+    'Programming Language :: Python :: 3.6',
     'Topic :: Scientific/Engineering :: Bio-Informatics'
 ]
 INSTALL_REQUIRES = [
-    'requests',
-    'sqlalchemy==1.1.15',
+    'pybel>=0.11.2',
+    'pybel-artifactory',
+    'pandas==0.20.3',
     'networkx==1.11',
-    'pybel>=0.10.1',
+    'requests',
+    'sqlalchemy',
     'click',
-    'pandas',
     'scipy',
     'numpy',
-    'artifactory',
     'jinja2',
-    'ols_client>=0.0.8',
+    'tqdm',
 ]
 
-if sys.version_info < (3,):
-    INSTALL_REQUIRES.append('funcsigs')
-    INSTALL_REQUIRES.append('functools32')
-    INSTALL_REQUIRES.append('enum')
-
 EXTRAS_REQUIRE = {
-    'obonet': [
-        'obonet',  # Enables GO integration
-    ],
-    'lexer': [
-        'pygments',
-    ],
     'ipython': [
         'ipython',  # Enable inline viewing in Jupyter notebooks
-    ]
+    ],
 }
 TESTS_REQUIRE = []
 ENTRY_POINTS = {

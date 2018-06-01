@@ -3,73 +3,25 @@
 """Utilities for loading and exporting BEL graphs"""
 
 import logging
-
 import os
-import requests
 
-import pybel
-from pybel import from_path, to_pickle, from_pickle, to_database
-from pybel.io.io_exceptions import ImportVersionWarning
+from pybel import from_pickle, to_database, to_pickle, to_web
+from pybel.io.exc import ImportVersionWarning
 from pybel.manager import Manager
-from pybel.struct import union
-from pybel.utils import get_version as get_pybel_version
-from .constants import DEFAULT_SERVICE_URL
-from .integration import HGNCAnnotator
-from .mutation import opening_on_central_dogma
-from .mutation.metadata import enrich_pubmed_citations, add_canonical_names
+from .io import from_path_ensure_pickle
+from .mutation import add_canonical_names, enrich_pubmed_citations, infer_central_dogma as infer_central_dogma_mutator
 from .selection import get_subgraph_by_annotation_value
 from .summary import get_annotation_values
 
 __all__ = [
-    'load_paths',
-    'load_directory',
     'subgraphs_to_pickles',
     'convert_paths',
     'convert_directory',
-    'to_pybel_web',
     'get_paths_recursive',
     'upload_recursive',
 ]
 
 log = logging.getLogger(__name__)
-
-
-def load_paths(paths, connection=None):
-    """Loads a group of BEL graphs.
-
-    Internally, this function uses a shared :class:`pybel.parser.MetadataParser` to cache the definitions more
-    efficiently.
-
-    :param iter[str] paths: An iterable over paths to BEL scripts
-    :param str connection: A custom database connection string
-    :type connection: None or str or pybel.manager.Manager
-    :return: A BEL graph comprised of the union of all BEL graphs produced by each BEL script
-    :rtype: pybel.BELGraph
-    """
-    manager = Manager.ensure(connection)
-
-    return union(
-        from_path(path, manager=manager)
-        for path in paths
-    )
-
-
-def load_directory(directory, connection=None):
-    """Compiles all BEL scripts in the given directory and returns as a merged BEL graph using :func:`load_paths`
-
-    :param str directory: A path to a directory
-    :param str connection: A custom database connection string
-    :type connection: None or str or pybel.manager.Manager
-    :return: A BEL graph comprised of the union of all BEL graphs produced by each BEL script
-    :rtype: pybel.BELGraph
-    """
-    paths = (
-        path
-        for path in os.listdir(directory)
-        if path.endswith('.bel')
-    )
-
-    return load_paths(paths, connection=connection)
 
 
 def get_paths_recursive(directory, extension='.bel', exclude_directory_pattern=None):
@@ -88,74 +40,54 @@ def get_paths_recursive(directory, extension='.bel', exclude_directory_pattern=N
                 yield os.path.join(root, file)
 
 
-def convert_paths(paths, connection=None, upload=False, pickle=False, canonicalize=True, infer_central_dogma=True,
-                  enrich_citations=False, enrich_genes=False, enrich_go=False, send=False, version_in_path=False,
-                  **kwargs):
+def convert_paths(paths, connection=None, upload=False, canonicalize=True, infer_central_dogma=True,
+                  enrich_citations=False, send=False, **kwargs):
     """Recursively parses and either uploads/pickles graphs in a given set of files
 
     :param iter[str] paths: The paths to convert
     :param connection: The connection
     :type connection: None or str or pybel.manager.Manager
     :param bool upload: Should the networks be uploaded to the cache?
-    :param bool pickle: Should the networks be saved as pickles?
     :param bool canonicalize: Calculate canonical nodes?
     :param bool infer_central_dogma: Should the central dogma be inferred for all proteins, RNAs, and miRNAs
     :param bool enrich_citations: Should the citations be enriched using Entrez Utils?
-    :param bool enrich_genes: Should the genes' descriptions be downloaded from Gene Cards?
-    :param bool enrich_go: Should the biological processes' descriptions be downloaded from Gene Ontology?
     :param bool send: Send to PyBEL Web?
-    :param bool version_in_path: Add the current pybel version to the pathname
     :param kwargs: Parameters to pass to :func:`pybel.from_path`
+    :return: A pair of a dictionary {path: bel graph} and list of failed paths
+    :rtype: tuple[dict[str,pybel.BELGraph],list[str]]
     """
-    from .integration.description.go_annotator import GOAnnotator
     manager = Manager.ensure(connection)
-    hgnc_annotator = HGNCAnnotator(preload=enrich_genes)
-    go_annotator = GOAnnotator(preload=enrich_go)
 
+    successes = {}
     failures = []
 
     for path in paths:
-        log.info('Parsing path: %s', path)
-
         try:
-            network = from_path(path, manager=manager, **kwargs)
+            graph = from_path_ensure_pickle(path, connection=manager, **kwargs)
         except Exception as e:
-            log.exception('Problem parsing %s', path)
+            log.exception('problem parsing %s', path)
             failures.append((path, e))
             continue
 
         if canonicalize:
-            add_canonical_names(network)
+            add_canonical_names(graph)
 
         if infer_central_dogma:
-            opening_on_central_dogma(network)
+            infer_central_dogma_mutator(graph)
 
         if enrich_citations:
-            enrich_pubmed_citations(network, manager=manager)
-
-        if enrich_genes and hgnc_annotator.download_successful:
-            hgnc_annotator.annotate(network)
-
-        if enrich_go and go_annotator.download_successful:
-            go_annotator.annotate(network)
+            enrich_pubmed_citations(graph=graph, manager=manager)
 
         if upload:
-            to_database(network, connection=manager, store_parts=True)
-
-        if pickle:
-            name = path[:-4]  # [:-4] gets rid of .bel at the end of the file name
-
-            if version_in_path:
-                new_path = '{}-{}.gpickle'.format(name, get_pybel_version())
-            else:
-                new_path = '{}.gpickle'.format(name)
-
-            to_pickle(network, new_path)
+            to_database(graph, connection=manager, store_parts=True)
 
         if send:
-            to_pybel_web(network)
+            response = to_web(graph)
+            log.info('sent to PyBEL Web with response: %s', response.json())
 
-    return failures
+        successes[path] = graph
+
+    return successes, failures
 
 
 def convert_directory(directory, connection=None, upload=False, pickle=False, canonicalize=True,
@@ -185,7 +117,7 @@ def convert_directory(directory, connection=None, upload=False, pickle=False, ca
         connection=connection,
         upload=upload,
         pickle=pickle,
-        canonicalize= canonicalize,
+        canonicalize=canonicalize,
         infer_central_dogma=infer_central_dogma,
         enrich_citations=enrich_citations,
         enrich_genes=enrich_genes,
@@ -203,8 +135,8 @@ def upload_recursive(directory, connection=None, exclude_directory_pattern=None)
     
     :param str directory: the directory to traverse
     :param connection: A connection string or manager
-    :type connection: None or str or pybel.manage.Manager
-    :param str exclude_directory_pattern: Any directory names to exclude
+    :type connection: Optional[str or pybel.manage.Manager]
+    :param Optional[str] exclude_directory_pattern: Any directory names to exclude
     """
     manager = Manager.ensure(connection)
     paths = list(get_paths_recursive(
@@ -224,33 +156,20 @@ def upload_recursive(directory, connection=None, exclude_directory_pattern=None)
         to_database(network, connection=manager, store_parts=True)
 
 
-def subgraphs_to_pickles(network, directory=None, annotation='Subgraph'):
+def subgraphs_to_pickles(network, annotation, directory=None):
     """Groups the given graph into subgraphs by the given annotation with :func:`get_subgraph_by_annotation` and
     outputs them as gpickle files to the given directory with :func:`pybel.to_pickle`
 
     :param pybel.BELGraph network: A BEL network
-    :param str directory: A directory to output the pickles
     :param str annotation: An annotation to split by. Suggestion: ``Subgraph``
+    :param Optional[str] directory: A directory to output the pickles
     """
-    directory = os.getcwd() if directory is None else directory
-    for value in get_annotation_values(network, annotation=annotation):
+    directory = directory or os.getcwd()
+
+    for value in get_annotation_values(network, annotation):
         sg = get_subgraph_by_annotation_value(network, annotation, value)
         sg.document.update(network.document)
 
         file_name = '{}_{}.gpickle'.format(annotation, value.replace(' ', '_'))
         path = os.path.join(directory, file_name)
         to_pickle(sg, path)
-
-
-def to_pybel_web(network, service=None):
-    """Sends a graph to the receiver service and returns the :mod:`requests` response object
-
-    :param pybel.BELGraph network: A BEL network
-    :param str service: The location of the PyBEL web server. Defaults to :data:`DEFAULT_SERVICE_URL`
-    :return: The response object from :mod:`requests`
-    :rtype: requests.Response
-    """
-    service = DEFAULT_SERVICE_URL if service is None else service
-    url = service + '/api/receive'
-    headers = {'content-type': 'application/json'}
-    return requests.post(url, json=pybel.to_json(network), headers=headers)

@@ -10,14 +10,12 @@ representing whether the node passed the given test.
 This module contains a set of default functions for filtering lists of nodes and building node filtering functions.
 
 A general use for a node filter function is to use the built-in :func:`filter` in code like
-:code:`filter(your_node_filter, graph.nodes_iter())`
+:code:`filter(your_node_filter, graph)`
 """
 
 from __future__ import print_function
 
 from collections import Iterable
-
-from six import string_types
 
 from pybel.constants import *
 from pybel.struct.filters.node_filters import count_passed_node_filter
@@ -145,7 +143,7 @@ def function_inclusion_filter_builder(func):
     :return: A node filter (graph, node) -> bool
     :rtype: types.FunctionType
     """
-    if isinstance(func, string_types):
+    if isinstance(func, str):
         return _single_function_inclusion_filter_builder(func)
 
     elif isinstance(func, Iterable):
@@ -162,7 +160,7 @@ def function_exclusion_filter_builder(func):
     :return: A node filter (graph, node) -> bool
     :rtype: types.FunctionType
     """
-    if isinstance(func, string_types):
+    if isinstance(func, str):
         def function_exclusion_filter(graph, node):
             """Passes only for a node that doesn't have the enclosed function
 
@@ -175,7 +173,7 @@ def function_exclusion_filter_builder(func):
 
         return function_exclusion_filter
 
-    elif isinstance(func, (list, tuple, set)):
+    elif isinstance(func, Iterable):
         functions = set(func)
 
         def functions_exclusion_filter(graph, node):
@@ -197,11 +195,11 @@ def function_namespace_inclusion_builder(func, namespace):
     """Builds a filter function for matching the given BEL function with the given namespace or namespaces
 
     :param str func: A BEL function
-    :param str or list[str] or tuple[str] or set[str] namespace: The namespace to serach by
+    :param str or iter[str] namespace: The namespace to serach by
     :return: A node filter (graph, node) -> bool
     :rtype: types.FunctionType
     """
-    if isinstance(namespace, string_types):
+    if isinstance(namespace, str):
         def function_namespace_filter(graph, node):
             """Passes only for nodes that have the enclosed function and enclosed namespace
 
@@ -215,7 +213,7 @@ def function_namespace_inclusion_builder(func, namespace):
 
         return function_namespace_filter
 
-    elif isinstance(namespace, (list, tuple, set)):
+    elif isinstance(namespace, Iterable):
         namespaces = set(namespace)
 
         def function_namespaces_filter(graph, node):
@@ -237,11 +235,11 @@ def function_namespace_inclusion_builder(func, namespace):
 def namespace_inclusion_builder(namespace):
     """Builds a predicate for namespace inclusion
 
-    :param str or list[str] or tuple[str] or set[str] namespace: A namespace or iter of namespaces
+    :param str or iter[str] namespace: A namespace or iter of namespaces
     :return: A node filter (graph, node) -> bool
     :rtype: types.FunctionType
     """
-    if isinstance(namespace, string_types):
+    if isinstance(namespace, str):
 
         def namespace_filter(graph, node):
             """Passes only for a node that has the enclosed namespace
@@ -253,7 +251,8 @@ def namespace_inclusion_builder(namespace):
             return NAMESPACE in graph.node[node] and graph.node[node][NAMESPACE] == namespace
 
         return namespace_filter
-    elif isinstance(namespace, (list, tuple, set)):
+
+    elif isinstance(namespace, Iterable):
         namespaces = set(namespace)
 
         def namespaces_filter(graph, node):
@@ -344,6 +343,7 @@ def node_is_upstream_leaf(graph, node):
     """
     return 0 == len(graph.predecessors(node)) and 1 == len(graph.successors(node))
 
+
 # TODO node filter that is false for abundances with no in-edges
 
 
@@ -377,8 +377,10 @@ def build_node_key_search(query, key):
     :param query: The query string or strings to check if they're in the node name
     :type query: str or iter[str]
     :param str key: The key for the node data dictionary. Should refer only to entries that have str values
+    :return: A node predicate (graph, node) -> bool
+    :rtype: types.FunctionType
     """
-    if isinstance(query, string_types):
+    if isinstance(query, str):
         return build_node_data_search(key, lambda s: query.lower() in s.lower())
 
     if isinstance(query, Iterable):
@@ -390,12 +392,23 @@ def build_node_key_search(query, key):
 def build_node_name_search(query):
     """Searches nodes' names. Is a thin wrapper around :func:`build_node_key_search` with 
     :data:`pybel.constants.NAME`
+
+    :param query: The query string or strings to check if they're in the node name
+    :type query: str or iter[str]
+    :return: A node predicate (graph, node) -> bool
+    :rtype: types.FunctionType
     """
     return build_node_key_search(query, NAME)
 
 
 def build_node_cname_search(query):
-    """Searches nodes' canonical names. Is a thin wrapper around :func:`build_node_key_search`"""
+    """Searches nodes' canonical names. Is a thin wrapper around :func:`build_node_key_search`.
+
+    :param query: The query string or strings to check if they're in the node name
+    :type query: str or iter[str]
+    :return: A node predicate (graph, node) -> bool
+    :rtype: types.FunctionType
+    """
     return build_node_key_search(query, CNAME)
 
 
@@ -403,7 +416,8 @@ def iter_undefined_families(graph, namespace):
     """Finds protein families from a given namespace (Such as SFAM) that aren't qualified by members
 
     :param pybel.BELGraph graph: A BEL graph
-    :param str or list[str] namespace: The namespace to filter by
+    :param namespace: The namespace to filter by
+    :type namespace: str or iter[str]
     :return: An iterator over nodes that don't
     :rtype: iter[tuple]
     """

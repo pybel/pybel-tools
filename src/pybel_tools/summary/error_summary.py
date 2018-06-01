@@ -5,7 +5,7 @@
 from collections import Counter, defaultdict
 
 from pybel.constants import ANNOTATIONS
-from pybel.parser.parse_exceptions import *
+from pybel.parser.exc import *
 from pybel.struct.filters.edge_predicates import edge_has_annotation
 from pybel.struct.summary.node_summary import get_names_by_namespace, get_namespaces
 from ..utils import count_dict_values
@@ -70,7 +70,11 @@ def get_naked_names(graph):
 
 
 def get_namespaces_with_incorrect_names(graph):
-    """Returns the set of all namespaces with incorrect names in the graph"""
+    """Returns the set of all namespaces with incorrect names in the graph
+
+    :param pybel.BELGraph graph: A BEL graph
+    :rtype: set[str]
+    """
     return {
         e.namespace
         for _, _, e, _ in graph.warnings
@@ -231,8 +235,9 @@ def get_most_common_errors(graph, number=20):
 
 
 def get_names_including_errors_by_namespace(graph, namespace):
-    """Takes the names from the graph in a given namespace and the erroneous names from the same namespace and returns
-    them together as a unioned set
+    """Takes the names from the graph in a given namespace (:func:`pybel.struct.summary.get_names_by_namespace`) and
+    the erroneous names from the same namespace (:func:`get_incorrect_names_by_namespace`) and returns them together
+    as a unioned set
 
     :param pybel.BELGraph graph: A BEL graph
     :param str namespace: The namespace to filter by

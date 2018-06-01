@@ -21,7 +21,7 @@ def get_leaves_by_type(graph, function=None, prune_threshold=1):
     :return: An iterable over nodes with only a connection to one node
     :rtype: iter
     """
-    for node, data in graph.nodes_iter(data=True):
+    for node, data in graph.iter_node_data_pairs():
         if function and function != data.get(FUNCTION):
             continue
 

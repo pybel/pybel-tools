@@ -3,7 +3,6 @@
 from __future__ import print_function
 
 from pybel.constants import HAS_COMPONENT, HAS_PRODUCT, HAS_REACTANT, HAS_VARIANT, TRANSCRIBED_TO, TRANSLATED_TO
-from pybel.resources.constants import citation_format, evidence_format
 
 IS_PRODUCT_OF = 'isProductOf'
 IS_REACTANT_OF = 'isReactantOf'
@@ -29,9 +28,11 @@ so_url_fmt = "http://togows.dbcls.jp/entry/ncbi-pubmed/{}/so"
 CNAME = 'cname'
 DATA_WEIGHT = 'weight'
 
+VERSION = '0.5.2'
+
 # Resources
 
-NAMED_COMPLEXES = 'http://resources.openbel.org/belframework/20150611/resource/named-complexes.bel'
+NAMED_COMPLEXES_URL = 'http://resources.openbel.org/belframework/20150611/resource/named-complexes.bel'
 
 #: Points to the env variable name for PyBEL resources
 PYBEL_RESOURCES_ENV = 'PYBEL_RESOURCES_BASE'
@@ -46,3 +47,5 @@ DEFAULT_SERVICE_URL = 'https://pybel.scai.fraunhofer.de'
 
 #: How many edges should be sampled from a graph that's still reasonable to display
 SAMPLE_RANDOM_EDGE_COUNT = 250
+#: How many edges should be sampled as "seed" edges
+SAMPLE_RANDOM_EDGE_SEED_COUNT = 5

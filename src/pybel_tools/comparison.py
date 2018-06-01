@@ -17,7 +17,7 @@ def graph_entities_equal(g, h):
     :return: Do the two graphs share the same set of nodes?
     :rtype: bool
     """
-    return set(g.nodes_iter()) == set(h.nodes_iter())
+    return set(g) == set(h)
 
 
 def graph_topologically_equal(g, h):

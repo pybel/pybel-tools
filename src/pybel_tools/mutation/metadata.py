@@ -4,18 +4,17 @@ import logging
 
 from pybel.canonicalize import calculate_canonical_name
 from pybel.constants import CITATION, CITATION_AUTHORS, CITATION_REFERENCE, HASH
+from pybel.manager.citation_utils import get_citations_by_pmids
 from pybel.struct.filters import filter_edges, filter_nodes
 from pybel.struct.filters.edge_predicates import has_authors, has_pubmed
+from pybel.struct.summary import get_pubmed_identifiers
 from pybel.struct.summary.node_summary import get_namespaces
 from pybel.tokens import node_to_tuple
 from pybel.utils import hash_edge, hash_node
 from .. import pipeline
-from ..citation_utils import get_citations_by_pmids
 from ..constants import CNAME
 from ..filters.node_filters import node_missing_cname
 from ..summary.edge_summary import get_annotations
-from pybel.struct.summary import get_pubmed_identifiers
-
 
 __all__ = [
     'parse_authors',
@@ -92,7 +91,7 @@ def add_canonical_names(graph, replace=False):
     :param pybel.BELGraph graph: A BEL graph
     :param bool replace: Should the canonical names be recalculated?
     """
-    nodes = graph.nodes_iter() if replace else filter_nodes(graph, node_missing_cname)
+    nodes = graph if replace else filter_nodes(graph, node_missing_cname)
 
     for node in nodes:
         graph.node[node][CNAME] = calculate_canonical_name(graph, node)
@@ -119,7 +118,7 @@ def enrich_pubmed_citations(graph, stringify_authors=False, manager=None):
         return set()
 
     pmids = get_pubmed_identifiers(graph)
-    pmid_data, errors = get_citations_by_pmids(pmids, return_errors=True, manager=manager)
+    pmid_data, errors = get_citations_by_pmids(manager=manager, pmids=pmids)
 
     for u, v, k in filter_edges(graph, has_pubmed):
         pmid = graph.edge[u][v][k][CITATION][CITATION_REFERENCE].strip()
@@ -169,16 +168,22 @@ def update_context(universe, graph):
             log.warning('annotation: %s missing from universe', annotation)
 
 
-def add_identifiers(graph):
+def add_identifiers(graph):  # FIXME this function shouldn't have to exist.
     """Adds stable node and edge identifiers to the graph, in-place using the PyBEL
     node and edge hashes as a hexadecimal str.
 
     :param pybel.BELGraph graph: A BEL Graph
     """
-    for node, data in graph.nodes_iter(data=True):
+    for node, data in graph.iter_node_data_pairs():
+        if HASH in data:
+            continue
+
         canonical_node_tuple = node_to_tuple(data)
         canonical_node_hash = hash_node(canonical_node_tuple)
         graph.node[node][HASH] = canonical_node_hash
 
-    for u, v, k, d in graph.edges_iter(keys=True, data=True):
-        graph.edge[u][v][k][HASH] = hash_edge(u, v, k, d)
+    for u, v, k, data in graph.edges_iter(keys=True, data=True):
+        if HASH in data:
+            continue
+
+        graph.edge[u][v][k][HASH] = hash_edge(u, v, data)

@@ -1,6 +1,55 @@
 # -*- coding: utf-8 -*-
 
-"""An variant of the Network Perturbation Amplitude algorithm"""
+"""The Unbiased Candidate Mechanism Pertubation Amplitude (UCMPA) workflow has four parts:
+
+1) Assembling a network, pre-processing, and overlaying data
+2) Generating unbiased candidate mechanisms from the network
+3) Generating random subgraphs from each unbiased candidate mechanism
+4) Applying standard heat diffusion to each subgraph and calculating scores for each unbiased candidate mechanism based
+   on the distribution of scores for its subgraph
+
+In this algorithm, heat is applied to the nodes based on the data set. For the differential gene expression experiment,
+the log-fold-change values are used instead of the corrected p-values to allow for the effects of up- and
+down-regulation to be admitted in the analysis. Finally, heat diffusion inspired by previous algorithms publsihed in
+systems and networks biology [1]_ [2]_ is run with the constraint that decreases
+edges cause the sign of the heat to be flipped. Because of the construction of unbiased candidate mechanisms, all
+heat will flow towards their seed biological process nodes. The amount of heat on the biological process node after
+heat diffusion stops becomes the score for the whole unbiased candidate mechanism.
+
+The issue of inconsistent causal networks addressed by SST [3]_ does not affect heat diffusion algorithms
+since it can quantify multiple conflicting pathways. However, it does not address the possibility of contradictory
+edges, for example, when ``A increases B`` and ``A decreases B`` are both true. A random sampling approach is used on
+networks with contradictory edges and aggregate statistics over multiple trials are used to assess the robustness of the
+scores as a function of the topology of the underlying unbiases candidate mechanisms.
+
+Invariants
+~~~~~~~~~~
+- Because heat always flows towards the biological process node, it is possible to remove leaf nodes (nodes with no
+  incoming edges) after each step, since their heat will never change.
+
+Examples
+~~~~~~~~
+This workflow has been applied in several Jupyter notebooks:
+
+- `Unbiased Candidate Mechanism Pertubation Amplitude Workflow <http://nbviewer.jupyter.org/github/pybel/pybel-notebooks/blob/master/algorithms/Candidate%20Mechanism%20Perturbation%20Amplitude%20Algorithm.ipynb>`_
+- `Time Series UCMPA <http://nbviewer.jupyter.org/github/pybel/pybel-notebooks/blob/master/algorithms/Time%20Series%20CMPA.ipynb>`_
+
+Future Work
+~~~~~~~~~~~
+This algorithm can be tuned to allow the use of correlative relationships. Because many multi-scale and multi-modal
+data are often measured with correlations to molecular features, this enables experiments to be run using SNP or
+brain imaging features, whose experiments often measure their correlation with the activity of gene products.
+
+.. [1] Bernabò N., *et al.* (2014). `The biological networks in studying cell signal transduction complexity: The
+       examples of sperm capacitation and of endocannabinoid system
+       <https://www.sciencedirect.com/science/article/pii/S2001037014000282?via%3Dihub>`_. Computational and Structural
+       Biotechnology Journal, 11 (18), 11–21.
+.. [2] Leiserson, M. D. M., *et al.* (2015). `Pan-cancer network analysis identifies combinations of rare somatic
+       mutations across pathways and protein complexes <https://www.nature.com/articles/ng.3168>`_. Nature Genetics,
+       47 (2), 106–14.
+.. [3] Vasilyev, D. M., *et al.* (2014). `An algorithm for score aggregation over causal biological networks based on
+       random walk sampling <https://doi.org/10.1186/1756-0500-7-516>`_. BMC Research Notes, 7, 516.
+"""
 
 from __future__ import print_function
 
@@ -11,21 +60,21 @@ from operator import itemgetter
 
 import numpy as np
 from scipy import stats
+from tqdm import tqdm
 
-from pybel.constants import BIOPROCESS, RELATION, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS
+from pybel.constants import BIOPROCESS, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, RELATION
 from ..filters.node_selection import get_nodes_by_function
-from ..generation import generate_bioprocess_mechanisms
-from ..generation import generate_mechanism
-from ..selection import get_subgraphs_by_annotation
+from ..generation import generate_bioprocess_mechanisms, generate_mechanism
+from ..grouping import get_subgraphs_by_annotation
 
 __all__ = [
     'RESULT_LABELS',
     'Runner',
     'multirun',
-    'workflow_average',
+    'workflow_aggregate',
     'workflow',
     'workflow_all',
-    'workflow_all_average',
+    'workflow_all_aggregate',
     'calculate_average_score_by_annotation',
     'calculate_average_scores_on_subgraphs',
 ]
@@ -50,7 +99,7 @@ RESULT_LABELS = [
 
 
 class Runner:
-    """The NpaRunner class houses the data related to a single run of the CMPA analysis"""
+    """This class houses the data related to a single run of the CMPA analysis"""
 
     def __init__(self, graph, target_node, key, tag=None, default_score=None):
         """Initializes the CMPA runner class
@@ -61,7 +110,6 @@ class Runner:
         :param str tag: The key for the nodes' data dictionaries where the CMPA scores will be put. Defaults to 'score'
         :param float default_score: The initial CMPA score for all nodes. This number can go up or down.
         """
-
         self.graph = graph.copy()
         self.target_node = target_node
         self.key = key
@@ -69,7 +117,7 @@ class Runner:
         self.default_score = DEFAULT_SCORE if default_score is None else default_score
         self.tag = CMPA_SCORE if tag is None else tag
 
-        for node, data in self.graph.nodes_iter(data=True):
+        for node, data in self.graph.iter_node_data_pairs():
             if not self.graph.predecessors(node):
                 self.graph.node[node][self.tag] = data.get(key, 0)
                 log.log(5, 'initializing %s with %s', target_node, self.graph.node[node][self.tag])
@@ -83,7 +131,7 @@ class Runner:
         :return: An iterable over all leaf nodes
         :rtype: iter
         """
-        for node in self.graph.nodes_iter():
+        for node in self.graph:
             if self.tag in self.graph.node[node]:
                 continue
 
@@ -112,7 +160,7 @@ class Runner:
 
     def unscored_nodes_iter(self):
         """Iterates over all nodes without a CMPA score"""
-        for node, data in self.graph.nodes_iter(data=True):
+        for node, data in self.graph.iter_node_data_pairs():
             if self.tag not in data:
                 yield node
 
@@ -131,7 +179,12 @@ class Runner:
         :return: A random in-edge to the lowest in/out degree ratio node. This is a 3-tuple of (node, node, key)
         :rtype: tuple
         """
-        nodes = [(n, self.in_out_ratio(n)) for n in self.unscored_nodes_iter() if n != self.target_node]
+        nodes = [
+            (n, self.in_out_ratio(n))
+            for n in self.unscored_nodes_iter()
+            if n != self.target_node
+        ]
+
         node, deg = min(nodes, key=itemgetter(1))
         log.log(5, 'checking %s (in/out ratio: %.3f)', node, deg)
 
@@ -247,8 +300,8 @@ class Runner:
         return self.graph.subgraph(self.unscored_nodes_iter())
 
 
-def multirun(graph, node, key, tag=None, default_score=None, runs=None):
-    """Runs CMPA multiple times and yields the NpaRunner object after each run has been completed
+def multirun(graph, node, key, tag=None, default_score=None, runs=None, use_tqdm=False):
+    """Runs CMPA multiple times and yields the :class:`Runner` object after each run has been completed
 
     :param pybel.BELGraph graph: A BEL graph
     :param tuple node: The BEL node that is the focus of this analysis
@@ -256,22 +309,27 @@ def multirun(graph, node, key, tag=None, default_score=None, runs=None):
     :param str tag: The key for the nodes' data dictionaries where the CMPA scores will be put. Defaults to 'score'
     :param float default_score: The initial CMPA score for all nodes. This number can go up or down.
     :param int runs: The number of times to run the CMPA algorithm. Defaults to 1000.
+    :param bool use_tqdm: Should there be a progress bar for runners?
     :return: An iterable over the runners after each iteration
-    :rtype: iter[NpaRunner]
+    :rtype: iter[Runner]
     """
     runs = 1000 if runs is None else runs
+    it = range(runs)
 
-    for i in range(runs):
+    if use_tqdm:
+        it = tqdm(it, total=runs, desc=str(graph))
+
+    for i in it:
         try:
             runner = Runner(graph, node, key, tag=tag, default_score=default_score)
             runner.run()
             yield runner
-        except:
+        except Exception:
             log.debug('Run %s failed for %s', i, node)
 
 
 def workflow(graph, node, key, tag=None, default_score=None, runs=None):
-    """Generates candidate mechanism and runs CMPA.
+    """Generates candidate mechanisms and runs CMPA.
 
     :param pybel.BELGraph graph: A BEL graph
     :param tuple node: The BEL node that is the focus of this analysis
@@ -291,10 +349,10 @@ def workflow(graph, node, key, tag=None, default_score=None, runs=None):
     return list(runners)
 
 
-def workflow_average(graph, node, key, tag=None, default_score=None, runs=None):
+def workflow_aggregate(graph, node, key, tag=None, default_score=None, runs=None, aggregator=None):
     """Gets the average CMPA score over multiple runs.
 
-    This function is very simple, and can be copied to do more interesting statistics over the :class:`NpaRunner`
+    This function is very simple, and can be copied to do more interesting statistics over the :class:`Runner`
     instances. To iterate over the runners themselves, see :func:`workflow`
 
     :param pybel.BELGraph graph: A BEL graph
@@ -303,6 +361,9 @@ def workflow_average(graph, node, key, tag=None, default_score=None, runs=None):
     :param str tag: The key for the nodes' data dictionaries where the CMPA scores will be put. Defaults to 'score'
     :param float default_score: The initial CMPA score for all nodes. This number can go up or down.
     :param int runs: The number of times to run the CMPA algorithm. Defaults to 1000.
+    :param aggregator: A function that aggregates a list of scores. Defaults to :func:`numpy.average`.
+                       Could also use: :func:`numpy.mean`, :func:`numpy.median`, :func:`numpy.min`, :func:`numpy.max`
+    :type aggregator: Optional[list[float] -> float]
     :return: The average score for the target node
     :rtype: float
     """
@@ -313,7 +374,10 @@ def workflow_average(graph, node, key, tag=None, default_score=None, runs=None):
         log.warning('Unable to run CMPA on %s', node)
         return None
 
-    return np.average(scores)
+    if aggregator is None:
+        return np.average(scores)
+
+    return aggregator(scores)
 
 
 def workflow_all(graph, key, tag=None, default_score=None, runs=None):
@@ -333,12 +397,14 @@ def workflow_all(graph, key, tag=None, default_score=None, runs=None):
     :rtype: dict
     """
     results = {}
+
     for node in get_nodes_by_function(graph, BIOPROCESS):
         results[node] = workflow(graph, node, key, tag=tag, default_score=default_score, runs=runs)
+
     return results
 
 
-def workflow_all_average(graph, key, tag=None, default_score=None, runs=None):
+def workflow_all_aggregate(graph, key, tag=None, default_score=None, runs=None, aggregator=None):
     """Runs CMPA to get average score for every possible candidate mechanism
 
     1. Get all biological processes
@@ -351,6 +417,9 @@ def workflow_all_average(graph, key, tag=None, default_score=None, runs=None):
     :param str tag: The key for the nodes' data dictionaries where the CMPA scores will be put. Defaults to 'score'
     :param float default_score: The initial CMPA score for all nodes. This number can go up or down.
     :param int runs: The number of times to run the CMPA algorithm. Defaults to 1000.
+    :param aggregator: A function that aggregates a list of scores. Defaults to :func:`numpy.average`.
+                       Could also use: :func:`numpy.mean`, :func:`numpy.median`, :func:`numpy.min`, :func:`numpy.max`
+    :type aggregator: Optional[list[float] -> float]
     :return: A dictionary of {node: upstream causal subgraph}
     :rtype: dict
     """
@@ -358,15 +427,25 @@ def workflow_all_average(graph, key, tag=None, default_score=None, runs=None):
 
     for node in get_nodes_by_function(graph, BIOPROCESS):
         sg = generate_mechanism(graph, node, key)
+
         try:
-            results[node] = workflow_average(sg, node, key, tag=tag, default_score=default_score, runs=runs)
-        except:
+            results[node] = workflow_aggregate(
+                graph=sg,
+                node=node,
+                key=key,
+                tag=tag,
+                default_score=default_score,
+                runs=runs,
+                aggregator=aggregator
+            )
+        except Exception:
             log.exception('could not run on %', node)
 
     return results
 
 
-def calculate_average_scores_on_subgraphs(candidate_mechanisms, key, tag=None, default_score=None, runs=None):
+def calculate_average_scores_on_subgraphs(candidate_mechanisms, key, tag=None, default_score=None, runs=None,
+                                          use_tqdm=False):
     """Calculates the scores over precomputed candidate mechanisms
     
     :param candidate_mechanisms: A dictionary of {tuple node: pybel.BELGraph candidate mechanism}
@@ -392,7 +471,14 @@ def calculate_average_scores_on_subgraphs(candidate_mechanisms, key, tag=None, d
     """
     results = {}
 
-    for node, subgraph in candidate_mechanisms.items():
+    log.info('calculating results for %d candidate mechanisms using %d permutations', len(candidate_mechanisms), runs)
+
+    it = candidate_mechanisms.items()
+
+    if use_tqdm:
+        it = tqdm(it, total=len(candidate_mechanisms), desc='Candidate mechanisms')
+
+    for node, subgraph in it:
         number_first_neighbors = subgraph.in_degree(node)
         number_first_neighbors = 0 if isinstance(number_first_neighbors, dict) else number_first_neighbors
         mechanism_size = subgraph.number_of_nodes()
@@ -454,7 +540,7 @@ def calculate_average_score_by_annotation(graph, key, annotation, runs=None):
 
     >>> import pybel
     >>> from pybel_tools.integration import overlay_data
-    >>> from pybel_tools.analysis.cmpa import calculate_average_score_by_annotation
+    >>> from pybel_tools.analysis.ucmpa import calculate_average_score_by_annotation
     >>> graph = pybel.from_path(...)
     >>> key = ...
     >>>

@@ -6,14 +6,13 @@ import unittest
 
 from pybel import BELGraph
 from pybel.constants import *
+from pybel.dsl import gene, protein, rna
 from pybel.manager import Manager
+from uuid import uuid4
 
 HGNC = 'HGNC'
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-resources_path = os.path.join(dir_path, 'resources')
-
-rgd_orthologs_path = os.path.join(resources_path, 'RGD_ORTHOLOGS.txt')
 
 
 class ManagerMixin(unittest.TestCase):
@@ -30,35 +29,44 @@ class ManagerMixin(unittest.TestCase):
         os.unlink(self.db_file)
 
 
-protein_a = PROTEIN, HGNC, 'a'
-protein_b = PROTEIN, HGNC, 'b'
-gene_c = GENE, HGNC, 'c'
-rna_d = RNA, HGNC, 'd'
-protein_e = PROTEIN, HGNC, 'e'
-gene_f = GENE, HGNC, 'f'
-protein_g = PROTEIN, HGNC, 'g'
-protein_h = PROTEIN, HGNC, 'h'
-protein_i = PROTEIN, HGNC, 'i'
-protein_j = PROTEIN, HGNC, 'j'
+protein_a = protein(namespace=HGNC, name='a')
+protein_b = protein(namespace=HGNC, name='b')
+gene_c = gene(namespace=HGNC, name='c')
+rna_d = rna(namespace=HGNC, name='d')
+protein_e = protein(namespace=HGNC, name='e')
+gene_f = gene(namespace=HGNC, name='f')
+protein_g = protein(namespace=HGNC, name='g')
+protein_h = protein(namespace=HGNC, name='h')
+protein_i = protein(namespace=HGNC, name='i')
+protein_j = protein(namespace=HGNC, name='j')
+
+protein_a_tuple = PROTEIN, HGNC, 'a'
+protein_b_tuple = PROTEIN, HGNC, 'b'
+gene_c_tuple = GENE, HGNC, 'c'
+rna_d_tuple = RNA, HGNC, 'd'
+protein_e_tuple = PROTEIN, HGNC, 'e'
+gene_f_tuple = GENE, HGNC, 'f'
+protein_g_tuple = PROTEIN, HGNC, 'g'
+protein_h_tuple = PROTEIN, HGNC, 'h'
+protein_i_tuple = PROTEIN, HGNC, 'i'
+protein_j_tuple = PROTEIN, HGNC, 'j'
 
 
 def make_graph_1():
-    graph1 = BELGraph(**{
-        GRAPH_METADATA: {
-            METADATA_VERSION: '1.1.0',
-            METADATA_NAME: 'network_test',
-            METADATA_DESCRIPTION: 'network test',
-            METADATA_AUTHORS: 'Fraunhofer SCAI',
-            METADATA_CONTACT: 'test@scai.fraunhofer.de',
-        }
-    })
+    graph = BELGraph(
+        name='PyBEL Tools Example Network 1',
+        version='1.1.0',
+        description='Example Network for PyBEL Tools Tests',
+        authors='Daniel Domingo-Fernández and Charles Tapley Hoyt',
+        contact='charles.hoyt@scai.fraunhofer.de',
+    )
 
-    graph1.add_simple_node(*protein_a)
-    graph1.add_simple_node(*protein_b)
-    graph1.add_simple_node(*gene_c)
-    graph1.add_simple_node(*rna_d)
+    graph.add_node_from_data(protein_a)
+    graph.add_node_from_data(protein_b)
+    graph.add_node_from_data(gene_c)
+    graph.add_node_from_data(rna_d)
 
-    graph1.add_edge(protein_a, protein_b, attr_dict={
+    graph.add_edge(protein_a_tuple, protein_b_tuple, attr_dict={
         RELATION: INCREASES,
         CITATION: {
             CITATION_TYPE: CITATION_TYPE_PUBMED,
@@ -68,7 +76,7 @@ def make_graph_1():
         ANNOTATIONS: {'Annotation': 'foo'}
     })
 
-    graph1.add_edge(rna_d, protein_a, attr_dict={
+    graph.add_edge(rna_d_tuple, protein_a_tuple, attr_dict={
         RELATION: INCREASES,
         CITATION: {
             CITATION_TYPE: CITATION_TYPE_PUBMED,
@@ -78,7 +86,7 @@ def make_graph_1():
         ANNOTATIONS: {'Annotation': 'foo'}
     })
 
-    graph1.add_edge(gene_c, protein_b, attr_dict={
+    graph.add_edge(gene_c_tuple, protein_b_tuple, attr_dict={
         RELATION: DECREASES,
         CITATION: {
             CITATION_TYPE: CITATION_TYPE_PUBMED,
@@ -88,25 +96,23 @@ def make_graph_1():
         ANNOTATIONS: {'Annotation': 'foo'}
     })
 
-    return graph1
+    return graph
 
 
 def make_graph_2():
-    graph2 = BELGraph(**{
-        GRAPH_METADATA: {
-            METADATA_VERSION: '1.0.0',
-            METADATA_NAME: 'network_test',
-            METADATA_DESCRIPTION: 'network test',
-            METADATA_AUTHORS: 'Fraunhofer SCAI',
-            METADATA_CONTACT: 'test@scai.fraunhofer.de',
-        }
-    })
+    graph = BELGraph(
+        name='PyBEL Tools Example Network 2',
+        version='1.0.0',
+        description='Example Network for PyBEL Tools Tests',
+        authors='Daniel Domingo-Fernández and Charles Tapley Hoyt',
+        contact='charles.hoyt@scai.fraunhofer.de',
+    )
 
-    graph2.add_simple_node(*gene_f)
-    graph2.add_simple_node(*protein_e)
-    graph2.add_simple_node(*protein_b)
+    graph.add_node_from_data(gene_f)
+    graph.add_node_from_data(protein_e)
+    graph.add_node_from_data(protein_b)
 
-    graph2.add_edge(protein_e, protein_b, attr_dict={
+    graph.add_edge(protein_e_tuple, protein_b_tuple, attr_dict={
         RELATION: INCREASES,
         CITATION: {
             CITATION_TYPE: CITATION_TYPE_PUBMED,
@@ -116,7 +122,7 @@ def make_graph_2():
         ANNOTATIONS: {'Annotation': 'foo'}
     })
 
-    graph2.add_edge(gene_f, protein_e, attr_dict={
+    graph.add_edge(gene_f_tuple, protein_e_tuple, attr_dict={
         RELATION: INCREASES,
         CITATION: {
             CITATION_TYPE: CITATION_TYPE_PUBMED,
@@ -126,7 +132,7 @@ def make_graph_2():
         ANNOTATIONS: {'Annotation': 'foo2'}
     })
 
-    return graph2
+    return graph
 
 
 def make_graph_3():
@@ -137,38 +143,35 @@ def make_graph_3():
     C -- G
 
     """
+    graph = BELGraph(
+        name='PyBEL Tools Example Network 3',
+        version='1.0.0',
+        description='Example Network for PyBEL Tools Tests',
+        authors='Daniel Domingo-Fernández and Charles Tapley Hoyt',
+        contact='charles.hoyt@scai.fraunhofer.de',
+    )
 
-    graph = BELGraph(**{
-        GRAPH_METADATA: {
-            METADATA_VERSION: '1.0.0',
-            METADATA_NAME: 'network_test',
-            METADATA_DESCRIPTION: 'network for sst testing',
-            METADATA_AUTHORS: 'Fraunhofer SCAI',
-            METADATA_CONTACT: 'test@scai.fraunhofer.de',
-        }
-    })
-
-    graph.add_edge(protein_a, protein_b, attr_dict={
+    graph.add_edge(protein_a_tuple, protein_b_tuple, attr_dict={
         RELATION: INCREASES,
     })
 
-    graph.add_edge(protein_b, gene_c, attr_dict={
+    graph.add_edge(protein_b_tuple, gene_c_tuple, attr_dict={
         RELATION: DECREASES,
     })
 
-    graph.add_edge(rna_d, gene_f, attr_dict={
+    graph.add_edge(rna_d_tuple, gene_f_tuple, attr_dict={
         RELATION: DECREASES,
     })
 
-    graph.add_edge(protein_e, gene_f, attr_dict={
+    graph.add_edge(protein_e_tuple, gene_f_tuple, attr_dict={
         RELATION: INCREASES,
     })
 
-    graph.add_edge(gene_f, gene_c, attr_dict={
+    graph.add_edge(gene_f_tuple, gene_c_tuple, attr_dict={
         RELATION: INCREASES,
     })
 
-    graph.add_edge(gene_c, protein_g, attr_dict={
+    graph.add_edge(gene_c_tuple, protein_g_tuple, attr_dict={
         RELATION: ASSOCIATION,
     })
 
@@ -191,64 +194,73 @@ def make_graph_4():
             B -- J
 
     """
+    graph = BELGraph(
+        name='PyBEL Tools Example Network 4',
+        version='1.0.0',
+        description='Example Network for PyBEL Tools Tests',
+        authors='Daniel Domingo-Fernández and Charles Tapley Hoyt',
+        contact='charles.hoyt@scai.fraunhofer.de',
+    )
 
-    graph = BELGraph(**{
-        GRAPH_METADATA: {
-            METADATA_VERSION: '1.0.0',
-            METADATA_NAME: 'network_test',
-            METADATA_DESCRIPTION: 'network for sst testing',
-            METADATA_AUTHORS: 'Fraunhofer SCAI',
-            METADATA_CONTACT: 'test@scai.fraunhofer.de',
-        }
-    })
-
-    graph.add_edge(protein_a, protein_b, attr_dict={
+    graph.add_edge(protein_a_tuple, protein_b_tuple, attr_dict={
         RELATION: INCREASES,
     })
 
-    graph.add_edge(protein_b, gene_c, attr_dict={
+    graph.add_edge(protein_b_tuple, gene_c_tuple, attr_dict={
         RELATION: DECREASES,
     })
 
-    graph.add_edge(protein_b, rna_d, attr_dict={
+    graph.add_edge(protein_b_tuple, rna_d_tuple, attr_dict={
         RELATION: DECREASES,
     })
 
-    graph.add_edge(protein_b, protein_e, attr_dict={
+    graph.add_edge(protein_b_tuple, protein_e_tuple, attr_dict={
         RELATION: DECREASES,
     })
 
-    graph.add_edge(protein_b, gene_f, attr_dict={
+    graph.add_edge(protein_b_tuple, gene_f_tuple, attr_dict={
         RELATION: DECREASES,
     })
 
-    graph.add_edge(protein_b, protein_g, attr_dict={
+    graph.add_edge(protein_b_tuple, protein_g_tuple, attr_dict={
         RELATION: INCREASES,
     })
 
-    graph.add_edge(protein_b, protein_h, attr_dict={
+    graph.add_edge(protein_b_tuple, protein_h_tuple, attr_dict={
         RELATION: DECREASES,
     })
 
-    graph.add_edge(protein_b, protein_h, attr_dict={
+    graph.add_edge(protein_b_tuple, protein_h_tuple, attr_dict={
         RELATION: INCREASES,
     })
 
-    graph.add_edge(protein_b, protein_i, attr_dict={
+    graph.add_edge(protein_b_tuple, protein_i_tuple, attr_dict={
         RELATION: INCREASES,
     })
 
-    graph.add_edge(protein_b, protein_j, attr_dict={
+    graph.add_edge(protein_b_tuple, protein_j_tuple, attr_dict={
         RELATION: ASSOCIATION,
     })
 
     return graph
 
 
+example_1 = make_graph_1()
+example_2 = make_graph_2()
+example_3 = make_graph_3()
+example_4 = make_graph_4()
+
+
 class ExampleNetworkMixin(unittest.TestCase):
+    """A mixin that gives a class access to example networks"""
+
     def setUp(self):
         super(ExampleNetworkMixin, self).setUp()
-        self.network1 = make_graph_1()
+
+        self.graph_1 = make_graph_1()
         self.network2 = make_graph_2()
         self.network3 = make_graph_3()
         self.network4 = make_graph_4()
+
+def n():
+    return str(uuid4())

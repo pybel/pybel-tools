@@ -1,31 +1,29 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import random
-from collections import defaultdict
 
 import networkx as nx
-import numpy as np
 
 from pybel import BELGraph
-from pybel.constants import ANNOTATIONS
 from pybel.struct.filters import filter_edges, filter_nodes
-from pybel.struct.filters.edge_predicates import edge_has_annotation, is_causal_relation
+from pybel.struct.filters.edge_predicate_builders import (
+    build_annotation_dict_all_filter, build_annotation_dict_any_filter,
+)
+from pybel.struct.filters.edge_predicates import is_causal_relation
 from .paths import get_nodes_in_all_shortest_paths
+from .random_subgraph import get_random_subgraph
 from .search import search_node_names
 from .. import pipeline
-from ..constants import SAMPLE_RANDOM_EDGE_COUNT
 from ..filters.edge_filters import (
-    build_annotation_dict_all_filter, build_annotation_dict_any_filter,
-    build_annotation_value_filter, build_author_inclusion_filter, build_edge_data_filter, build_pmid_inclusion_filter,
+    build_author_inclusion_filter, build_edge_data_filter, build_pmid_inclusion_filter,
 )
 from ..mutation.expansion import (
     expand_all_node_neighborhoods, expand_downstream_causal_subgraph,
     expand_nodes_neighborhoods, expand_upstream_causal_subgraph, get_downstream_causal_subgraph,
     get_upstream_causal_subgraph,
 )
-from ..mutation.utils import remove_isolated_nodes, update_node_helper
-from ..utils import safe_add_edge, safe_add_edges
+from ..mutation.utils import update_node_helper
+from ..utils import safe_add_edges
 
 log = logging.getLogger(__name__)
 
@@ -44,7 +42,6 @@ __all__ = [
     'get_subgraph_by_node_search',
     'get_causal_subgraph',
     'get_subgraph',
-    'get_subgraphs_by_annotation',
     'get_multi_causal_upstream',
     'get_multi_causal_downstream',
     'get_random_subgraph',
@@ -94,13 +91,16 @@ NONNODE_SEED_TYPES = {
 }
 
 
+class NodeDegreeIterError(ValueError):
+    """Raised when failing to iterate over node degrees"""
+
+
 @pipeline.mutator
 def get_subgraph_by_induction(graph, nodes):
-    """Induces a graph over the given nodes
+    """Induces a graph over the given nodes. Returns None if none of the nodes are in the given graph.
 
     :param pybel.BELGraph graph: A BEL graph
     :param iter[tuple] nodes: A list of BEL nodes in the graph
-    :return: A sub-graph induced over the given nodes
     :rtype: Optional[pybel.BELGraph]
     """
     if all(node not in graph for node in nodes):
@@ -187,7 +187,8 @@ def get_subgraph_by_all_shortest_paths(graph, nodes, weight=None, remove_patholo
     if not query_nodes:
         return
 
-    induced_nodes = get_nodes_in_all_shortest_paths(graph, query_nodes, weight=weight, remove_pathologies=remove_pathologies)
+    induced_nodes = get_nodes_in_all_shortest_paths(graph, query_nodes, weight=weight,
+                                                    remove_pathologies=remove_pathologies)
 
     if not induced_nodes:
         return
@@ -201,7 +202,7 @@ def get_subgraph_by_edge_filter(graph, edge_filters):
     
     :param pybel.BELGraph graph: A BEL graph 
     :param edge_filters: A predicate or list of predicates (graph, node, node, key, data) -> bool
-    :type edge_filters: list or tuple or lambda
+    :type edge_filters: (pybel.BELGraph, tuple, tuple, int) -> bool or list[(pybel.BELGraph, tuple, tuple, int) -> bool]
     :return: A BEL subgraph induced over the edges passing the given filters
     :rtype: pybel.BELGraph
     """
@@ -212,23 +213,9 @@ def get_subgraph_by_edge_filter(graph, edge_filters):
         for u, v, k in filter_edges(graph, edge_filters)
     ))
 
-
     update_node_helper(graph, result)
 
     return result
-
-
-@pipeline.mutator
-def get_subgraph_by_annotation_value(graph, annotation, value):
-    """Builds a new subgraph induced over all edges whose annotations match the given key and value
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param str annotation: The annotation to group by
-    :param str value: The value for the annotation
-    :return: A subgraph of the original BEL graph
-    :rtype: pybel.BELGraph
-    """
-    return get_subgraph_by_edge_filter(graph, build_annotation_value_filter(annotation, value))
 
 
 @pipeline.mutator
@@ -248,8 +235,9 @@ def get_subgraph_by_annotations(graph, annotations, or_=None):
     """Returns the subgraph given an annotations filter.
 
     :param graph: pybel.BELGraph graph: A BEL graph
-    :param dict annotations: Annotation filters (match all with :func:`pybel.utils.subdict_matches`)
-    :param boolean or_: if True any annotation should be present, if False all annotations should be present in the edge
+    :param dict[str,set[str]] annotations: Annotation filters (match all with :func:`pybel.utils.subdict_matches`)
+    :param boolean or_: if True any annotation should be present, if False all annotations should be present in the
+                        edge. Defaults to True.
     :return: A subgraph of the original BEL graph
     :rtype: pybel.BELGraph
     """
@@ -261,29 +249,33 @@ def get_subgraph_by_annotations(graph, annotations, or_=None):
     return get_subgraph_by_edge_filter(graph, edge_filter_builder(annotations))
 
 
-@pipeline.splitter
-def get_subgraphs_by_annotation(graph, annotation):
-    """Stratifies the given graph into subgraphs based on the values for edges' annotations
+@pipeline.mutator
+def get_subgraph_by_annotation_value(graph, annotation, value):
+    """Builds a new subgraph induced over all edges whose annotations match the given key and value
 
     :param pybel.BELGraph graph: A BEL graph
     :param str annotation: The annotation to group by
-    :return: A dictionary of {str value: BELGraph subgraph}
-    :rtype: dict[str, pybel.BELGraph]
+    :param str value: The value for the annotation
+    :return: A subgraph of the original BEL graph
+    :rtype: pybel.BELGraph
     """
-    result = defaultdict(BELGraph)
+    return get_subgraph_by_annotations(graph, {annotation: {value}})
 
-    for source, target, key, data in graph.edges_iter(keys=True, data=True):
-        if not edge_has_annotation(data, annotation):
-            continue
 
-        value = data[ANNOTATIONS][annotation]
+# FIXME update function for reusability
+def update_metadata(value, graph):
+    """
 
-        safe_add_edge(result[value], source, target, key, data)
+    :param pybel.BELGraph value:
+    :param pybel.BELGraph graph:
+    """
+    update_node_helper(graph, value)
 
-    for value in result:
-        update_node_helper(graph, result[value])
-
-    return dict(result)
+    value.namespace_url.update(graph.namespace_url)
+    value.namespace_pattern.update(graph.namespace_pattern)
+    value.annotation_url.update(graph.annotation_url)
+    value.annotation_pattern.update(graph.annotation_pattern)
+    value.annotation_list.update(graph.annotation_list)
 
 
 @pipeline.mutator
@@ -390,7 +382,6 @@ def get_subgraph(graph, seed_method=None, seed_data=None, expand_nodes=None, rem
         result = get_random_subgraph(
             graph,
             number_edges=seed_data.get('number_edges'),
-            number_seed_edges=seed_data.get('number_seed_nodes'),
             seed=seed_data.get('seed')
         )
 
@@ -463,123 +454,3 @@ def get_largest_component(graph):
     :rtype: pybel.BELGraph
     """
     return max(nx.weakly_connected_component_subgraphs(graph), key=len)
-
-
-def randomly_select_node(graph, no_grow, random_state):
-    """Chooses a node from the graph to expand upon
-
-    :param pybel.BELGraph graph: The graph to filter from
-    :param set[tuple] no_grow: Nodes to filter out
-    :param random_state: The random state
-    """
-    try:
-        nodes, degrees = zip(*(
-            (node, degree)
-            for node, degree in graph.degree_iter()
-            if node not in no_grow
-        ))
-    except ValueError as e:
-        log.warning('nodes')
-        print(*graph.nodes(), sep='\n')
-        log.warning('edges')
-        print(*graph.edges(), sep='\n')
-        raise e
-
-    ds = sum(degrees)
-
-    if 0 == ds:
-        log.warning('graph has no edges in it')
-        log.warning('number nodes: %s', graph.number_of_nodes())
-        raise ZeroDivisionError
-
-    norm_inv_degrees = [d / ds for d in degrees]
-    nci = random_state.choice(len(nodes), p=norm_inv_degrees)
-    return nodes[nci]
-
-
-def _get_number_topological_edges(graph):
-    """Count the number of edges in the topology of the graph
-
-    :param networkx.DiGraph graph:
-    :rtype: int
-    """
-    return sum(
-        len(graph.edge[node])
-        for node in graph
-    )
-
-
-@pipeline.mutator
-def get_random_subgraph(graph, number_edges=None, number_seed_edges=None, seed=None):
-    """Randomly picks a node from the graph, and performs a weighted random walk to sample the given number of edges
-    around it
-
-    :param pybel.BELGraph graph:
-    :param Optional[int] number_edges: Maximum number of edges. Defaults to
-                                       :data:`pybel_tools.constants.SAMPLE_RANDOM_EDGE_COUNT` (250).
-    :param Optional[int] number_seed_edges: Number of nodes to start with (which likely results in different components
-                                            in large graphs). Defaults to 5.
-    :param Optional[int] seed: A seed for the random state
-    :rtype: pybel.BELGraph
-    """
-    number_edges = number_edges or SAMPLE_RANDOM_EDGE_COUNT
-
-    if _get_number_topological_edges(graph) < number_edges:
-        log.info('sampled full graph')
-        return graph
-
-    original_node_count = graph.number_of_nodes()
-
-    number_seed_edges = number_seed_edges or 5
-    random_state = np.random.RandomState(seed=seed)
-    random.seed(seed)
-
-    result = BELGraph()
-
-    #: This is the set of nodes that should no longer be grown from
-    no_grow = set()
-
-    universe_edges = [
-        (u, v)
-        for u in graph
-        for v in graph.edge[u]
-    ]
-    random.shuffle(universe_edges)
-
-    for u, v in universe_edges[:number_seed_edges]:
-        key = random_state.choice(list(graph.edge[u][v]))
-        attr_dict = graph.edge[u][v][key]
-        result.add_edge(u, v, key=key, attr_dict=attr_dict)
-
-    for _ in range(number_edges - number_seed_edges):
-        possible_step_nodes = None
-        c = 0
-
-        while not possible_step_nodes:
-            source = randomly_select_node(result, no_grow, random_state)
-
-            possible_step_nodes = set(graph.edge[source]) - set(result.edge[source])
-
-            if not possible_step_nodes:
-                no_grow.add(source)  # there aren't any possible nodes to step to, so try growing from somewhere else
-
-            c += 1
-
-            if c >= original_node_count:
-                log.warning('infinite loop happening')
-                log.warning('source: %s', source)
-                log.warning('adjacent: %s', list(graph.edge[source]))
-                log.warning('no grow: %s', no_grow)
-                raise Exception
-
-        step_node = random.choice(list(possible_step_nodes))
-
-        # it's not really a big deal which, but it might be possible to weight this by the utility of edges later
-        key, attr_dict = random.choice(list(graph.edge[source][step_node].items()))
-
-        result.add_edge(source, step_node, key=key, attr_dict=attr_dict)
-
-    remove_isolated_nodes(result)
-    update_node_helper(graph, result)
-
-    return result

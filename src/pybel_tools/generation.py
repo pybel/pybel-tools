@@ -1,12 +1,23 @@
 # -*- coding: utf-8 -*-
 
-"""
+"""The Unbiased Candidate Mechanism Generation workflow addresses the inconsistency in the definitions of the
+boundaries of pathways, mechanisms, subgraphs, etc. in networks and systems biology that are introduced during curation
+due to a variety of reasons.
+
+A simple approach for generating unbiased candidate mechanisms is to take the upstream controlles
+
 
 This module provides functions for generating subgraphs based around a single node, most likely a biological process.
 
 Subgraphs induced around biological processes should prove to be subgraphs of the NeuroMMSig/canonical mechanisms
 and provide an even more rich mechanism inventory.
 
+
+Examples
+~~~~~~~~
+This method has been applied in the following Jupyter Notebooks:
+
+- `Generating Unbiased Candidate Mechanisms <http://nbviewer.jupyter.org/github/pybel/pybel-notebooks/blob/master/algorithms/Generating%20Candidate%20Mechanisms.ipynb>`_
 """
 
 from pybel.constants import BIOPROCESS
@@ -56,7 +67,7 @@ def get_unweighted_sources(graph, key):
     :return: An iterator over BEL nodes that are unannotated and on the periphery of this subgraph
     :rtype: iter[tuple]
     """
-    for node in graph.nodes_iter():
+    for node in graph:
         if is_unweighted_source(graph, node, key):
             yield node
 

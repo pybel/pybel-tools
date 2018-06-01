@@ -44,35 +44,15 @@ installation difficult for Windows users, for whom Python cannot easily build C 
 `Anaconda <https://www.continuum.io/downloads>`_ distribution of Python, which includes these precompiled.
 """
 
-from . import (
-    analysis, citation_utils, comparison, definition_utils, document_utils, filters, generation, integration,
-    ioutils, mutation, orthology, query, selection, serialization, summary, utils, visualization,
-)
+from . import io, utils
+from .io import *
 
-__all__ = (
-    analysis,
-    citation_utils,
-    comparison,
-    definition_utils,
-    document_utils,
-    filters,
-    generation,
-    integration,
-    ioutils,
-    mutation,
-    orthology,
-    query,
-    selection,
-    serialization,
-    summary,
-    utils,
-    visualization,
-)
+__all__ = io.__all__
 
-__version__ = '0.5.0'
+__version__ = '0.5.2'
 
 __title__ = 'pybel_tools'
-__description__ = 'Tools for using BEL documents in python'
+__description__ = 'Tools for using BEL documents in Python'
 __url__ = 'https://github.com/pybel/pybel-tools'
 
 __author__ = 'Charles Tapley Hoyt'
