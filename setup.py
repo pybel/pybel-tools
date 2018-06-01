@@ -24,7 +24,7 @@ CLASSIFIERS = [
     'Topic :: Scientific/Engineering :: Bio-Informatics'
 ]
 INSTALL_REQUIRES = [
-    'pybel>=0.11.1',
+    'pybel>=0.11.2',
     'pybel-artifactory',
     'pandas==0.20.3',
     'networkx==1.11',
@@ -38,15 +38,9 @@ INSTALL_REQUIRES = [
 ]
 
 EXTRAS_REQUIRE = {
-    'obonet': [
-        'obonet',  # Enables GO integration
-    ],
-    'lexer': [
-        'pygments',
-    ],
     'ipython': [
         'ipython',  # Enable inline viewing in Jupyter notebooks
-    ]
+    ],
 }
 TESTS_REQUIRE = []
 ENTRY_POINTS = {
