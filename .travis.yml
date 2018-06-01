@@ -14,6 +14,13 @@ matrix:
     - env: TOXENV=docs
     - env: TOXENV=manifest
     - env: TOXENV=rst-lint
+    - env: TOXENV=flake8
+    - env: TOXENV=doc8
+    - env: TOXENV=pylint
+  allow_failures:
+    - env: TOXENV=flake8
+    - env: TOXENV=doc8
+    - env: TOXENV=pylint
 
 before_install:
     - pip install codecov coverage
