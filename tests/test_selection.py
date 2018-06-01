@@ -110,7 +110,8 @@ def make_nodes(n):
 
 class TestRandomSample(unittest.TestCase):
     def setUp(self):
-        np.random.seed(127)
+        self.random_state = np.random.seed(127)
+        random.seed(127)
 
     def test_okay(self):
         graph = BELGraph()
