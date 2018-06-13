@@ -12,6 +12,7 @@ __all__ = [
     'from_path_ensure_pickle',
     'from_directory',
     'from_directory_pickles',
+    'get_corresponding_gpickle_path',
 ]
 
 log = logging.getLogger(__name__)
@@ -44,11 +45,14 @@ def from_path_ensure_pickle(path, connection=None, **kwargs):
     gpickle_path = get_corresponding_gpickle_path(path)
 
     if os.path.exists(gpickle_path):
-        return from_pickle(path=path)
+        with open(gpickle_path, 'rb') as file:
+            return from_pickle(file)
 
     manager = Manager.ensure(connection=connection)
     graph = from_path(path, manager=manager, **kwargs)
-    to_pickle(graph, file=gpickle_path)
+
+    with open(gpickle_path, 'wb') as file:
+        to_pickle(graph, file=file)
 
     return graph
 
