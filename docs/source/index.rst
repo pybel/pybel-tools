@@ -55,7 +55,7 @@ Links
    stability
    expansion
    generation
-   heatdiffusion
+   heat
 
 .. toctree::
    :caption: Other Utilities
