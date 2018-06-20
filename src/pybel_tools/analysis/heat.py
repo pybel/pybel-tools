@@ -475,15 +475,12 @@ def calculate_average_scores_on_subgraphs(subgraphs, key=None, tag=None, default
     Example Usage:
     
     >>> import pandas as pd
-    >>> import pybel_tools.analysis.heat
-    >>> import pybel_tools.generation
     >>> from pybel_tools.generation import generate_bioprocess_mechanisms
     >>> from pybel_tools.analysis.heat import calculate_average_scores_on_subgraphs
     >>> # load graph and data
-    >>> key = ...
     >>> graph = ...
-    >>> candidate_mechanisms = generate_bioprocess_mechanisms(graph, key)
-    >>> scores = calculate_average_scores_on_subgraphs(candidate_mechanisms, key)
+    >>> candidate_mechanisms = generate_bioprocess_mechanisms(graph)
+    >>> scores = calculate_average_scores_on_subgraphs(candidate_mechanisms)
     >>> pd.DataFrame.from_items(scores.items(), orient='index', columns=RESULT_LABELS)
     """
     results = {}
@@ -534,7 +531,7 @@ def calculate_average_scores_on_subgraphs(subgraphs, key=None, tag=None, default
 
 
 # TODO reinvestigate statistical bootstrapping/resampling/distribution normalization
-def calculate_average_score_by_annotation(graph, key, annotation, runs=None, use_tdqm=False):
+def calculate_average_score_by_annotation(graph, annotation, key=None, runs=None, use_tdqm=False):
     """For each sub-graph induced over the edges matching the annotation, calculate the average score
     for all of the contained biological processes
 
@@ -546,11 +543,11 @@ def calculate_average_score_by_annotation(graph, key, annotation, runs=None, use
     4. Calculates averages with pbt.selection.group_nodes.average_node_annotation
 
     :param pybel.BELGraph graph: A BEL graph
-    :param str key: The key in the node data dictionary representing the experimental data
     :param str annotation: A BEL annotation
+    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
+     :data:`pybel_tools.constants.WEIGHT`.
     :param Optional[int] runs: The number of times to run the heat diffusion workflow. Defaults to 100.
-        :param bool use_tqdm: Should there be a progress bar for runners?
-
+    :param bool use_tqdm: Should there be a progress bar for runners?
     :return: A dictionary from {str annotation value: tuple scores}
     :rtype: dict[str,tuple]
 
@@ -560,17 +557,16 @@ def calculate_average_score_by_annotation(graph, key, annotation, runs=None, use
     >>> from pybel_tools.integration import overlay_data
     >>> from pybel_tools.analysis.heat import calculate_average_score_by_annotation
     >>> graph = pybel.from_path(...)
-    >>> key = ...
-    >>>
-    >>> scores = calculate_average_score_by_annotation(graph, key, 'subgraph')
+    >>> scores = calculate_average_score_by_annotation(graph, 'subgraph')
     """
-    candidate_mechanisms = generate_bioprocess_mechanisms(graph, key)
+    candidate_mechanisms = generate_bioprocess_mechanisms(graph, key=key)
 
     #: {bp tuple: list of scores}
     scores = calculate_average_scores_on_subgraphs(
         subgraphs=candidate_mechanisms,
         key=key,
         runs=runs,
+        use_tqdm=use_tdqm,
     )
 
     subgraphs = get_subgraphs_by_annotation(graph, annotation)

@@ -43,7 +43,7 @@ __all__ = [
 
 @pipeline.in_place_mutator
 def remove_unweighted_leaves(graph, key=None):
-    """
+    """Remove nodes that are leaves and that don't have a weight (or other key) attribute set.
 
     :param pybel.BELGraph graph: A BEL graph
     :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
@@ -54,7 +54,7 @@ def remove_unweighted_leaves(graph, key=None):
 
 
 def is_unweighted_source(graph, node, key):
-    """Check if the node is both a source and also has an annotation
+    """Check if the node is both a source and also has an annotation.
     
     :param pybel.BELGraph graph: A BEL graph
     :param tuple node: A BEL node
@@ -133,11 +133,11 @@ def generate_mechanism(graph, node, key=None):
 
 @pipeline.splitter
 def generate_bioprocess_mechanisms(graph, key=None):
-    """Generates a mechanistic subgraph for each biological process in the graph using :func:`generate_mechanism`
+    """Generate a mechanistic subgraph for each biological process in the graph using :func:`generate_mechanism`
 
     :param pybel.BELGraph graph: A BEL Graph
-    :param str key: The key in the node data dictionary representing the experimental data. If none, does not prune
-                unannotated nodes after generation
+    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
+     :data:`pybel_tools.constants.WEIGHT`
     :return: A dictionary from {tuple bioprocess node: BELGraph candidate mechanism}
     :rtype: dict[tuple, pybel.BELGraph]
     """
