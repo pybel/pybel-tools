@@ -1,4 +1,4 @@
 Heat Diffusion Workflow
 =======================
-.. automodule:: pybel_tools.analysis.ucmpa
+.. automodule:: pybel_tools.analysis.heat
     :members:
