@@ -16,7 +16,7 @@ from pybel.struct.mutation.expansion.neighborhood import (
     expand_all_node_neighborhoods, expand_node_neighborhood,
     expand_nodes_neighborhoods,
 )
-from pybel.struct.mutation.utils import update_node_helper
+from pybel.struct.utils import update_node_helper
 from pybel.struct.pipeline import uni_in_place_transformation, uni_transformation
 from ..utils import safe_add_edge
 

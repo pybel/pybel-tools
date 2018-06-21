@@ -3,7 +3,7 @@
 import random
 
 from pybel import BELGraph
-from pybel.struct.mutation.utils import update_node_helper
+from pybel.struct.utils import update_node_helper
 from pybel.struct.pipeline import transformation
 from ..utils import safe_add_edge
 

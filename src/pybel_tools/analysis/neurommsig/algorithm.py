@@ -3,17 +3,17 @@
 """An implementation of the mechanism enrichment algorithm from Domingo-Fernández *et al.*, 2017."""
 
 import itertools as itt
-import logging
 from collections import Counter
 
-from pybel.constants import GENE
+import logging
 
-from ...filters.node_selection import get_nodes_by_function
-from ...grouping import get_subgraphs_by_annotation
-from ...mutation import collapse_all_variants, infer_central_dogma
-from ...pipeline import Pipeline
-from pybel.struct.mutation.collapse import collapse_by_central_dogma_to_genes
+from pybel import Pipeline
+from pybel.constants import GENE
+from pybel.struct.grouping import get_subgraphs_by_annotation
 from pybel.struct.mutation import infer_central_dogma
+from pybel.struct.mutation.collapse import collapse_by_central_dogma_to_genes
+from ...filters.node_selection import get_nodes_by_function
+from ...mutation import collapse_all_variants
 from ...utils import calculate_betweenness_centality
 
 __all__ = [

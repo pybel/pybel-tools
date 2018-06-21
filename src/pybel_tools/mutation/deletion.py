@@ -2,10 +2,9 @@
 
 """This module contains convenient functions for removing nodes/edges that are returned from selection functions"""
 
-from pybel.constants import BIOPROCESS, PATHOLOGY
+from pybel.constants import BIOPROCESS
 from pybel.struct.filters import get_nodes
 from pybel.struct.filters.edge_filters import filter_edges
-from pybel.struct.filters.edge_predicates import is_associative_relation
 from pybel.struct.filters.node_predicate_builders import function_inclusion_filter_builder
 from pybel.struct.pipeline import in_place_transformation
 from ..selection.leaves import get_gene_leaves, get_rna_leaves
@@ -18,9 +17,7 @@ __all__ = [
     'remove_leaves_by_type',
     'prune_central_dogma',
     'remove_inconsistent_edges',
-    'remove_pathologies',
     'remove_biological_processes',
-    'remove_associations',
 ]
 
 
@@ -83,16 +80,6 @@ def remove_inconsistent_edges(graph):
 
 
 @in_place_transformation
-def remove_pathologies(graph):
-    """Remove pathology nodes
-
-    :param pybel.BELGraph graph: A BEL graph
-    """
-    nodes = get_nodes(graph, function_inclusion_filter_builder(PATHOLOGY))
-    graph.remove_nodes_from(nodes)
-
-
-@in_place_transformation
 def remove_biological_processes(graph):
     """Remove biological process nodes
 
@@ -100,12 +87,3 @@ def remove_biological_processes(graph):
     """
     nodes = get_nodes(graph, function_inclusion_filter_builder(BIOPROCESS))
     graph.remove_nodes_from(nodes)
-
-
-@in_place_transformation
-def remove_associations(graph):
-    """Removes all associative relationships from the graph
-
-    :param pybel.BELGraph graph: A BEL graph
-    """
-    remove_filtered_edges(graph, is_associative_relation)

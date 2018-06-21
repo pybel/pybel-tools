@@ -9,7 +9,7 @@ from pybel.struct.filters.edge_predicate_builders import (
     build_annotation_dict_all_filter, build_annotation_dict_any_filter,
 )
 from pybel.struct.filters.edge_predicates import is_causal_relation
-from pybel.struct.mutation.utils import update_node_helper
+from pybel.struct.utils import update_node_helper
 from pybel.struct.pipeline import transformation
 from .paths import get_nodes_in_all_shortest_paths
 from .random_subgraph import get_random_subgraph

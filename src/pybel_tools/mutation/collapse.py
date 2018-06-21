@@ -13,6 +13,7 @@ from pybel.struct.mutation.collapse import (
 )
 from pybel.struct.mutation.inference import infer_central_dogma
 from pybel.struct.pipeline import in_place_transformation, transformation
+from pybel.struct.utils import update_node_helper
 from ..filters.edge_filters import build_relation_filter, build_source_namespace_filter, build_target_namespace_filter
 from ..mutation.deletion import remove_filtered_edges
 from ..summary.edge_summary import pair_is_consistent
@@ -22,7 +23,6 @@ __all__ = [
     'collapse_nodes',
     'build_central_dogma_collapse_dict',
     'build_central_dogma_collapse_gene_dict',
-    'collapse_by_central_dogma',
     'collapse_by_central_dogma_to_genes',
     'collapse_by_central_dogma_to_genes_out_place',
     'rewire_variants_to_genes',
@@ -315,7 +315,7 @@ def collapse_consistent_edges(graph):
 
 @transformation
 def collapse_to_protein_interactions(graph):
-    """Collapses to a graph made of only causal gene/protein edges
+    """Collapse to a graph made of only causal gene/protein edges.
 
     :param pybel.BELGraph graph: A BEL Graph
     """
@@ -324,5 +324,6 @@ def collapse_to_protein_interactions(graph):
     remove_filtered_edges(graph, invert_edge_predicate(has_polarity))
 
     filtered_graph = graph.subgraph(get_nodes(graph, node_predicates=function_inclusion_filter_builder(GENE)))
+    update_node_helper(graph, filtered_graph)
 
     return filtered_graph

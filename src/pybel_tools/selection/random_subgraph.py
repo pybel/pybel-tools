@@ -6,7 +6,8 @@ import time
 from random import choice, seed as seed_python_random
 
 from pybel import BELGraph
-from pybel.struct.mutation.utils import remove_isolated_nodes, update_node_helper
+from pybel.struct.mutation.utils import remove_isolated_nodes
+from pybel.struct.utils import update_node_helper
 from pybel.struct.pipeline import transformation
 from ..constants import SAMPLE_RANDOM_EDGE_COUNT, SAMPLE_RANDOM_EDGE_SEED_COUNT
 

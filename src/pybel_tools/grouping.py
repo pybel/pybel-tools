@@ -6,8 +6,7 @@ import logging
 
 from pybel import BELGraph
 from pybel.constants import ANNOTATIONS
-from . import pipeline
-from .selection.induce_subgraph import update_metadata
+from pybel.struct.utils import update_metadata
 from .utils import safe_add_edge
 
 log = logging.getLogger(__name__)
@@ -17,7 +16,6 @@ __all__ = [
 ]
 
 
-@pipeline.splitter
 def get_subgraphs_by_annotation_filtered(graph, annotation, values):
     """Stratifies the given graph into subgraphs based on the values for edges' annotations, but filter by a set
     of given values
