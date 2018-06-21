@@ -9,10 +9,8 @@ import logging
 
 from pybel import Pipeline
 from pybel.constants import GENE
-from pybel.struct.grouping import get_subgraphs_by_annotation
-from pybel.struct.mutation import infer_central_dogma
+from pybel.struct import get_nodes_by_function, get_subgraphs_by_annotation, infer_central_dogma
 from pybel.struct.mutation.collapse import collapse_by_central_dogma_to_genes
-from ...filters.node_selection import get_nodes_by_function
 from ...mutation import collapse_all_variants
 from ...utils import calculate_betweenness_centality
 

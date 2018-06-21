@@ -8,13 +8,13 @@ Vasilyev, et al. in https://bmcresnotes.biomedcentral.com/articles/10.1186/1756-
 """
 
 import enum
+import networkx as nx
 from functools import reduce
 from operator import itemgetter
-import networkx as nx
-from pybel.constants import *
 
-from ..utils import pairwise
+from pybel.constants import *
 from ..summary.edge_summary import pair_has_contradiction
+from ..utils import pairwise
 
 causal_effect_dict = {
     INCREASES: 1,
@@ -59,7 +59,6 @@ def rank_edges(edges, edge_ranking=None):
     :return: Highest ranked edge
     :rtype: tuple: (edge id, relation, score given ranking)
     """
-
     edge_ranking = default_edge_ranking if edge_ranking is None else edge_ranking
 
     edges_scores = [
@@ -86,7 +85,6 @@ def get_path_effect(graph, path, relationship_dict):
     :param dict relationship_dict: dictionary with relationship effects
     :rtype: Effect
     """
-
     causal_effect = []
 
     for predecessor, successor in pairwise(path):
@@ -120,7 +118,6 @@ def run_cna(graph, root, targets, relationship_dict=None):
     :param dict relationship_dict: dictionary with relationship effects
     :return list[tuple]:
     """
-
     causal_effects = []
 
     relationship_dict = causal_effect_dict if relationship_dict is None else relationship_dict
@@ -224,7 +221,7 @@ def rank_causalr_hypothesis(graph, node_to_regulation, regulator_node):
     for _, target_node, predicted_regulation in predicted_regulations:
 
         if (predicted_regulation is Effect.inhibition or predicted_regulation is Effect.activation) and (
-                    predicted_regulation.value == node_to_regulation[target_node]):
+                predicted_regulation.value == node_to_regulation[target_node]):
 
             upregulation_hypothesis['correct'] += 1
             downregulation_hypothesis['incorrect'] += 1

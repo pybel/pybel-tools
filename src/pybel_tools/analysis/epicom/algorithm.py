@@ -17,8 +17,8 @@ from bio2bel_drugbank.constants import DATA_DIR as DRUGBANK_DATA_DIR
 from tqdm import tqdm
 
 from pybel.dsl import gene as gene_dsl
+from pybel.struct.grouping import get_subgraphs_by_annotation
 from pybel_tools.analysis.neurommsig import get_neurommsig_score, neurommsig_graph_preprocessor
-from pybel_tools.grouping import get_subgraphs_by_annotation
 from pybel_tools.summary import get_annotation_values
 
 log = logging.getLogger(__name__)
