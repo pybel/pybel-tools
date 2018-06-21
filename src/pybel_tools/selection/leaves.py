@@ -2,6 +2,7 @@
 
 from pybel.constants import GENE, RELATION, RNA, TRANSCRIBED_TO, TRANSLATED_TO
 from pybel.struct.filters import filter_nodes
+from ..constants import WEIGHT
 from ..filters.node_filters import data_missing_key_builder, node_is_upstream_leaf
 from ..filters.node_selection import get_nodes_by_function
 
@@ -25,17 +26,21 @@ def get_upstream_leaves(graph):
     return filter_nodes(graph, node_is_upstream_leaf)
 
 
-def get_unweighted_upstream_leaves(graph, key):
+def get_unweighted_upstream_leaves(graph, key=None):
     """Gets all leaves of the graph with no incoming edges, one outgoing edge, and without the given key in
     its data dictionary
 
     .. seealso :: :func:`data_does_not_contain_key_builder`
 
     :param pybel.BELGraph graph: A BEL graph
-    :param str key: The key in the node data dictionary representing the experimental data
+    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
+     :data:`pybel_tools.constants.WEIGHT`.
     :return: An iterable over leaves (nodes with an in-degree of 0) that don't have the given annotation
     :rtype: iter[tuple]
     """
+    if key is None:
+        key = WEIGHT
+
     return filter_nodes(graph, [node_is_upstream_leaf, data_missing_key_builder(key)])
 
 

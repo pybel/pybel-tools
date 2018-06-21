@@ -29,6 +29,7 @@ __all__ = [
 ]
 
 
+# TODO replace with pybel.struct.summary.count_error_types
 def count_error_types(graph):
     """Counts the occurrence of each type of error in a graph
 
@@ -50,6 +51,7 @@ def _naked_names_iter(graph):
             yield e.name
 
 
+# TODO replace with pybel.struct.summary.count_naked_names
 def count_naked_names(graph):
     """Counts the frequency of each naked name (names without namespaces)
 
@@ -60,6 +62,7 @@ def count_naked_names(graph):
     return Counter(_naked_names_iter(graph))
 
 
+# TODO replace with pybel.struct.summary.get_naked_names
 def get_naked_names(graph):
     """Gets the set of naked names in the graph
 
@@ -151,19 +154,6 @@ def get_undefined_annotations(graph):
         for _, _, e, _ in graph.warnings
         if isinstance(e, UndefinedAnnotationWarning)
     }
-
-
-# FIXME need to change underlying definition and usage of this exception
-def get_undefined_annotation_values(graph, annotation):
-    """Gets the values from an annotation that wasn't actually defined
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param str annotation: The annotaton to filter by
-    :return: The set of all values from the undefined annotation
-    :rtype: set[str]
-    """
-    raise NotImplementedError
-    # return {e.value for _, _, e, _ in graph.warnings if isinstance(e, UndefinedAnnotationWarning) and e.annotation == annotation}
 
 
 def calculate_incorrect_name_dict(graph):

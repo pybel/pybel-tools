@@ -62,6 +62,7 @@ __all__ = [
     'mutator',
     'splitter',
     'MissingPipelineFunctionError',
+    'no_arguments_map',
 ]
 
 log = logging.getLogger(__name__)
