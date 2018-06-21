@@ -9,7 +9,7 @@ import numpy as np
 
 from pybel.constants import NAME
 from pybel.struct.filters import filter_nodes
-from .. import pipeline
+from pybel.struct.pipeline import in_place_transformation
 from ..constants import WEIGHT
 from ..filters.node_filters import function_namespace_inclusion_builder
 
@@ -22,7 +22,7 @@ __all__ = [
 log = logging.getLogger(__name__)
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def overlay_data(graph, data, label=None, overwrite=False):
     """Overlays tabular data on the network
 
@@ -46,7 +46,7 @@ def overlay_data(graph, data, label=None, overwrite=False):
         graph.node[node][label] = value
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def overlay_type_data(graph, data, func, namespace, label=None, overwrite=False, impute=None):
     """Overlay tabular data on the network for data that comes from an data set with identifiers that lack
     namespaces.

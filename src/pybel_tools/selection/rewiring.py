@@ -39,7 +39,7 @@ def all_edges_consistent(graph):
     return all(is_edge_consistent(graph, u, v) for u, v in graph.edges_iter())
 
 
-@pipeline.mutator
+@pipeline.transformation
 def rewire_targets(graph, p):
     """Rewires a graph's edges' target nodes
 

@@ -10,8 +10,10 @@ from pybel.constants import GENE
 
 from ...filters.node_selection import get_nodes_by_function
 from ...grouping import get_subgraphs_by_annotation
-from ...mutation import collapse_all_variants, collapse_by_central_dogma_to_genes, infer_central_dogma
+from ...mutation import collapse_all_variants, infer_central_dogma
 from ...pipeline import Pipeline
+from pybel.struct.mutation.collapse import collapse_by_central_dogma_to_genes
+from pybel.struct.mutation import infer_central_dogma
 from ...utils import calculate_betweenness_centality
 
 __all__ = [

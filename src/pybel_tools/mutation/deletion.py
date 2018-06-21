@@ -6,8 +6,8 @@ from pybel.constants import BIOPROCESS, PATHOLOGY
 from pybel.struct.filters import get_nodes
 from pybel.struct.filters.edge_filters import filter_edges
 from pybel.struct.filters.edge_predicates import is_associative_relation
-from .. import pipeline
-from ..filters.node_selection import function_inclusion_filter_builder
+from pybel.struct.filters.node_predicate_builders import function_inclusion_filter_builder
+from pybel.struct.pipeline import in_place_transformation
 from ..selection.leaves import get_gene_leaves, get_rna_leaves
 from ..selection.utils import get_leaves_by_type
 from ..summary.edge_summary import get_inconsistent_edges
@@ -24,7 +24,7 @@ __all__ = [
 ]
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def remove_filtered_edges(graph, edge_filters):
     """Removes edges passing the given edge filters
 
@@ -37,25 +37,25 @@ def remove_filtered_edges(graph, edge_filters):
     graph.remove_edges_from(edges)
 
 
-@pipeline.in_place_mutator
-def remove_leaves_by_type(graph, function=None, prune_threshold=1):
+@in_place_transformation
+def remove_leaves_by_type(graph, func=None, prune_threshold=1):
     """Removes all nodes in graph (in-place) with only a connection to one node. Useful for gene and RNA.
     Allows for optional filter by function type.
 
 
     :param pybel.BELGraph graph: A BEL graph
-    :param function: If set, filters by the node's function from :mod:`pybel.constants` like
+    :param func: If set, filters by the node's function from :mod:`pybel.constants` like
                     :data:`pybel.constants.GENE`, :data:`pybel.constants.RNA`, :data:`pybel.constants.PROTEIN`, or
                     :data:`pybel.constants.BIOPROCESS`
-    :type function: str
+    :type func: str
     :param prune_threshold: Removes nodes with less than or equal to this number of connections. Defaults to :code:`1`
     :type prune_threshold: int
     """
-    nodes = list(get_leaves_by_type(graph, function=function, prune_threshold=prune_threshold))
+    nodes = list(get_leaves_by_type(graph, func=func, prune_threshold=prune_threshold))
     graph.remove_nodes_from(nodes)
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def prune_central_dogma(graph):
     """Prunes genes, then RNA, in place
 
@@ -68,7 +68,7 @@ def prune_central_dogma(graph):
     graph.remove_nodes_from(rna_leaves)
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def remove_inconsistent_edges(graph):
     """Remove all edges between node paris with consistent edges.
 
@@ -82,7 +82,7 @@ def remove_inconsistent_edges(graph):
         graph.remove_edges_from(edges)
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def remove_pathologies(graph):
     """Remove pathology nodes
 
@@ -92,7 +92,7 @@ def remove_pathologies(graph):
     graph.remove_nodes_from(nodes)
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def remove_biological_processes(graph):
     """Remove biological process nodes
 
@@ -102,7 +102,7 @@ def remove_biological_processes(graph):
     graph.remove_nodes_from(nodes)
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def remove_associations(graph):
     """Removes all associative relationships from the graph
 

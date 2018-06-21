@@ -56,8 +56,6 @@ brain imaging features, whose experiments often measure their correlation with t
        random walk sampling <https://doi.org/10.1186/1756-0500-7-516>`_. BMC Research Notes, 7, 516.
 """
 
-from __future__ import print_function
-
 from collections import defaultdict
 
 import logging
@@ -68,10 +66,10 @@ from scipy import stats
 from tqdm import tqdm
 
 from pybel.constants import BIOPROCESS, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, RELATION
+from pybel.struct.filters.node_selection import get_nodes_by_function
+from pybel.struct.grouping import get_subgraphs_by_annotation
 from ..constants import WEIGHT
-from ..filters.node_selection import get_nodes_by_function
 from ..generation import generate_bioprocess_mechanisms, generate_mechanism
-from ..grouping import get_subgraphs_by_annotation
 
 __all__ = [
     'RESULT_LABELS',

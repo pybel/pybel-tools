@@ -13,11 +13,9 @@ A general use for a node filter function is to use the built-in :func:`filter` i
 :code:`filter(your_node_filter, graph)`
 """
 
-from __future__ import print_function
-
 from collections import Iterable
 
-from pybel.constants import *
+from pybel.constants import FUNCTION, FUSION, HAS_MEMBER, LABEL, NAME, NAMESPACE, PATHOLOGY, PROTEIN, RELATION, VARIANTS
 from pybel.struct.filters.node_filters import count_passed_node_filter
 from pybel.struct.filters.node_predicates import node_predicate
 from ..constants import CNAME

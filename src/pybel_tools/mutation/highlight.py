@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .. import pipeline
+from pybel.struct.pipeline import in_place_transformation, uni_in_place_transformation
 
 __all__ = [
     'NODE_HIGHLIGHT',
@@ -21,7 +21,7 @@ EDGE_HIGHLIGHT = 'pybel_highlight'
 EDGE_HIGHLIGHT_DEFAULT_COLOR = 'orange'
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def highlight_nodes(graph, nodes=None, color=None):
     """Adds a highlight tag to the given nodes.
 
@@ -47,7 +47,7 @@ def is_node_highlighted(graph, node):
     return NODE_HIGHLIGHT in graph.node[node]
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def remove_highlight_nodes(graph, nodes=None):
     """Removes the highlight from the given nodes, or all nodes if none given.
 
@@ -60,7 +60,7 @@ def remove_highlight_nodes(graph, nodes=None):
             del graph.node[node][NODE_HIGHLIGHT]
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def highlight_edges(graph, edges=None, color=None):
     """Adds a highlight tag to the given edges.
 
@@ -83,7 +83,7 @@ def is_edge_highlighted(graph, u, v, k, d):
     return EDGE_HIGHLIGHT in graph.edge[u][v][k]
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def remove_highlight_edges(graph, edges=None):
     """Removes the highlight from the given edges, or all edges if none given.
 
@@ -96,7 +96,7 @@ def remove_highlight_edges(graph, edges=None):
             del graph.edge[u][v][k][EDGE_HIGHLIGHT]
 
 
-@pipeline.uni_in_place_mutator
+@uni_in_place_transformation
 def highlight_subgraph(universe, graph):
     """Highlights all nodes/edges in the universe that in the given graph.
 
@@ -107,12 +107,12 @@ def highlight_subgraph(universe, graph):
     highlight_edges(universe, graph.edges_iter())
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def remove_highlight_subgraph(graph, subgraph):
     """Removes the highlight from all nodes/edges in the graph that are in the subgraph.
 
     :param pybel.BELGraph graph: The BEL graph to mutate
     :param pybel.BELGraph subgraph: The subgraph from which to remove the highlighting
     """
-    remove_highlight_nodes(graph, subgraph)
+    remove_highlight_nodes(graph, subgraph.nodes())
     remove_highlight_edges(graph, subgraph.edges_iter())

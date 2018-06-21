@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from pybel.struct.filters import filter_nodes
-from .node_filters import (
-    function_inclusion_filter_builder,
-    namespace_inclusion_builder,
-    function_namespace_inclusion_builder
-)
-from .. import pipeline
+from pybel.struct.filters.node_predicate_builders import function_inclusion_filter_builder
+from pybel.struct.pipeline import in_place_transformation
+from .node_filters import function_namespace_inclusion_builder, namespace_inclusion_builder
 
 __all__ = [
     'remove_filtered_nodes',
@@ -16,7 +13,7 @@ __all__ = [
 ]
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def remove_filtered_nodes(graph, node_filters):
     """Removes nodes passing the given node filters
 
@@ -28,7 +25,7 @@ def remove_filtered_nodes(graph, node_filters):
     graph.remove_nodes_from(nodes)
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def remove_nodes_by_function(graph, function):
     """Removes nodes with the given function.
 
@@ -40,7 +37,7 @@ def remove_nodes_by_function(graph, function):
     remove_filtered_nodes(graph, function_inclusion_filter_builder(function))
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def remove_nodes_by_namespace(graph, namespace):
     """Removes nodes with the given  namespace.
 
@@ -53,7 +50,7 @@ def remove_nodes_by_namespace(graph, namespace):
     remove_filtered_nodes(graph, namespace_inclusion_builder(namespace))
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def remove_mgi_nodes(graph):
     """Removes MGI nodes.
 
@@ -62,7 +59,7 @@ def remove_mgi_nodes(graph):
     remove_nodes_by_namespace(graph, 'MGI')
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def remove_rgd_nodes(graph):
     """Removes RGD nodes.
 
@@ -71,7 +68,7 @@ def remove_rgd_nodes(graph):
     remove_nodes_by_namespace(graph, 'RGD')
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def remove_nodes_by_function_namespace(graph, function, namespace):
     """Removes nodes with the given function and namespace.
 

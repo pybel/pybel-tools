@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import numpy as np
 import time
 from random import choice, seed as seed_python_random
 
-import numpy as np
-
 from pybel import BELGraph
-from .. import pipeline
+from pybel.struct.mutation.utils import remove_isolated_nodes, update_node_helper
+from pybel.struct.pipeline import transformation
 from ..constants import SAMPLE_RANDOM_EDGE_COUNT, SAMPLE_RANDOM_EDGE_SEED_COUNT
-from ..mutation.utils import remove_isolated_nodes, update_node_helper
 
 __all__ = [
     'randomly_select_node',
@@ -143,7 +142,7 @@ def _helper(rv, graph, number_edges_remaining, no_grow, random_state, original_n
         rv.add_edge(source, step_node, key=key, attr_dict=attr_dict)
 
 
-@pipeline.mutator
+@transformation
 def get_random_subgraph(graph, number_edges=None, number_seed_edges=None, seed=None):
     """Randomly picks a node from the graph, and performs a weighted random walk to sample the given number of edges
     around it

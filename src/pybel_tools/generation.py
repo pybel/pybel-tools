@@ -21,13 +21,15 @@ This method has been applied in the following Jupyter Notebooks:
 """
 
 from pybel.constants import BIOPROCESS
-from . import pipeline
+from pybel.struct.pipeline import in_place_transformation, transformation
+from pybel.struct.mutation import expand_upstream_causal_subgraph
 from .constants import WEIGHT
 from .filters.node_selection import get_nodes_by_function
 from .mutation import (
     collapse_consistent_edges, expand_upstream_causal_subgraph, get_upstream_causal_subgraph,
     remove_inconsistent_edges,
 )
+from .pipeline import splitter
 from .selection.leaves import get_unweighted_upstream_leaves
 
 __all__ = [
@@ -41,7 +43,7 @@ __all__ = [
 ]
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def remove_unweighted_leaves(graph, key=None):
     """Remove nodes that are leaves and that don't have a weight (or other key) attribute set.
 
@@ -79,7 +81,7 @@ def get_unweighted_sources(graph, key=None):
             yield node
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def remove_unweighted_sources(graph, key=None):
     """Prunes unannotated nodes on the periphery of the subgraph
 
@@ -91,7 +93,7 @@ def remove_unweighted_sources(graph, key=None):
     graph.remove_nodes_from(nodes)
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def prune_mechanism_by_data(graph, key=None):
     """Removes all leaves and source nodes that don't have weights. Is a thin wrapper around 
     :func:`remove_unweighted_leaves` and :func:`remove_unweighted_sources`
@@ -109,7 +111,7 @@ def prune_mechanism_by_data(graph, key=None):
     remove_unweighted_sources(graph, key=key)
 
 
-@pipeline.mutator
+@transformation
 def generate_mechanism(graph, node, key=None):
     """Generates a mechanistic subgraph upstream of the given node
 
@@ -131,7 +133,7 @@ def generate_mechanism(graph, node, key=None):
     return subgraph
 
 
-@pipeline.splitter
+@splitter
 def generate_bioprocess_mechanisms(graph, key=None):
     """Generate a mechanistic subgraph for each biological process in the graph using :func:`generate_mechanism`
 
