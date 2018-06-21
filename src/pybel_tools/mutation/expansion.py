@@ -5,7 +5,6 @@ from collections import Counter, defaultdict
 
 import logging
 
-from pybel import BELGraph
 from pybel.constants import *
 from pybel.struct import left_full_join
 from pybel.struct.filters import and_edge_predicates, concatenate_node_predicates, get_nodes_by_function
@@ -16,8 +15,8 @@ from pybel.struct.mutation.expansion.neighborhood import (
     expand_all_node_neighborhoods, expand_node_neighborhood,
     expand_nodes_neighborhoods,
 )
-from pybel.struct.utils import update_node_helper
 from pybel.struct.pipeline import uni_in_place_transformation, uni_transformation
+from pybel.struct.utils import update_node_helper
 from ..utils import safe_add_edge
 
 __all__ = [
@@ -59,7 +58,7 @@ def get_upstream_causal_subgraph(graph, nbunch):
     :return: A BEL Graph
     :rtype: pybel.BELGraph
     """
-    result = BELGraph()
+    result = graph.fresh_copy()
 
     for u, v, k, d in graph.in_edges_iter(nbunch, keys=True, data=True):
         if d[RELATION] in CAUSAL_RELATIONS:
@@ -80,7 +79,7 @@ def get_downstream_causal_subgraph(graph, nbunch):
     :return: A BEL Graph
     :rtype: pybel.BELGraph
     """
-    result = BELGraph()
+    result = graph.fresh_copy()
 
     for u, v, d in graph.out_edges_iter(nbunch, data=True):
         if d[RELATION] in CAUSAL_RELATIONS:

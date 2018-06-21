@@ -4,7 +4,6 @@ from collections import defaultdict
 
 import logging
 
-from pybel import BELGraph
 from pybel.constants import ANNOTATIONS
 from pybel.struct.utils import update_metadata
 from .utils import safe_add_edge
@@ -25,7 +24,7 @@ def get_subgraphs_by_annotation_filtered(graph, annotation, values):
     :param iter[str] values: The values to keep
     :rtype: dict[str,pybel.BELGraph]
     """
-    result = defaultdict(BELGraph)
+    result = defaultdict(graph.fresh_copy)
     values = set(values)
 
     for source, target, key, data in graph.edges_iter(keys=True, data=True):

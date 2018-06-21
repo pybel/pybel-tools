@@ -3,14 +3,13 @@
 import logging
 import networkx as nx
 
-from pybel import BELGraph
 from pybel.struct.filters import filter_edges, filter_nodes
 from pybel.struct.filters.edge_predicate_builders import (
     build_annotation_dict_all_filter, build_annotation_dict_any_filter,
 )
 from pybel.struct.filters.edge_predicates import is_causal_relation
-from pybel.struct.utils import update_node_helper
 from pybel.struct.pipeline import transformation
+from pybel.struct.utils import update_node_helper
 from .paths import get_nodes_in_all_shortest_paths
 from .random_subgraph import get_random_subgraph
 from .search import search_node_names
@@ -130,19 +129,19 @@ def get_subgraph_by_neighborhood(graph, nodes):
     :return: A BEL graph induced around the neighborhoods of the given nodes
     :rtype: Optional[pybel.BELGraph]
     """
-    result = BELGraph()
+    rv = graph.fresh_copy()
 
     node_set = set(nodes)
 
     if all(node not in graph for node in node_set):
         return
 
-    safe_add_edges(result, graph.in_edges_iter(nodes, keys=True, data=True))
-    safe_add_edges(result, graph.out_edges_iter(nodes, keys=True, data=True))
+    safe_add_edges(rv, graph.in_edges_iter(nodes, keys=True, data=True))
+    safe_add_edges(rv, graph.out_edges_iter(nodes, keys=True, data=True))
 
-    update_node_helper(graph, result)
+    update_node_helper(graph, rv)
 
-    return result
+    return rv
 
 
 @transformation
@@ -205,16 +204,16 @@ def get_subgraph_by_edge_filter(graph, edge_filters):
     :return: A BEL subgraph induced over the edges passing the given filters
     :rtype: pybel.BELGraph
     """
-    result = BELGraph()
+    rv = graph.fresh_copy()
 
-    safe_add_edges(result, (
+    safe_add_edges(rv, (
         (u, v, k, graph.edge[u][v][k])
         for u, v, k in filter_edges(graph, edge_filters)
     ))
 
-    update_node_helper(graph, result)
+    update_node_helper(graph, rv)
 
-    return result
+    return rv
 
 
 @transformation
@@ -259,22 +258,6 @@ def get_subgraph_by_annotation_value(graph, annotation, value):
     :rtype: pybel.BELGraph
     """
     return get_subgraph_by_annotations(graph, {annotation: {value}})
-
-
-# FIXME update function for reusability
-def update_metadata(value, graph):
-    """
-
-    :param pybel.BELGraph value:
-    :param pybel.BELGraph graph:
-    """
-    update_node_helper(graph, value)
-
-    value.namespace_url.update(graph.namespace_url)
-    value.namespace_pattern.update(graph.namespace_pattern)
-    value.annotation_url.update(graph.annotation_url)
-    value.annotation_pattern.update(graph.annotation_pattern)
-    value.annotation_list.update(graph.annotation_list)
 
 
 @transformation

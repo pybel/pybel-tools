@@ -2,9 +2,8 @@
 
 import random
 
-from pybel import BELGraph
-from pybel.struct.utils import update_node_helper
 from pybel.struct.pipeline import transformation
+from pybel.struct.utils import update_node_helper
 from ..utils import safe_add_edge
 
 __all__ = [
@@ -56,14 +55,14 @@ def random_by_edges(graph, percentage=None):
 
     subedges = random.sample(edges, n)
 
-    result = BELGraph()
+    rv = graph.fresh_copy()
 
     for u, v, k in subedges:
-        safe_add_edge(result, u, v, k, graph.edge[u][v][k])
+        safe_add_edge(rv, u, v, k, graph.edge[u][v][k])
 
-    update_node_helper(graph, result)
+    update_node_helper(graph, rv)
 
-    return result
+    return rv
 
 
 @transformation

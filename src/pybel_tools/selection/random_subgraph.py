@@ -5,10 +5,9 @@ import numpy as np
 import time
 from random import choice, seed as seed_python_random
 
-from pybel import BELGraph
 from pybel.struct.mutation.utils import remove_isolated_nodes
-from pybel.struct.utils import update_node_helper
 from pybel.struct.pipeline import transformation
+from pybel.struct.utils import update_node_helper
 from ..constants import SAMPLE_RANDOM_EDGE_COUNT, SAMPLE_RANDOM_EDGE_SEED_COUNT
 
 __all__ = [
@@ -101,12 +100,12 @@ def _get_graph_with_random_edges(graph, number_seed_edges, random_state):
     """
     log.debug('making new graph with %d random edges', number_seed_edges)
 
-    result = BELGraph()
+    rv = graph.fresh_copy()
 
     for u, v, key in _get_random_u_v_k_triples(graph, number_seed_edges, random_state):
-        result.add_edge(u, v, key=key, attr_dict=graph[u][v][key])
+        rv.add_edge(u, v, key=key, attr_dict=graph[u][v][key])
 
-    return result
+    return rv
 
 
 def _helper(rv, graph, number_edges_remaining, no_grow, random_state, original_node_count):
