@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
-"""
+"""An implementation of the sampling of spanning trees (SST) algorithm [﻿Vasilyev2014]_.
 
-This module provides an implementation of the sampling of spanning trees (SST) algorithm originally published by
-Vasilyev, et al. in https://bmcresnotes.biomedcentral.com/articles/10.1186/1756-0500-7-516
-
+.. [﻿Vasilyev2014] ﻿Vasilyev, D. M., *et al* (2014). `An algorithm for score aggregation over causal biological networks
+    based on random walk sampling. <https://doi.org/10.1186/1756-0500-7-516>`_ BMC Research Notes, 7, 516.
 """
 
 import enum

@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
-"""
+"""An implementation of Reverse Causal Reasoning (RCR) [Catlett2013]_.
 
-An implementation of "Reverse Causal Reasoning" from https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-14-340
-
+.. [Catlett2013] ﻿Catlett, N. L., *et al* (2013). `Reverse causal reasoning: applying qualitative causal knowledge to
+    the interpretation of high-throughput data <https://doi.org/10.1186/1471-2105-14-340>`_. BMC Bioinformatics, 14(1),
+    340.
 """
 
 import pandas

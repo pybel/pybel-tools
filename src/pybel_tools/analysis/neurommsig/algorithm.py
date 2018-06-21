@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 
-"""An implementation of the mechanism enrichment algorithm from Domingo-Fernández *et al.*, 2017."""
+"""An implementation of the NeuroMMSig mechanism enrichment algorithm [DomingoFernandez2017]_.
+
+.. [DomingoFernandez2017] ﻿Domingo-Fernández, D., *et al* (2017). `Multimodal mechanistic signatures for
+    neurodegenerative diseases (NeuroMMSig): A web server for mechanism enrichment
+    <https://doi.org/10.1093/bioinformatics/btx399>`_. Bioinformatics, 33(22), 3679–3681.
+"""
 
 import itertools as itt
 from collections import Counter

@@ -50,6 +50,7 @@ Links
    expansion
    generation
    heat
+   algorithms
 
 .. toctree::
    :caption: Other Utilities
