@@ -40,13 +40,12 @@ def get_paths_recursive(directory, extension='.bel', exclude_directory_pattern=N
                 yield os.path.join(root, file)
 
 
-def convert_paths(paths, connection=None, upload=False, canonicalize=True, infer_central_dogma=True,
+def convert_paths(paths, manager=None, upload=False, canonicalize=True, infer_central_dogma=True,
                   enrich_citations=False, send=False, **kwargs):
     """Recursively parses and either uploads/pickles graphs in a given set of files
 
     :param iter[str] paths: The paths to convert
-    :param connection: The connection
-    :type connection: None or str or pybel.manager.Manager
+    :type manager: Optional[pybel.manager.Manager]
     :param bool upload: Should the networks be uploaded to the cache?
     :param bool canonicalize: Calculate canonical nodes?
     :param bool infer_central_dogma: Should the central dogma be inferred for all proteins, RNAs, and miRNAs
@@ -56,14 +55,15 @@ def convert_paths(paths, connection=None, upload=False, canonicalize=True, infer
     :return: A pair of a dictionary {path: bel graph} and list of failed paths
     :rtype: tuple[dict[str,pybel.BELGraph],list[str]]
     """
-    manager = Manager.ensure(connection)
-
     successes = {}
     failures = []
 
+    if manager is None:
+        manager = Manager()
+
     for path in paths:
         try:
-            graph = from_path_ensure_pickle(path, connection=manager, **kwargs)
+            graph = from_path_ensure_pickle(path, manager=manager, **kwargs)
         except Exception as e:
             log.exception('problem parsing %s', path)
             failures.append((path, e))
@@ -79,7 +79,7 @@ def convert_paths(paths, connection=None, upload=False, canonicalize=True, infer
             enrich_pubmed_citations(graph=graph, manager=manager)
 
         if upload:
-            to_database(graph, connection=manager, store_parts=True)
+            to_database(graph, manager=manager, store_parts=True)
 
         if send:
             response = to_web(graph)
@@ -90,14 +90,13 @@ def convert_paths(paths, connection=None, upload=False, canonicalize=True, infer
     return successes, failures
 
 
-def convert_directory(directory, connection=None, upload=False, pickle=False, canonicalize=True,
+def convert_directory(directory, manager, upload=False, pickle=False, canonicalize=True,
                       infer_central_dogma=True, enrich_citations=False, enrich_genes=False, enrich_go=False, send=False,
                       exclude_directory_pattern=None, version_in_path=False, **kwargs):
     """Recursively parses and either uploads/pickles graphs in a given directory and sub-directories
 
     :param str directory: The directory to look through
-    :param connection: The connection
-    :type connection: None or str or pybel.manager.Manage.
+    :type manager: pybel.manager.Manager
     :param bool upload: Should the networks be uploaded to the cache?
     :param bool pickle: Should the networks be saved as pickles?
     :param bool infer_central_dogma: Should the central dogma be inferred for all proteins, RNAs, and miRNAs
@@ -114,7 +113,7 @@ def convert_directory(directory, connection=None, upload=False, pickle=False, ca
 
     result = convert_paths(
         paths,
-        connection=connection,
+        manager=manager,
         upload=upload,
         pickle=pickle,
         canonicalize=canonicalize,
@@ -130,15 +129,14 @@ def convert_directory(directory, connection=None, upload=False, pickle=False, ca
     return result
 
 
-def upload_recursive(directory, connection=None, exclude_directory_pattern=None):
+def upload_recursive(directory, manager, exclude_directory_pattern=None):
     """Recursively uploads all gpickles in a given directory and sub-directories
     
     :param str directory: the directory to traverse
-    :param connection: A connection string or manager
-    :type connection: Optional[str or pybel.manage.Manager]
+    :param manager: A manager
+    :type manager: pybel.manage.Manager
     :param Optional[str] exclude_directory_pattern: Any directory names to exclude
     """
-    manager = Manager.ensure(connection)
     paths = list(get_paths_recursive(
         directory,
         extension='.gpickle',
@@ -153,7 +151,7 @@ def upload_recursive(directory, connection=None, exclude_directory_pattern=None)
             log.warning('%s uses a pickle from an old version of PyBEL. Quitting.', path)
             continue
 
-        to_database(network, connection=manager, store_parts=True)
+        to_database(network, manager=manager, store_parts=True)
 
 
 def subgraphs_to_pickles(network, annotation, directory=None):
