@@ -40,13 +40,7 @@ Links
    integration
    mutation
    visualization
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Graph Queries
-   :name: graphquery
-
-   pipeline
+   query
 
 .. toctree::
    :caption: Workflows
@@ -56,6 +50,7 @@ Links
    expansion
    generation
    heat
+   algorithms
 
 .. toctree::
    :caption: Other Utilities

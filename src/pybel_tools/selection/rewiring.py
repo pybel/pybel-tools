@@ -11,7 +11,7 @@ Random permutations are useful in statistical testing over aggregate statistics.
 import random
 
 from pybel.constants import RELATION
-from .. import pipeline
+from pybel.struct.pipeline import transformation
 
 
 def is_edge_consistent(graph, u, v):
@@ -39,7 +39,7 @@ def all_edges_consistent(graph):
     return all(is_edge_consistent(graph, u, v) for u, v in graph.edges_iter())
 
 
-@pipeline.mutator
+@transformation
 def rewire_targets(graph, p):
     """Rewires a graph's edges' target nodes
 

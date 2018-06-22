@@ -1,20 +1,25 @@
 # -*- coding: utf-8 -*-
 
-import json
-import logging
 from collections import Iterable
 
+import json
+import logging
 import numpy as np
 
 from pybel.dsl.nodes import BaseEntity
 from pybel.manager.models import Node
 from pybel.struct import union
+from pybel.struct.pipeline import Pipeline
 from pybel.utils import list2tuple
-from .pipeline import Pipeline
 from .selection import get_subgraph
 from .selection.induce_subgraph import (
     NONNODE_SEED_TYPES, SEED_TYPE_ANNOTATION, SEED_TYPE_INDUCTION, SEED_TYPE_NEIGHBORS, SEED_TYPE_SAMPLE,
 )
+
+__all__ = [
+    'QueryMissingNetworksError',
+    'Query',
+]
 
 log = logging.getLogger(__name__)
 
@@ -218,7 +223,7 @@ class Query:
             rv['seeding'] = self.seeding
 
         if self.pipeline:
-            rv['pipeline'] = self.pipeline.to_json()
+            rv['pipeline'] = self.pipeline.protocol
 
         return rv
 
@@ -252,7 +257,7 @@ class Query:
             raise QueryMissingNetworksError('query JSON did not have key "network_ids"')
 
         if 'pipeline' in data:
-            pipeline = Pipeline.from_json(data['pipeline'])
+            pipeline = Pipeline(data['pipeline'])
         else:
             pipeline = None
 

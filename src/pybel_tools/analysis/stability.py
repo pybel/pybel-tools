@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import itertools as itt
-import logging
 
+import logging
 from networkx import DiGraph, Graph
 
 from pybel.constants import *
-from ..mutation import update_node_helper
+from pybel.struct.utils import update_node_helper
 from ..selection import get_causal_subgraph
 from ..summary import get_all_relations, relation_set_has_contradictions
 

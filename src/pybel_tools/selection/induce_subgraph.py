@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
 
 import logging
-
 import networkx as nx
 
-from pybel import BELGraph
 from pybel.struct.filters import filter_edges, filter_nodes
 from pybel.struct.filters.edge_predicate_builders import (
     build_annotation_dict_all_filter, build_annotation_dict_any_filter,
 )
 from pybel.struct.filters.edge_predicates import is_causal_relation
+from pybel.struct.pipeline import transformation
+from pybel.struct.utils import update_node_helper
 from .paths import get_nodes_in_all_shortest_paths
 from .random_subgraph import get_random_subgraph
 from .search import search_node_names
-from .. import pipeline
 from ..filters.edge_filters import (
     build_author_inclusion_filter, build_edge_data_filter, build_pmid_inclusion_filter,
 )
@@ -22,7 +21,6 @@ from ..mutation.expansion import (
     expand_nodes_neighborhoods, expand_upstream_causal_subgraph, get_downstream_causal_subgraph,
     get_upstream_causal_subgraph,
 )
-from ..mutation.utils import update_node_helper
 from ..utils import safe_add_edges
 
 log = logging.getLogger(__name__)
@@ -95,7 +93,7 @@ class NodeDegreeIterError(ValueError):
     """Raised when failing to iterate over node degrees"""
 
 
-@pipeline.mutator
+@transformation
 def get_subgraph_by_induction(graph, nodes):
     """Induces a graph over the given nodes. Returns None if none of the nodes are in the given graph.
 
@@ -109,7 +107,7 @@ def get_subgraph_by_induction(graph, nodes):
     return graph.subgraph(nodes)
 
 
-@pipeline.mutator
+@transformation
 def get_subgraph_by_node_filter(graph, node_filters):
     """Induces a graph on the nodes that pass all filters
 
@@ -122,7 +120,7 @@ def get_subgraph_by_node_filter(graph, node_filters):
     return get_subgraph_by_induction(graph, filter_nodes(graph, node_filters))
 
 
-@pipeline.mutator
+@transformation
 def get_subgraph_by_neighborhood(graph, nodes):
     """Gets a BEL graph around the neighborhoods of the given nodes. Returns none if no nodes are in the graph
 
@@ -131,22 +129,22 @@ def get_subgraph_by_neighborhood(graph, nodes):
     :return: A BEL graph induced around the neighborhoods of the given nodes
     :rtype: Optional[pybel.BELGraph]
     """
-    result = BELGraph()
+    rv = graph.fresh_copy()
 
     node_set = set(nodes)
 
     if all(node not in graph for node in node_set):
         return
 
-    safe_add_edges(result, graph.in_edges_iter(nodes, keys=True, data=True))
-    safe_add_edges(result, graph.out_edges_iter(nodes, keys=True, data=True))
+    safe_add_edges(rv, graph.in_edges_iter(nodes, keys=True, data=True))
+    safe_add_edges(rv, graph.out_edges_iter(nodes, keys=True, data=True))
 
-    update_node_helper(graph, result)
+    update_node_helper(graph, rv)
 
-    return result
+    return rv
 
 
-@pipeline.mutator
+@transformation
 def get_subgraph_by_second_neighbors(graph, nodes, filter_pathologies=False):
     """Gets a BEL graph around the neighborhoods of the given nodes, and expands to the neighborhood of those nodes
 
@@ -165,7 +163,7 @@ def get_subgraph_by_second_neighbors(graph, nodes, filter_pathologies=False):
     return result
 
 
-@pipeline.mutator
+@transformation
 def get_subgraph_by_all_shortest_paths(graph, nodes, weight=None, remove_pathologies=True):
     """Induces a subgraph over the nodes in the pairwise shortest paths between all of the nodes in the given list
 
@@ -196,7 +194,7 @@ def get_subgraph_by_all_shortest_paths(graph, nodes, weight=None, remove_patholo
     return get_subgraph_by_induction(graph, induced_nodes)
 
 
-@pipeline.mutator
+@transformation
 def get_subgraph_by_edge_filter(graph, edge_filters):
     """Induces a subgraph on all edges that pass the given filters
     
@@ -206,19 +204,19 @@ def get_subgraph_by_edge_filter(graph, edge_filters):
     :return: A BEL subgraph induced over the edges passing the given filters
     :rtype: pybel.BELGraph
     """
-    result = BELGraph()
+    rv = graph.fresh_copy()
 
-    safe_add_edges(result, (
+    safe_add_edges(rv, (
         (u, v, k, graph.edge[u][v][k])
         for u, v, k in filter_edges(graph, edge_filters)
     ))
 
-    update_node_helper(graph, result)
+    update_node_helper(graph, rv)
 
-    return result
+    return rv
 
 
-@pipeline.mutator
+@transformation
 def get_subgraph_by_data(graph, annotations):
     """Returns the subgraph filtering for Citation, Evidence or Annotation in the edges.
     
@@ -230,7 +228,7 @@ def get_subgraph_by_data(graph, annotations):
     return get_subgraph_by_edge_filter(graph, build_edge_data_filter(annotations))
 
 
-@pipeline.mutator
+@transformation
 def get_subgraph_by_annotations(graph, annotations, or_=None):
     """Returns the subgraph given an annotations filter.
 
@@ -249,7 +247,7 @@ def get_subgraph_by_annotations(graph, annotations, or_=None):
     return get_subgraph_by_edge_filter(graph, edge_filter_builder(annotations))
 
 
-@pipeline.mutator
+@transformation
 def get_subgraph_by_annotation_value(graph, annotation, value):
     """Builds a new subgraph induced over all edges whose annotations match the given key and value
 
@@ -262,23 +260,7 @@ def get_subgraph_by_annotation_value(graph, annotation, value):
     return get_subgraph_by_annotations(graph, {annotation: {value}})
 
 
-# FIXME update function for reusability
-def update_metadata(value, graph):
-    """
-
-    :param pybel.BELGraph value:
-    :param pybel.BELGraph graph:
-    """
-    update_node_helper(graph, value)
-
-    value.namespace_url.update(graph.namespace_url)
-    value.namespace_pattern.update(graph.namespace_pattern)
-    value.annotation_url.update(graph.annotation_url)
-    value.annotation_pattern.update(graph.annotation_pattern)
-    value.annotation_list.update(graph.annotation_list)
-
-
-@pipeline.mutator
+@transformation
 def get_causal_subgraph(graph):
     """Builds a new subgraph induced over all edges that are causal
 
@@ -289,7 +271,7 @@ def get_causal_subgraph(graph):
     return get_subgraph_by_edge_filter(graph, is_causal_relation)
 
 
-@pipeline.mutator
+@transformation
 def get_multi_causal_upstream(graph, nbunch):
     """Gets the union of all the 2-level deep causal upstream subgraphs from the nbunch
     
@@ -303,7 +285,7 @@ def get_multi_causal_upstream(graph, nbunch):
     return result
 
 
-@pipeline.mutator
+@transformation
 def get_multi_causal_downstream(graph, nbunch):
     """Gets the union of all of the 2-level deep causal downstream subgraphs from the nbunch
 
@@ -317,7 +299,7 @@ def get_multi_causal_downstream(graph, nbunch):
     return result
 
 
-@pipeline.mutator
+@transformation
 def get_subgraph_by_node_search(graph, query):
     """Gets a subgraph induced over all nodes matching the query string
 
@@ -332,7 +314,7 @@ def get_subgraph_by_node_search(graph, query):
     return get_subgraph_by_induction(graph, nodes)
 
 
-@pipeline.mutator
+@transformation
 def get_subgraph(graph, seed_method=None, seed_data=None, expand_nodes=None, remove_nodes=None):
     """Runs pipeline query on graph with multiple subgraph filters and expanders.
 
@@ -423,7 +405,7 @@ def get_subgraph(graph, seed_method=None, seed_data=None, expand_nodes=None, rem
     return result
 
 
-@pipeline.mutator
+@transformation
 def get_subgraph_by_pubmed(graph, pubmed_identifiers):
     """Induces a subgraph over the edges retrieved from the given PubMed identifier(s)
 
@@ -434,7 +416,7 @@ def get_subgraph_by_pubmed(graph, pubmed_identifiers):
     return get_subgraph_by_edge_filter(graph, build_pmid_inclusion_filter(pubmed_identifiers))
 
 
-@pipeline.mutator
+@transformation
 def get_subgraph_by_authors(graph, authors):
     """Induces a subgraph over the edges retrieved publications by the given author(s)
 
@@ -445,7 +427,7 @@ def get_subgraph_by_authors(graph, authors):
     return get_subgraph_by_edge_filter(graph, build_author_inclusion_filter(authors))
 
 
-@pipeline.mutator
+@transformation
 def get_largest_component(graph):
     """Gets the giant component of a subgraph
 

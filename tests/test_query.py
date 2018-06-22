@@ -10,7 +10,7 @@ Reference for testing Flask
 import logging
 import unittest
 
-from pybel import BELGraph
+from pybel import BELGraph, Pipeline
 from pybel.examples import egf_graph
 from pybel.examples.homology_example import (
     homology_graph, mouse_csf1_protein, mouse_csf1_rna,
@@ -18,7 +18,6 @@ from pybel.examples.homology_example import (
 )
 from pybel.examples.sialic_acid_example import dap12, shp1, shp2, sialic_acid_graph, syk, trem2
 from pybel_tools.mutation import collapse_by_central_dogma_to_genes, expand_internal, infer_central_dogma
-from pybel_tools.pipeline import Pipeline
 from pybel_tools.query import Query
 from pybel_tools.selection import get_subgraph_by_annotation_value
 from tests.constants import ExampleNetworkMixin, make_graph_1, protein_a_tuple

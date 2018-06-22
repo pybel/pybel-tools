@@ -1,17 +1,22 @@
 # -*- coding: utf-8 -*-
 
-"""An implementation of the mechanism enrichment algorithm from Domingo-Fernández *et al.*, 2017."""
+"""An implementation of the NeuroMMSig mechanism enrichment algorithm [DomingoFernandez2017]_.
+
+.. [DomingoFernandez2017] ﻿Domingo-Fernández, D., *et al* (2017). `Multimodal mechanistic signatures for
+    neurodegenerative diseases (NeuroMMSig): A web server for mechanism enrichment
+    <https://doi.org/10.1093/bioinformatics/btx399>`_. Bioinformatics, 33(22), 3679–3681.
+"""
 
 import itertools as itt
-import logging
 from collections import Counter
 
-from pybel.constants import GENE
+import logging
 
-from ...filters.node_selection import get_nodes_by_function
-from ...grouping import get_subgraphs_by_annotation
-from ...mutation import collapse_all_variants, collapse_by_central_dogma_to_genes, infer_central_dogma
-from ...pipeline import Pipeline
+from pybel import Pipeline
+from pybel.constants import GENE
+from pybel.struct import get_nodes_by_function, get_subgraphs_by_annotation, infer_central_dogma
+from pybel.struct.mutation.collapse import collapse_by_central_dogma_to_genes
+from ...mutation import collapse_all_variants
 from ...utils import calculate_betweenness_centality
 
 __all__ = [

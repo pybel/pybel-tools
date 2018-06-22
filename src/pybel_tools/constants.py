@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from pybel.constants import HAS_COMPONENT, HAS_PRODUCT, HAS_REACTANT, HAS_VARIANT, TRANSCRIBED_TO, TRANSLATED_TO
 
 IS_PRODUCT_OF = 'isProductOf'
@@ -28,7 +26,7 @@ so_url_fmt = "http://togows.dbcls.jp/entry/ncbi-pubmed/{}/so"
 CNAME = 'cname'
 WEIGHT = 'weight'
 
-VERSION = '0.5.3'
+VERSION = '0.6.0-dev'
 
 # Resources
 

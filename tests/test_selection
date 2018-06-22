@@ -5,8 +5,6 @@ import unittest
 from pybel import BELGraph
 from pybel.constants import *
 from pybel.dsl import protein
-from pybel_tools.mutation import collapse_by_central_dogma
-from pybel_tools.mutation.inference import infer_central_dogmatic_transcriptions, infer_central_dogmatic_translations
 from pybel_tools.selection import get_subgraph_by_data, get_subgraph_by_induction
 from tests.constants import ExampleNetworkMixin, n
 
@@ -63,47 +61,6 @@ class TestInduction(unittest.TestCase):
         self.assertEqual(2, graph.number_of_edges(), msg='Original graph edges should not change')
 
 
-class TestInference(unittest.TestCase):
-    def test_infer_1(self):
-        graph = BELGraph()
-
-        graph.add_simple_node(*p1)
-        graph.add_simple_node(*g1)
-        graph.add_simple_node(*p2)
-        graph.add_simple_node(*g3)
-        graph.add_simple_node(*m4)
-
-        graph.add_edge(p1, p2, **{RELATION: INCREASES})
-        graph.add_edge(g1, g3, **{RELATION: POSITIVE_CORRELATION})
-
-        self.assertEqual(5, graph.number_of_nodes())
-        self.assertEqual(2, graph.number_of_edges())
-
-        infer_central_dogmatic_translations(graph)
-
-        self.assertEqual(7, graph.number_of_nodes())
-        self.assertEqual(4, graph.number_of_edges())
-        self.assertIn(r1, graph)
-        self.assertIn(r2, graph)
-
-        infer_central_dogmatic_transcriptions(graph)
-
-        self.assertEqual(9, graph.number_of_nodes())
-        self.assertEqual(7, graph.number_of_edges())
-        self.assertIn(g1, graph)
-        self.assertIn(g2, graph)
-        self.assertIn(g3, graph)
-        self.assertIn(g4, graph)
-
-        collapse_by_central_dogma(graph)
-
-        self.assertEqual(4, graph.number_of_nodes())
-        self.assertEqual(2, graph.number_of_edges())
-
-        self.assertTrue(graph.has_edge(p1, g3))
-        self.assertTrue(graph.has_edge(p1, p2))
-
-
 class TestGetSubgraphByData(ExampleNetworkMixin):
     def test_annotation_filter(self):
         test_network = self.network2  # Defined in test.constants.TestNetworks
@@ -112,8 +69,8 @@ class TestGetSubgraphByData(ExampleNetworkMixin):
 
         self.assertEqual(2, filtered_network.number_of_nodes())
         self.assertEqual(1, filtered_network.number_of_edges())
-        self.assertIn(('Gene', 'HGNC', 'f'), filtered_network)
-        self.assertIn(('Protein', 'HGNC', 'e'), filtered_network)
+        self.assertIn((GENE, 'HGNC', 'f'), filtered_network)
+        self.assertIn((PROTEIN, 'HGNC', 'e'), filtered_network)
 
     def test_evidence_filter(self):
         test_network = self.graph_1  # Defined in test.constants.TestNetworks
@@ -122,9 +79,9 @@ class TestGetSubgraphByData(ExampleNetworkMixin):
 
         self.assertEqual(3, filtered_network.number_of_nodes())
         self.assertEqual(2, filtered_network.number_of_edges())
-        self.assertIn(('Protein', 'HGNC', 'a'), filtered_network)
-        self.assertIn(('Protein', 'HGNC', 'b'), filtered_network)
-        self.assertIn(('RNA', 'HGNC', 'd'), filtered_network)
+        self.assertIn((PROTEIN, 'HGNC', 'a'), filtered_network)
+        self.assertIn((PROTEIN, 'HGNC', 'b'), filtered_network)
+        self.assertIn((RNA, 'HGNC', 'd'), filtered_network)
 
     def test_citation_filter(self):
         test_network = self.graph_1  # Defined in test.constants.TestNetworks
@@ -142,6 +99,6 @@ class TestGetSubgraphByData(ExampleNetworkMixin):
         self.assertEqual(3, filtered_network.number_of_nodes())
         self.assertEqual(2, filtered_network.number_of_edges())
 
-        self.assertIn(('Protein', 'HGNC', 'a'), filtered_network)
-        self.assertIn(('Protein', 'HGNC', 'b'), filtered_network)
-        self.assertIn(('RNA', 'HGNC', 'd'), filtered_network)
+        self.assertIn((PROTEIN, 'HGNC', 'a'), filtered_network)
+        self.assertIn((PROTEIN, 'HGNC', 'b'), filtered_network)
+        self.assertIn((RNA, 'HGNC', 'd'), filtered_network)
