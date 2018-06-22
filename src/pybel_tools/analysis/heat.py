@@ -73,14 +73,15 @@ from ..generation import generate_bioprocess_mechanisms, generate_mechanism
 
 __all__ = [
     'RESULT_LABELS',
-    'Runner',
+    'calculate_average_scores_on_graph',
+    'calculate_average_scores_on_subgraphs',
+    'workflow',
     'multirun',
     'workflow_aggregate',
-    'workflow',
     'workflow_all',
     'workflow_all_aggregate',
     'calculate_average_score_by_annotation',
-    'calculate_average_scores_on_subgraphs',
+    'Runner',
 ]
 
 log = logging.getLogger(__name__)
@@ -100,6 +101,168 @@ RESULT_LABELS = [
     'neighbors',
     'subgraph_size',
 ]
+
+
+def calculate_average_scores_on_graph(graph, key=None, tag=None, default_score=None, runs=None, use_tqdm=False):
+    """Calculates the scores over all biological processes in the sub-graph.
+
+    As an implementation, it simply computes the sub-graphs then calls :func:`calculate_average_scores_on_subgraphs` as
+    described in that function's documentation.
+
+    :param pybel.BELGraph graph: A BEL graph with heats already on the nodes
+    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
+     :data:`pybel_tools.constants.WEIGHT`.
+    :param Optional[str] tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
+    :param Optional[float] default_score: The initial score for all nodes. This number can go up or down.
+    :param Optional[int] runs: The number of times to run the heat diffusion workflow. Defaults to 100.
+    :param bool use_tqdm: Should there be a progress bar for runners?
+    :return: A dictionary of {pybel node tuple: results tuple}
+    :rtype: dict[tuple, tuple]
+
+    Suggested usage with :mod:`pandas`:
+
+    >>> import pandas as pd
+    >>> from pybel_tools.analysis.heat import calculate_average_scores_on_graph
+    >>> graph = ...  # load graph and data
+    >>> scores = calculate_average_scores_on_graph(graph)
+    >>> pd.DataFrame.from_items(scores.items(), orient='index', columns=RESULT_LABELS)
+
+    """
+    subgraphs = generate_bioprocess_mechanisms(graph, key=key)
+    scores = calculate_average_scores_on_subgraphs(
+        subgraphs,
+        key=key,
+        tag=tag,
+        default_score=default_score,
+        runs=runs,
+        use_tqdm=use_tqdm
+    )
+    return scores
+
+
+def calculate_average_scores_on_subgraphs(subgraphs, key=None, tag=None, default_score=None, runs=None, use_tqdm=False):
+    """Calculate the scores over precomputed candidate mechanisms.
+
+    :param dict[tuple,pybel.BELGraph] subgraphs: A dictionary of {tuple node: pybel.BELGraph candidate mechanism}
+    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
+     :data:`pybel_tools.constants.WEIGHT`.
+    :param Optional[str] tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
+    :param Optional[float] default_score: The initial score for all nodes. This number can go up or down.
+    :param Optional[int] runs: The number of times to run the heat diffusion workflow. Defaults to 100.
+    :param bool use_tqdm: Should there be a progress bar for runners?
+    :return: A dictionary of {pybel node tuple: results tuple}
+    :rtype: dict[tuple, tuple]
+
+    Example Usage:
+
+    >>> import pandas as pd
+    >>> from pybel_tools.generation import generate_bioprocess_mechanisms
+    >>> from pybel_tools.analysis.heat import calculate_average_scores_on_subgraphs
+    >>> # load graph and data
+    >>> graph = ...
+    >>> candidate_mechanisms = generate_bioprocess_mechanisms(graph)
+    >>> scores = calculate_average_scores_on_subgraphs(candidate_mechanisms)
+    >>> pd.DataFrame.from_items(scores.items(), orient='index', columns=RESULT_LABELS)
+    """
+    results = {}
+
+    log.info('calculating results for %d candidate mechanisms using %d permutations', len(subgraphs), runs)
+
+    it = subgraphs.items()
+
+    if use_tqdm:
+        it = tqdm(it, total=len(subgraphs), desc='Candidate mechanisms')
+
+    for node, subgraph in it:
+        number_first_neighbors = subgraph.in_degree(node)
+        number_first_neighbors = 0 if isinstance(number_first_neighbors, dict) else number_first_neighbors
+        mechanism_size = subgraph.number_of_nodes()
+
+        runners = workflow(subgraph, node, key=key, tag=tag, default_score=default_score, runs=runs)
+        scores = [runner.get_final_score() for runner in runners]
+
+        if 0 == len(scores):
+            results[node] = (
+                None,
+                None,
+                None,
+                None,
+                number_first_neighbors,
+                mechanism_size,
+            )
+            continue
+
+        scores = np.array(scores)
+
+        average_score = np.average(scores)
+        score_std = np.std(scores)
+        med_score = np.median(scores)
+        chi_2_stat, norm_p = stats.normaltest(scores)
+
+        results[node] = (
+            average_score,
+            score_std,
+            norm_p,
+            med_score,
+            number_first_neighbors,
+            mechanism_size,
+        )
+
+    return results
+
+
+def workflow(graph, node, key=None, tag=None, default_score=None, runs=None, minimum_nodes=1):
+    """Generate candidate mechanisms and run the heat diffusion workflow.
+
+    :param pybel.BELGraph graph: A BEL graph
+    :param tuple node: The BEL node that is the focus of this analysis
+    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
+     :data:`pybel_tools.constants.WEIGHT`.
+    :param Optional[str] tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
+    :param Optional[float] default_score: The initial score for all nodes. This number can go up or down.
+    :param Optional[int] runs: The number of times to run the heat diffusion workflow. Defaults to 100.
+    :param int minimum_nodes: The minimum number of nodes a sub-graph needs to try running heat diffusion
+    :return: A list of runners
+    :rtype: list[Runner]
+    """
+    subgraph = generate_mechanism(graph, node, key=key)
+
+    if subgraph.number_of_nodes() <= minimum_nodes:
+        return []
+
+    runners = multirun(subgraph, node, key=key, tag=tag, default_score=default_score, runs=runs)
+    return list(runners)
+
+
+def multirun(graph, node, key=None, tag=None, default_score=None, runs=None, use_tqdm=False):
+    """Run the heat diffusion workflow multiple times, each time yielding a :class:`Runner` object upon completion.
+
+    :param pybel.BELGraph graph: A BEL graph
+    :param tuple node: The BEL node that is the focus of this analysis
+    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
+     :data:`pybel_tools.constants.WEIGHT`.
+    :param str tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
+    :param float default_score: The initial score for all nodes. This number can go up or down.
+    :param int runs: The number of times to run the heat diffusion workflow. Defaults to 100.
+    :param bool use_tqdm: Should there be a progress bar for runners?
+    :return: An iterable over the runners after each iteration
+    :rtype: iter[Runner]
+    """
+    if runs is None:
+        runs = 100
+
+    it = range(runs)
+
+    if use_tqdm:
+        it = tqdm(it, total=runs)
+
+    for i in it:
+        try:
+            runner = Runner(graph, node, key=key, tag=tag, default_score=default_score)
+            runner.run()
+            yield runner
+        except Exception:
+            log.debug('Run %s failed for %s', i, node)
 
 
 class Runner:
@@ -304,59 +467,6 @@ class Runner:
         return self.graph.subgraph(self.unscored_nodes_iter())
 
 
-def multirun(graph, node, key=None, tag=None, default_score=None, runs=None, use_tqdm=False):
-    """Run the heat diffusion workflow multiple times, each time yielding a :class:`Runner` object upon completion.
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param tuple node: The BEL node that is the focus of this analysis
-    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
-     :data:`pybel_tools.constants.WEIGHT`.
-    :param str tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
-    :param float default_score: The initial score for all nodes. This number can go up or down.
-    :param int runs: The number of times to run the heat diffusion workflow. Defaults to 100.
-    :param bool use_tqdm: Should there be a progress bar for runners?
-    :return: An iterable over the runners after each iteration
-    :rtype: iter[Runner]
-    """
-    if runs is None:
-        runs = 100
-
-    it = range(runs)
-
-    if use_tqdm:
-        it = tqdm(it, total=runs)
-
-    for i in it:
-        try:
-            runner = Runner(graph, node, key=key, tag=tag, default_score=default_score)
-            runner.run()
-            yield runner
-        except Exception:
-            log.debug('Run %s failed for %s', i, node)
-
-
-def workflow(graph, node, key=None, tag=None, default_score=None, runs=None):
-    """Generate candidate mechanisms and run the heat diffusion workflow.
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param tuple node: The BEL node that is the focus of this analysis
-    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
-     :data:`pybel_tools.constants.WEIGHT`.
-    :param Optional[str] tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
-    :param Optional[float] default_score: The initial score for all nodes. This number can go up or down.
-    :param Optional[int] runs: The number of times to run the heat diffusion workflow. Defaults to 100.
-    :return: A list of runners
-    :rtype: list[Runner]
-    """
-    sg = generate_mechanism(graph, node, key=key)
-
-    if sg.number_of_nodes() <= 1:  # Don't even bother trying to get reasonable scores if it's too small
-        return []
-
-    runners = multirun(sg, node, key=key, tag=tag, default_score=default_score, runs=runs)
-    return list(runners)
-
-
 def workflow_aggregate(graph, node, key=None, tag=None, default_score=None, runs=None, aggregator=None):
     """Get the average score over multiple runs.
 
@@ -453,77 +563,6 @@ def workflow_all_aggregate(graph, key=None, tag=None, default_score=None, runs=N
             )
         except Exception:
             log.exception('could not run on %', bioprocess_node)
-
-    return results
-
-
-def calculate_average_scores_on_subgraphs(subgraphs, key=None, tag=None, default_score=None, runs=None, use_tqdm=False):
-    """Calculate the scores over precomputed candidate mechanisms.
-    
-    :param dict[tuple,pybel.BELGraph] subgraphs: A dictionary of {tuple node: pybel.BELGraph candidate mechanism}
-    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
-     :data:`pybel_tools.constants.WEIGHT`.
-    :param Optional[str] tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
-    :param Optional[float] default_score: The initial score for all nodes. This number can go up or down.
-    :param Optional[int] runs: The number of times to run the heat diffusion workflow. Defaults to 100.
-    :param bool use_tqdm: Should there be a progress bar for runners?
-    :return: A dictionary of {pybel node tuple: results tuple}
-    :rtype: dict[tuple, tuple]
-    
-    Example Usage:
-    
-    >>> import pandas as pd
-    >>> from pybel_tools.generation import generate_bioprocess_mechanisms
-    >>> from pybel_tools.analysis.heat import calculate_average_scores_on_subgraphs
-    >>> # load graph and data
-    >>> graph = ...
-    >>> candidate_mechanisms = generate_bioprocess_mechanisms(graph)
-    >>> scores = calculate_average_scores_on_subgraphs(candidate_mechanisms)
-    >>> pd.DataFrame.from_items(scores.items(), orient='index', columns=RESULT_LABELS)
-    """
-    results = {}
-
-    log.info('calculating results for %d candidate mechanisms using %d permutations', len(subgraphs), runs)
-
-    it = subgraphs.items()
-
-    if use_tqdm:
-        it = tqdm(it, total=len(subgraphs), desc='Candidate mechanisms')
-
-    for node, subgraph in it:
-        number_first_neighbors = subgraph.in_degree(node)
-        number_first_neighbors = 0 if isinstance(number_first_neighbors, dict) else number_first_neighbors
-        mechanism_size = subgraph.number_of_nodes()
-
-        runners = workflow(subgraph, node, key=key, tag=tag, default_score=default_score, runs=runs)
-        scores = [runner.get_final_score() for runner in runners]
-
-        if 0 == len(scores):
-            results[node] = (
-                None,
-                None,
-                None,
-                None,
-                number_first_neighbors,
-                mechanism_size,
-            )
-            continue
-
-        scores = np.array(scores)
-
-        average_score = np.average(scores)
-        score_std = np.std(scores)
-        med_score = np.median(scores)
-        chi_2_stat, norm_p = stats.normaltest(scores)
-
-        results[node] = (
-            average_score,
-            score_std,
-            norm_p,
-            med_score,
-            number_first_neighbors,
-            mechanism_size,
-        )
 
     return results
 
