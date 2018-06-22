@@ -174,6 +174,7 @@ def count_annotation_values(graph, annotation):
     return Counter(iter_annotation_values(graph, annotation))
 
 
+# TODO replace with pybel.struct.summary.get_annotation_values
 def get_annotation_values(graph, annotation):
     """Get all values for the given annotation
 
