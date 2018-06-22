@@ -15,11 +15,9 @@ This algorithm has multiple steps:
 """
 
 import itertools as itt
+
 import logging
 import os
-
-import bio2bel_drugbank
-from bio2bel_drugbank.constants import DATA_DIR as DRUGBANK_DATA_DIR
 from tqdm import tqdm
 
 from pybel.dsl import gene as gene_dsl
@@ -29,14 +27,14 @@ from pybel_tools.summary import get_annotation_values
 
 log = logging.getLogger(__name__)
 
-_dti_cache_path = os.path.join(DRUGBANK_DATA_DIR, 'drug_to_gene_symbols.json')
-
 
 def _get_drug_target_interactions():
     """Gets a mapping from drugs to their list of gene
 
     :rtype: dict[str,list[str]]
     """
+    import bio2bel_drugbank
+
     drugbank_manager = bio2bel_drugbank.Manager()
     if not drugbank_manager.is_populated():
         drugbank_manager.populate()
