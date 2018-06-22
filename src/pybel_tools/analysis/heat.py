@@ -33,7 +33,7 @@ Examples
 ~~~~~~~~
 This workflow has been applied in several Jupyter notebooks:
 
-- `Heat Diffusion Workflow <http://nbviewer.jupyter.org/github/pybel/pybel-notebooks/blob/master/algorithms/Candidate%20Mechanism%20Perturbation%20Amplitude%20Algorithm.ipynb>`_
+- `Heat Diffusion Workflow <http://nbviewer.jupyter.org/github/pybel/pybel-notebooks/blob/master/algorithms/Heat%20Diffusion%20Workflow.ipynb>`_
 - `Time Series Heat Diffusion <http://nbviewer.jupyter.org/github/pybel/pybel-notebooks/blob/master/algorithms/Time%20Series%20CMPA.ipynb>`_
 
 Future Work
