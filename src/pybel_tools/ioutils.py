@@ -8,10 +8,11 @@ import os
 from pybel import from_pickle, to_database, to_pickle, to_web
 from pybel.io.exc import ImportVersionWarning
 from pybel.manager import Manager
+from pybel.struct.mutation import infer_central_dogma as infer_central_dogma_mutator
+from pybel.struct.summary import get_annotation_values
 from .io import from_path_ensure_pickle
-from .mutation import add_canonical_names, enrich_pubmed_citations, infer_central_dogma as infer_central_dogma_mutator
+from .mutation import add_canonical_names, enrich_pubmed_citations
 from .selection import get_subgraph_by_annotation_value
-from .summary import get_annotation_values
 
 __all__ = [
     'subgraphs_to_pickles',

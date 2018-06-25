@@ -11,7 +11,7 @@ from pybel.constants import (
 )
 from pybel.struct.filters.edge_predicates import edge_has_annotation
 from pybel.struct.filters.node_predicates import keep_node_permissive
-from pybel.struct.summary.edge_summary import iter_annotation_value_pairs, iter_annotation_values
+from pybel.struct.summary import get_annotation_values, iter_annotation_value_pairs, iter_annotation_values
 
 __all__ = [
     'count_relations',
@@ -21,7 +21,6 @@ __all__ = [
     'get_annotations',
     'get_annotations_containing_keyword',
     'count_annotation_values',
-    'get_annotation_values',
     'count_annotation_values_filtered',
     'get_all_relations',
     'pair_is_consistent',
