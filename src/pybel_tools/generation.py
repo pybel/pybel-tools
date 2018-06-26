@@ -21,13 +21,11 @@ This method has been applied in the following Jupyter Notebooks:
 """
 
 from pybel.constants import BIOPROCESS
+from pybel.struct import get_nodes_by_function
+from pybel.struct.mutation import expand_upstream_causal, get_upstream_causal_subgraph
 from pybel.struct.pipeline import in_place_transformation, transformation
 from .constants import WEIGHT
-from .filters.node_selection import get_nodes_by_function
-from .mutation import (
-    collapse_consistent_edges, expand_upstream_causal_subgraph, get_upstream_causal_subgraph,
-    remove_inconsistent_edges,
-)
+from .mutation import collapse_consistent_edges, remove_inconsistent_edges
 from .selection.leaves import get_unweighted_upstream_leaves
 
 __all__ = [
@@ -121,7 +119,7 @@ def generate_mechanism(graph, node, key=None):
     :rtype: pybel.BELGraph
     """
     subgraph = get_upstream_causal_subgraph(graph, node)
-    expand_upstream_causal_subgraph(graph, subgraph)
+    expand_upstream_causal(graph, subgraph)
     remove_inconsistent_edges(subgraph)
     collapse_consistent_edges(subgraph)
 

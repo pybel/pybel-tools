@@ -6,21 +6,13 @@ from collections import Counter, defaultdict
 import logging
 
 from pybel.constants import *
-from pybel.struct import left_full_join
 from pybel.struct.filters import and_edge_predicates, concatenate_node_predicates, get_nodes_by_function
 from pybel.struct.filters.edge_predicates import edge_has_annotation, is_causal_relation
 from pybel.struct.filters.node_predicates import keep_node_permissive
-from pybel.struct.mutation.expansion import expand_upstream_causal_subgraph
-from pybel.struct.mutation.expansion.neighborhood import (
-    expand_all_node_neighborhoods, expand_node_neighborhood,
-    expand_nodes_neighborhoods,
-)
-from pybel.struct.pipeline import uni_in_place_transformation, uni_transformation
-from pybel.struct.utils import update_node_helper
+from pybel.struct.pipeline import uni_in_place_transformation
 from ..utils import safe_add_edge
 
 __all__ = [
-    'get_upstream_causal_subgraph',
     'get_peripheral_successor_edges',
     'get_peripheral_predecessor_edges',
     'count_sources',
@@ -30,10 +22,6 @@ __all__ = [
     'get_subgraph_edges',
     'get_subgraph_peripheral_nodes',
     'expand_periphery',
-    'expand_node_neighborhood',
-    'expand_nodes_neighborhoods',
-    'expand_all_node_neighborhoods',
-    'expand_upstream_causal_subgraph',
     'enrich_grouping',
     'enrich_complexes',
     'enrich_composites',
@@ -42,52 +30,9 @@ __all__ = [
     'enrich_unqualified',
     'expand_internal',
     'expand_internal_causal',
-    'expand_downstream_causal_subgraph',
-    'get_downstream_causal_subgraph',
 ]
 
 log = logging.getLogger(__name__)
-
-
-@uni_transformation
-def get_upstream_causal_subgraph(graph, nbunch):
-    """Induces a subgraph from all of the upstream causal entities of the nodes in the nbunch
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param tuple or list[tuple] nbunch: A BEL node or iterable of BEL nodes
-    :return: A BEL Graph
-    :rtype: pybel.BELGraph
-    """
-    result = graph.fresh_copy()
-
-    for u, v, k, d in graph.in_edges_iter(nbunch, keys=True, data=True):
-        if d[RELATION] in CAUSAL_RELATIONS:
-            result.add_edge(u, v, key=k, attr_dict=d)
-
-    update_node_helper(graph, result)
-
-    return result
-
-
-@uni_transformation
-def get_downstream_causal_subgraph(graph, nbunch):
-    """Induces a subgraph from all of the downstream causal entities of the nodes in the nbunch
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param nbunch: A BEL node or iterable of BEL nodes
-    :type nbunch: tuple or list[tuple]
-    :return: A BEL Graph
-    :rtype: pybel.BELGraph
-    """
-    result = graph.fresh_copy()
-
-    for u, v, d in graph.out_edges_iter(nbunch, data=True):
-        if d[RELATION] in CAUSAL_RELATIONS:
-            result.add_edge(u, v, attr_dict=d)
-
-    update_node_helper(graph, result)
-
-    return result
 
 
 def get_peripheral_successor_edges(graph, subgraph):
@@ -435,14 +380,3 @@ def expand_internal_causal(universe, graph):
     >>> pbt.mutation.expand_internal(universe, graph, edge_filters=is_causal_relation)
     """
     expand_internal(universe, graph, edge_filters=is_causal_relation)
-
-
-@uni_in_place_transformation
-def expand_downstream_causal_subgraph(universe, graph):
-    """Adds the downstream causal relations to the given subgraph
-
-    :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
-    :param pybel.BELGraph graph: The target BEL graph to enrich with downstream causal controllers of contained nodes
-    """
-    downstream = get_downstream_causal_subgraph(universe, graph.nodes())
-    left_full_join(graph, downstream)

@@ -3,31 +3,25 @@
 import logging
 import networkx as nx
 
-from pybel.struct.filters import filter_edges, filter_nodes
-from pybel.struct.filters.edge_predicate_builders import (
-    build_annotation_dict_all_filter, build_annotation_dict_any_filter,
+from pybel.struct.filters import (
+    build_annotation_dict_all_filter, build_annotation_dict_any_filter, filter_nodes, is_causal_relation,
 )
-from pybel.struct.filters.edge_predicates import is_causal_relation
+from pybel.struct.mutation import (
+    expand_all_node_neighborhoods, expand_downstream_causal, expand_nodes_neighborhoods,
+    expand_upstream_causal, get_downstream_causal_subgraph, get_subgraph_by_edge_filter, get_upstream_causal_subgraph,
+)
 from pybel.struct.pipeline import transformation
 from pybel.struct.utils import update_node_helper
 from .paths import get_nodes_in_all_shortest_paths
 from .random_subgraph import get_random_subgraph
 from .search import search_node_names
-from ..filters.edge_filters import (
-    build_author_inclusion_filter, build_edge_data_filter, build_pmid_inclusion_filter,
-)
-from ..mutation.expansion import (
-    expand_all_node_neighborhoods, expand_downstream_causal_subgraph,
-    expand_nodes_neighborhoods, expand_upstream_causal_subgraph, get_downstream_causal_subgraph,
-    get_upstream_causal_subgraph,
-)
+from ..filters.edge_filters import build_author_inclusion_filter, build_edge_data_filter, build_pmid_inclusion_filter
 from ..utils import safe_add_edges
 
 log = logging.getLogger(__name__)
 
 __all__ = [
     'get_subgraph_by_induction',
-    'get_subgraph_by_edge_filter',
     'get_subgraph_by_node_filter',
     'get_subgraph_by_neighborhood',
     'get_subgraph_by_second_neighbors',
@@ -195,28 +189,6 @@ def get_subgraph_by_all_shortest_paths(graph, nodes, weight=None, remove_patholo
 
 
 @transformation
-def get_subgraph_by_edge_filter(graph, edge_filters):
-    """Induces a subgraph on all edges that pass the given filters
-    
-    :param pybel.BELGraph graph: A BEL graph 
-    :param edge_filters: A predicate or list of predicates (graph, node, node, key, data) -> bool
-    :type edge_filters: (pybel.BELGraph, tuple, tuple, int) -> bool or list[(pybel.BELGraph, tuple, tuple, int) -> bool]
-    :return: A BEL subgraph induced over the edges passing the given filters
-    :rtype: pybel.BELGraph
-    """
-    rv = graph.fresh_copy()
-
-    safe_add_edges(rv, (
-        (u, v, k, graph.edge[u][v][k])
-        for u, v, k in filter_edges(graph, edge_filters)
-    ))
-
-    update_node_helper(graph, rv)
-
-    return rv
-
-
-@transformation
 def get_subgraph_by_data(graph, annotations):
     """Returns the subgraph filtering for Citation, Evidence or Annotation in the edges.
     
@@ -281,7 +253,7 @@ def get_multi_causal_upstream(graph, nbunch):
     :rtype: pybel.BELGraph
     """
     result = get_upstream_causal_subgraph(graph, nbunch)
-    expand_upstream_causal_subgraph(graph, result)
+    expand_upstream_causal(graph, result)
     return result
 
 
@@ -295,7 +267,7 @@ def get_multi_causal_downstream(graph, nbunch):
     :rtype: pybel.BELGraph
     """
     result = get_downstream_causal_subgraph(graph, nbunch)
-    expand_downstream_causal_subgraph(graph, result)
+    expand_downstream_causal(graph, result)
     return result
 
 
