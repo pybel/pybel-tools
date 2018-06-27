@@ -80,7 +80,7 @@ def rewire_variants_to_genes(graph):
 
 @in_place_transformation
 def collapse_all_variants(graph):
-    """Collapse all ``hasVariant`` edges to the parent node, in place
+    """Collapse all genes', RNAs', miRNAs', and proteins' variants to their parents.
     
     :param pybel.BELGraph graph: A BEL Graph
     """
@@ -186,7 +186,7 @@ def collapse_rgd_to_hgnc(graph):
 
 @in_place_transformation
 def collapse_flybase_to_hgnc(graph):
-    """Collapses FlyBase orthologies to HGNC
+    """Collapse FlyBase orthologies to HGNC.
 
     :param pybel.BELGraph graph: A BEL graph
     """
@@ -212,7 +212,7 @@ def collapse_entrez_equivalencies(graph):
 
 @in_place_transformation
 def collapse_consistent_edges(graph):
-    """Collapses consistent edges together
+    """Collapse consistent edges together.
 
     .. warning:: This operation doesn't preserve evidences or other annotations
 

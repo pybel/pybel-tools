@@ -245,8 +245,7 @@ def enrich_grouping(universe, graph, function, relation):
 
 @uni_in_place_transformation
 def enrich_complexes(universe, graph):
-    """Adds all of the members of the complexes in the subgraph that are in the original graph with appropriate
-    :data:`pybel.constants.HAS_COMPONENT` relationships, in place.
+    """Add all of the members of the complex abundances to the graph.
 
     :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
     :param pybel.BELGraph graph: The target BEL graph to enrich
@@ -256,8 +255,7 @@ def enrich_complexes(universe, graph):
 
 @uni_in_place_transformation
 def enrich_composites(universe, graph):
-    """Adds all of the members of the composite abundances in the subgraph that are in the original graph with
-    appropriate :data:`pybel.constants.HAS_COMPONENT` relationships, in place.
+    """Adds all of the members of the composite abundances to the graph.
 
     :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
     :param pybel.BELGraph graph: The target BEL graph to enrich
@@ -267,9 +265,7 @@ def enrich_composites(universe, graph):
 
 @uni_in_place_transformation
 def enrich_reactions(universe, graph):
-    """Adds all of the reactants and products of reactions in the subgraph that are in the original graph with
-    appropriate :data:`pybel.constants.HAS_REACTANT` and :data:`pybel.constants.HAS_PRODUCT` relationships,
-    respectively, in place.
+    """Adds all of the reactants and products of reactions to the graph.
 
     :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
     :param pybel.BELGraph graph: The target BEL graph to enrich
@@ -279,18 +275,18 @@ def enrich_reactions(universe, graph):
 
 
 @uni_in_place_transformation
-def enrich_variants(universe, graph, function=None):
-    """Adds the reference nodes for all variants of the given function
+def enrich_variants(universe, graph, func=None):
+    """Add the reference nodes for all variants of the given function.
 
     :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
     :param pybel.BELGraph graph: The target BEL graph to enrich
-    :param str or iter[str] function: The function by which the subject of each triple is filtered. Defaults to
+    :param str or iter[str] func: The function by which the subject of each triple is filtered. Defaults to
                                       the set of protein, rna, mirna, and gene.
     """
-    if function is None:
-        function = {PROTEIN, RNA, MIRNA, GENE}
+    if func is None:
+        func = {PROTEIN, RNA, MIRNA, GENE}
 
-    nodes = list(get_nodes_by_function(graph, function))
+    nodes = list(get_nodes_by_function(graph, func))
     for u, v, d in universe.in_edges_iter(nodes, data=True):
         if d[RELATION] != HAS_VARIANT:
             continue
@@ -304,7 +300,7 @@ def enrich_variants(universe, graph, function=None):
 
 @uni_in_place_transformation
 def enrich_unqualified(universe, graph):
-    """Enriches the subgraph with the unqualified edges from the graph.
+    """Enrich the subgraph with the unqualified edges from the graph.
 
     :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
     :param pybel.BELGraph graph: The target BEL graph to enrich
@@ -368,7 +364,9 @@ def expand_internal(universe, graph, edge_filters=None):
 
 @uni_in_place_transformation
 def expand_internal_causal(universe, graph):
-    """Adds causal edges between entities in the subgraph. Is an extremely thin wrapper around :func:`expand_internal`.
+    """Adds causal edges between entities in the subgraph.
+
+    Is an extremely thin wrapper around :func:`expand_internal`.
 
     :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
     :param pybel.BELGraph graph: The target BEL graph to enrich with causal relations between contained nodes
