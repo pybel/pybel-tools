@@ -13,7 +13,8 @@ from pybel.constants import (
     RELATION,
 )
 from pybel.struct import get_subgraphs_by_annotation
-from ..mutation import collapse_all_variants, collapse_by_central_dogma_to_genes_out_place
+from pybel.struct.mutation import collapse_to_genes
+from ..mutation import collapse_all_variants
 from ..mutation.random import random_by_edges, shuffle_node_data, shuffle_relations
 
 __all__ = [
@@ -218,7 +219,8 @@ def calculate_concordance_probability(graph, key, cutoff=None, permutations=None
     else:
         raise ValueError
 
-    graph = collapse_by_central_dogma_to_genes_out_place(graph)
+    graph = graph.copy()
+    collapse_to_genes(graph)
     collapse_all_variants(graph)
 
     score = calculate_concordance(graph, key, cutoff=cutoff)

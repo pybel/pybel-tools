@@ -14,8 +14,10 @@ import logging
 
 from pybel import Pipeline
 from pybel.constants import GENE
-from pybel.struct import get_nodes_by_function, get_subgraphs_by_annotation, infer_central_dogma
-from pybel.struct.mutation.collapse import collapse_by_central_dogma_to_genes
+from pybel.struct import (
+    collapse_to_genes, enrich_protein_and_rna_origins, get_nodes_by_function,
+    get_subgraphs_by_annotation,
+)
 from ...mutation import collapse_all_variants
 from ...utils import calculate_betweenness_centality
 
@@ -29,8 +31,8 @@ __all__ = [
 log = logging.getLogger(__name__)
 
 neurommsig_graph_preprocessor = Pipeline.from_functions([
-    infer_central_dogma,
-    collapse_by_central_dogma_to_genes,
+    enrich_protein_and_rna_origins,
+    collapse_to_genes,
     collapse_all_variants,
 ])
 

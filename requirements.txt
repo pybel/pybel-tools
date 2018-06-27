@@ -1,4 +1,4 @@
-pybel>=0.11.6
+pybel>=0.11.8
 pybel-artifactory
 pandas==0.20.3
 networkx==1.11

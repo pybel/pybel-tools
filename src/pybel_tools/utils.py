@@ -2,15 +2,15 @@
 
 """This module contains functions useful throughout PyBEL Tools"""
 
-import datetime
 import itertools as itt
+from collections import Counter, defaultdict
+
+import datetime
 import json
 import logging
-import os
-from collections import Counter, defaultdict
-from operator import itemgetter
-
 import networkx as nx
+import os
+from operator import itemgetter
 
 from .constants import VERSION
 
@@ -178,22 +178,6 @@ def calculate_global_tanimoto_set_distances(dict_of_sets):
     return dict(result)
 
 
-def all_edges_iter(graph, u, v):
-    """Lists all edges between the given nodes
-
-    :param pybel.BELGraph graph: A BEL Graph
-    :param tuple u: A BEL node
-    :param tuple v: A BEL node
-    :return: A list of (node, node, key)
-    :rtype: list[tuple]
-    """
-    if u not in graph or v not in graph[u]:
-        raise ValueError('Graph has no edges')
-
-    for k in graph[u][v].keys():
-        yield u, v, k
-
-
 def barh(d, plt, title=None):
     """A convenience function for plotting a horizontal bar plot from a Counter"""
     labels = sorted(d, key=d.get)
@@ -232,15 +216,6 @@ def safe_add_edge(graph, u, v, key, attr_dict, **attr):
     else:
         graph.add_edge(u, v, attr_dict=attr_dict, **attr)
 
-
-def safe_add_edges(graph, edges):
-    """Adds an iterable of edges to the graph
-
-    :param pybel.BELGraph graph: A BEL Graph
-    :param iter[tuple,tuple,Any,dict] edges: An iterable of 4-tuples of (source, target, key, data)
-    """
-    for source, target, key, attr_dict in edges:
-        safe_add_edge(graph, source, target, key=key, attr_dict=attr_dict)
 
 
 def prepare_c3(data, y_axis_label='y', x_axis_label='x'):

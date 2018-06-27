@@ -4,8 +4,8 @@ import itertools as itt
 
 import logging
 
-from pybel.constants import *
-from pybel.struct import infer_central_dogma
+from pybel.constants import RELATION, TWO_WAY_RELATIONS, unqualified_edge_code
+from pybel.struct import enrich_protein_and_rna_origins
 from pybel.struct.filters import filter_edges
 from pybel.struct.pipeline import in_place_transformation, uni_in_place_transformation
 from ..constants import INFERRED_INVERSE
@@ -13,7 +13,7 @@ from ..filters.edge_filters import build_relation_filter
 from ..utils import safe_add_edge
 
 __all__ = [
-    'infer_central_dogma',
+    'enrich_protein_and_rna_origins',
     'infer_missing_two_way_edges',
     'infer_missing_backwards_edge',
     'infer_missing_inverse_edge',
@@ -21,64 +21,6 @@ __all__ = [
 ]
 
 log = logging.getLogger(__name__)
-
-
-def _infer_converter_helper(node, data, new_function):
-    new_tup = list(node)
-    new_tup[0] = new_function
-    new_tup = tuple(new_tup)
-    new_dict = data.copy()
-    new_dict[FUNCTION] = new_function
-    return new_tup, new_dict
-
-
-@in_place_transformation
-def infer_central_dogmatic_translations_by_namespace(graph, namespaces):
-    """For all Protein entities in the given namespaces, adds the missing origin RNA and RNA-Protein translation edge
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param str or set[str] namespaces: The namespaces over which to do this
-    """
-    namespaces = {namespaces} if isinstance(namespaces, str) else set(namespaces)
-
-    for node, data in graph.nodes(data=True):
-        if data[FUNCTION] != PROTEIN:
-            continue
-
-        if NAMESPACE not in data:
-            continue
-
-        if VARIANTS in data:
-            continue
-
-        if data[NAMESPACE] not in namespaces:
-            continue
-
-        rna_node, rna_attr_dict = _infer_converter_helper(node, data, RNA)
-        graph.add_node(rna_node, attr_dict=rna_attr_dict)
-        graph.add_unqualified_edge(rna_node, node, TRANSLATED_TO)
-
-
-@in_place_transformation
-def infer_central_dogmatic_translations(graph):
-    """For all HGNC Protein entities, adds the missing origin RNA and RNA-Protein translation edge
-
-    :param pybel.BELGraph graph: A BEL graph
-    """
-    infer_central_dogmatic_translations_by_namespace(graph, 'HGNC')
-
-
-@in_place_transformation
-def infer_central_dogmatic_transcriptions(graph):
-    """For all RNA entities, adds the missing origin Gene and Gene-RNA transcription edge
-
-    :param pybel.BELGraph graph: A BEL graph
-    """
-    for node, data in graph.nodes(data=True):
-        if data[FUNCTION] in {MIRNA, RNA} and NAMESPACE in data and VARIANTS not in data:
-            gene_node, gene_attr_dict = _infer_converter_helper(node, data, GENE)
-            graph.add_node(gene_node, attr_dict=gene_attr_dict)
-            graph.add_unqualified_edge(gene_node, node, TRANSCRIBED_TO)
 
 
 @in_place_transformation

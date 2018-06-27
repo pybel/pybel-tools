@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import itertools as itt
+
 import logging
 import networkx as nx
 
@@ -11,12 +13,11 @@ from pybel.struct.mutation import (
     expand_upstream_causal, get_downstream_causal_subgraph, get_subgraph_by_edge_filter, get_upstream_causal_subgraph,
 )
 from pybel.struct.pipeline import transformation
-from pybel.struct.utils import update_node_helper
+from pybel.struct.utils import update_metadata, update_node_helper
 from .paths import get_nodes_in_all_shortest_paths
 from .random_subgraph import get_random_subgraph
 from .search import search_node_names
 from ..filters.edge_filters import build_author_inclusion_filter, build_edge_data_filter, build_pmid_inclusion_filter
-from ..utils import safe_add_edges
 
 log = logging.getLogger(__name__)
 
@@ -130,10 +131,20 @@ def get_subgraph_by_neighborhood(graph, nodes):
     if all(node not in graph for node in node_set):
         return
 
-    safe_add_edges(rv, graph.in_edges_iter(nodes, keys=True, data=True))
-    safe_add_edges(rv, graph.out_edges_iter(nodes, keys=True, data=True))
+    rv.add_edges_from(
+        (
+            (u, v, k, d)
+            if k < 0 else
+            (u, v, d)
+        )
+        for u, v, k, d in itt.chain(
+            graph.in_edges_iter(nodes, keys=True, data=True),
+            graph.out_edges_iter(nodes, keys=True, data=True)
+        )
+    )
 
     update_node_helper(graph, rv)
+    update_metadata(graph, rv)
 
     return rv
 
