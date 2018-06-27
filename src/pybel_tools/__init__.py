@@ -49,7 +49,7 @@ from .io import *
 
 __all__ = io.__all__
 
-__version__ = '0.6.0'
+__version__ = '0.6.1-dev'
 
 __title__ = 'pybel_tools'
 __description__ = 'Tools for using BEL documents in Python'
