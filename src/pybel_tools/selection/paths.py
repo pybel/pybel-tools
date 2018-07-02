@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
-
 import itertools as itt
-from itertools import product, tee
+from operator import itemgetter
 from random import sample
 
 import networkx as nx
@@ -45,7 +44,7 @@ default_edge_ranking = {
 
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
-    a, b = tee(iterable)
+    a, b = itt.tee(iterable)
     next(b, None)
     return zip(a, b)
 
@@ -71,14 +70,14 @@ def _get_nodes_in_all_shortest_paths_helper(graph, nodes, weight=None, remove_pa
             if data[FUNCTION] == PATHOLOGY:
                 graph.remove_node(node)
 
-    for u, v in product(nodes, repeat=2):
+    for u, v in itt.product(nodes, repeat=2):
         try:
             yield from all_shortest_paths(graph, u, v, weight=weight)
         except nx.exception.NetworkXNoPath:
             continue
 
 
-def get_nodes_in_all_shortest_paths(graph, nodes, weight=None, remove_pathologies=True):
+def get_nodes_in_all_shortest_paths(graph, nodes, weight=None, remove_pathologies=False):
     """Gets all shortest paths from all nodes to all other nodes in the given list and returns the set of all nodes 
     contained in those paths using :func:`networkx.all_shortest_paths`.
 
@@ -98,7 +97,7 @@ def get_nodes_in_all_shortest_paths(graph, nodes, weight=None, remove_pathologie
 
 
 # TODO consider all shortest paths?
-def _get_shortest__path_between_subgraphs_helper(graph, a, b):
+def _get_shortest_path_between_subgraphs_helper(graph, a, b):
     """Calculate the shortest path that occurs between two disconnected subgraphs A and B going through nodes in
     the source graph
 
@@ -119,9 +118,9 @@ def _get_shortest__path_between_subgraphs_helper(graph, a, b):
 
     min_len = min(map(len, shortest_paths))
     return [
-        path
-        for path in shortest_paths
-        if len(path) == min_len
+        shortest_path
+        for shortest_path in shortest_paths
+        if len(shortest_path) == min_len
     ]
 
 
@@ -135,7 +134,7 @@ def get_shortest_directed_path_between_subgraphs(graph, a, b):
     :return: A list of the shortest paths between the two subgraphs
     :rtype: list
     """
-    return _get_shortest__path_between_subgraphs_helper(graph, a, b)
+    return _get_shortest_path_between_subgraphs_helper(graph, a, b)
 
 
 def get_shortest_undirected_path_between_subgraphs(graph, a, b):
@@ -148,7 +147,7 @@ def get_shortest_undirected_path_between_subgraphs(graph, a, b):
     :rtype: list
     """
     ug = graph.to_undirected()
-    return _get_shortest__path_between_subgraphs_helper(ug, a, b)
+    return _get_shortest_path_between_subgraphs_helper(ug, a, b)
 
 
 def find_root_in_path(graph, path_nodes):
@@ -163,9 +162,9 @@ def find_root_in_path(graph, path_nodes):
     path_graph = graph.subgraph(path_nodes)
 
     # node_in_degree_tuple: list of tuples with (node,in_degree_of_node) in ascending order
-    node_in_degree_tuple = sorted([(n, d) for n, d in path_graph.in_degree().items()], key=lambda x: x[1])
+    node_in_degree_tuple = sorted([(n, d) for n, d in path_graph.in_degree().items()], key=itemgetter(1))
     # node_out_degree_tuple: ordered list of tuples with (node,in_degree_of_node) in descending order
-    node_out_degree_tuple = sorted([(n, d) for n, d in path_graph.out_degree().items()], key=lambda x: x[1],
+    node_out_degree_tuple = sorted([(n, d) for n, d in path_graph.out_degree().items()], key=itemgetter(1),
                                    reverse=True)
 
     # In case all have the same in degree it needs to be reference before
@@ -180,7 +179,7 @@ def find_root_in_path(graph, path_nodes):
     # If there are multiple nodes with minimum in_degree take the one with max out degree
     # (in case multiple have the same out degree pick one random)
     if tied_root_index != 0:
-        root_tuple = max(node_out_degree_tuple[:tied_root_index], key=lambda x: x[1])
+        root_tuple = max(node_out_degree_tuple[:tied_root_index], key=itemgetter(1))
     else:
         root_tuple = node_in_degree_tuple[0]
 

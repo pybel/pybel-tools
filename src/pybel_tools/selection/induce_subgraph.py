@@ -169,7 +169,7 @@ def get_subgraph_by_second_neighbors(graph, nodes, filter_pathologies=False):
 
 
 @transformation
-def get_subgraph_by_all_shortest_paths(graph, nodes, weight=None, remove_pathologies=True):
+def get_subgraph_by_all_shortest_paths(graph, nodes, weight=None, remove_pathologies=False):
     """Induces a subgraph over the nodes in the pairwise shortest paths between all of the nodes in the given list
 
     :param pybel.BELGraph graph: A BEL graph
