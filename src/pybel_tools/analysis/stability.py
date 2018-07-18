@@ -5,7 +5,10 @@ import itertools as itt
 import logging
 from networkx import DiGraph, Graph
 
-from pybel.constants import *
+from pybel.constants import (
+    CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, CORRELATIVE_RELATIONS,
+    NEGATIVE_CORRELATION, POSITIVE_CORRELATION, RELATION,
+)
 from pybel.struct.utils import update_node_helper
 from ..selection import get_causal_subgraph
 from ..summary import get_all_relations, relation_set_has_contradictions
