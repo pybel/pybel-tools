@@ -305,11 +305,9 @@ def _pathology_iterator(graph):
     :param pybel.BELGraph graph: A BEL graph
     :rtype: iter
     """
-    for u, v in _iter_pairs(graph):
-        if graph.node[u][FUNCTION] == PATHOLOGY:
-            yield u
-        if graph.node[v][FUNCTION] == PATHOLOGY:
-            yield v
+    for node in itt.chain.from_iterable(graph.edges()):
+        if graph.node[node][FUNCTION] == PATHOLOGY:
+            yield node
 
 
 def count_pathologies(graph):
