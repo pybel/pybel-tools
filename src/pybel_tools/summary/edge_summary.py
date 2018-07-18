@@ -230,7 +230,7 @@ def pair_is_consistent(graph, u, v):
     :return: If the edges aren't consistent, return false, otherwise return the relation type
     :rtype: bool or str
     """
-    relations = get_all_relations(graph, u, v)
+    relations = {data[RELATION] for data in graph[u][v].values()}
 
     if 1 != len(relations):
         return False
@@ -259,7 +259,7 @@ def pair_has_contradiction(graph, u, v):
     :return: Do the edges between these nodes have a contradiction?
     :rtype: bool
     """
-    relations = get_all_relations(graph, u, v)
+    relations = {data[RELATION] for data in graph[u][v].values()}
     return relation_set_has_contradictions(relations)
 
 
@@ -270,7 +270,7 @@ def get_contradictory_pairs(graph):
     :return: An iterator over (source, target) node pairs that have contradictory causal edges
     :rtype: iter
     """
-    for u, v in _iter_pairs(graph):
+    for u, v in graph.edges():
         if pair_has_contradiction(graph, u, v):
             yield u, v
 
@@ -282,7 +282,7 @@ def get_consistent_edges(graph):
     :return: An iterator over (source, target) node pairs corresponding to edges with many inconsistent relations
     :rtype: iter[tuple]
     """
-    for u, v in _iter_pairs(graph):
+    for u, v in graph.edges():
         if pair_is_consistent(graph, u, v):
             yield u, v
 
