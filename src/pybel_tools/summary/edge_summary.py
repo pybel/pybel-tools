@@ -173,18 +173,6 @@ def count_annotation_values(graph, annotation):
     return Counter(iter_annotation_values(graph, annotation))
 
 
-# TODO replace with pybel.struct.summary.get_annotation_values
-def get_annotation_values(graph, annotation):
-    """Get all values for the given annotation
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param str annotation: The annotation to summarize
-    :return: A set of all annotation values
-    :rtype: set[str]
-    """
-    return set(iter_annotation_values(graph, annotation))
-
-
 def count_annotation_values_filtered(graph, annotation, source_filter=None, target_filter=None):
     """Counts in how many edges each annotation appears in a graph, but filter out source nodes and target nodes
 
