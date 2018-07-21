@@ -8,17 +8,15 @@
 """
 
 import itertools as itt
-from collections import Counter
-
 import logging
+from collections import Counter
 
 from pybel import Pipeline
 from pybel.constants import GENE
 from pybel.struct import (
-    collapse_to_genes, enrich_protein_and_rna_origins, get_nodes_by_function,
+    collapse_all_variants, collapse_to_genes, enrich_protein_and_rna_origins, get_nodes_by_function,
     get_subgraphs_by_annotation,
 )
-from ...mutation import collapse_all_variants
 from ...utils import calculate_betweenness_centality
 
 __all__ = [

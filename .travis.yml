@@ -6,21 +6,33 @@ language: python
 python:
     - 3.6
     - 3.4
+
+stages:
+  - lint
+  - docs
+  - test
+
 env:
   - TOXENV=py
 
-matrix:
+jobs:
   include:
+    # lint stage
+    - stage: lint
+      env: TOXENV=manifest
+    - env: TOXENV=flake8
+    - env: TOXENV=pylint
+
+    # docs stage
+    - stage: docs
+      env: TOXENV=doc8
+    - env: TOXENV=readme
     - env: TOXENV=docs
-    - env: TOXENV=manifest
-    - env: TOXENV=rst-lint
-    - env: TOXENV=flake8
-    - env: TOXENV=doc8
-    - env: TOXENV=pylint
+
+matrix:
   allow_failures:
-    - env: TOXENV=flake8
-    - env: TOXENV=doc8
-    - env: TOXENV=pylint
+      - env: TOXENV=flake8
+      - env: TOXENV=pylint
 
 before_install:
     - pip install codecov coverage

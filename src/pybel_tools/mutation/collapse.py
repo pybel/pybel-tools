@@ -6,9 +6,7 @@ from pybel.constants import (
     EQUIVALENT_TO, FUNCTION, GENE, HAS_VARIANT, ORTHOLOGOUS, PROTEIN, RELATION, TRANSCRIBED_TO,
     VARIANTS,
 )
-from pybel.struct.filters import (
-    filter_edges, has_polarity,
-)
+from pybel.struct.filters import filter_edges, has_polarity
 from pybel.struct.mutation import (
     collapse_nodes, collapse_pair, collapse_to_genes, get_subgraph_by_edge_filter,
 )
@@ -19,7 +17,6 @@ from ..summary.edge_summary import pair_is_consistent
 __all__ = [
     'collapse_nodes',
     'rewire_variants_to_genes',
-    'collapse_all_variants',
     'collapse_gene_variants',
     'collapse_protein_variants',
     'collapse_consistent_edges',
@@ -78,23 +75,12 @@ def rewire_variants_to_genes(graph):
             graph.node[node][FUNCTION] = GENE
 
 
-@in_place_transformation
-def collapse_all_variants(graph):
-    """Collapse all genes', RNAs', miRNAs', and proteins' variants to their parents.
-    
-    :param pybel.BELGraph graph: A BEL Graph
-    """
-    for parent_node, variant_node, d in graph.edges(data=True):
-        if d[RELATION] == HAS_VARIANT:
-            collapse_pair(graph, survivor=parent_node, victim=variant_node)
-
-
 def _collapse_edge_passing_predicates(graph, edge_predicates=None):
-    """Collapses all edges passing the given edge predicates
+    """Collapse all edges passing the given edge predicates.
 
     :param pybel.BELGraph graph: A BEL Graph
     :param edge_predicates: A predicate or list of predicates
-    :type edge_predicates: Optional[(pybel.BELGraph, tuple, tuple, int) -> bool or iter[(pybel.BELGraph, tuple, tuple, int) -> bool]]
+    :type edge_predicates: None or (pybel.BELGraph, tuple, tuple, int) -> bool or iter[(pybel.BELGraph, tuple, tuple, int) -> bool]
     """
     for u, v, _ in filter_edges(graph, edge_predicates=edge_predicates):
         collapse_pair(graph, survivor=u, victim=v)
