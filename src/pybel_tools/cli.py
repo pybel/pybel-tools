@@ -228,7 +228,7 @@ def merge_directory(manager, directory, name, debug):
 
     enable_cool_mode()
 
-    graph = from_directory(directory, connection=manager)
+    graph = from_directory(directory, manager=manager)
     to_pickle(graph, file=path)
 
 
