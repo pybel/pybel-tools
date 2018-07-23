@@ -6,12 +6,12 @@ from pybel.constants import (
     EQUIVALENT_TO, FUNCTION, GENE, HAS_VARIANT, ORTHOLOGOUS, PROTEIN, RELATION, TRANSCRIBED_TO,
     VARIANTS,
 )
-from pybel.struct.filters import filter_edges, has_polarity
+from pybel.struct.filters import build_relation_predicate, filter_edges, has_polarity
 from pybel.struct.mutation import (
     collapse_nodes, collapse_pair, collapse_to_genes, get_subgraph_by_edge_filter,
 )
 from pybel.struct.pipeline import in_place_transformation, transformation
-from ..filters.edge_filters import build_relation_filter, build_source_namespace_filter, build_target_namespace_filter
+from ..filters.edge_filters import build_source_namespace_filter, build_target_namespace_filter
 from ..summary.edge_summary import pair_is_consistent
 
 __all__ = [
@@ -80,24 +80,24 @@ def _collapse_edge_passing_predicates(graph, edge_predicates=None):
 
     :param pybel.BELGraph graph: A BEL Graph
     :param edge_predicates: A predicate or list of predicates
-    :type edge_predicates: None or (pybel.BELGraph, tuple, tuple, int) -> bool or iter[(pybel.BELGraph, tuple, tuple, int) -> bool]
+    :type edge_predicates: None or ((pybel.BELGraph, tuple, tuple, int)) -> bool or iter[(pybel.BELGraph, tuple, tuple, int) -> bool]
     """
     for u, v, _ in filter_edges(graph, edge_predicates=edge_predicates):
         collapse_pair(graph, survivor=u, victim=v)
 
 
-def _collapse_edge_by_namespace(graph, victim_namespace, survivor_namespace, relation):
+def _collapse_edge_by_namespace(graph, victim_namespaces, survivor_namespaces, relations):
     """Collapses pairs of nodes with the given namespaces that have the given relationship
 
     :param pybel.BELGraph graph: A BEL Graph
-    :param str or iter[str] victim_namespace: The namespace(s) of the node to collapse
-    :param str or survivor_namespace: The namespace of the node to keep
-    :param relation: The relation to search
-    :type relation: str or iter[str]
+    :param str or iter[str] victim_namespaces: The namespace(s) of the node to collapse
+    :param str or survivor_namespaces: The namespace of the node to keep
+    :param relations: The relation to search
+    :type relations: str or iter[str]
     """
-    relation_filter = build_relation_filter(relation)
-    source_namespace_filter = build_source_namespace_filter(victim_namespace)
-    target_namespace_filter = build_target_namespace_filter(survivor_namespace)
+    relation_filter = build_relation_predicate(relations)
+    source_namespace_filter = build_source_namespace_filter(victim_namespaces)
+    target_namespace_filter = build_target_namespace_filter(survivor_namespaces)
 
     edge_predicates = [
         relation_filter,
@@ -185,7 +185,7 @@ def collapse_entrez_equivalencies(graph):
 
     :param pybel.BELGraph graph: A BEL graph
     """
-    relation_filter = build_relation_filter(EQUIVALENT_TO)
+    relation_filter = build_relation_predicate(EQUIVALENT_TO)
     source_namespace_filter = build_source_namespace_filter(['EGID', 'EG', 'ENTREZ'])
 
     edge_predicates = [
@@ -226,6 +226,14 @@ def collapse_to_protein_interactions(graph):
     collapse_to_genes(rv)
 
     def is_edge_ppi(g, u, v, k):
+        """Checks if an edge is a PPI.
+
+        :type g: pybel.BELGraph
+        :type u: tuple
+        :type v: tuple
+        :type k: int
+        :rtype: bool
+        """
         return g.node[u][FUNCTION] == GENE and g.node[v][FUNCTION] == GENE
 
     return get_subgraph_by_edge_filter(rv, edge_predicates=[has_polarity, is_edge_ppi])

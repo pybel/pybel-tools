@@ -1,23 +1,19 @@
 # -*- coding: utf-8 -*-
 
-import itertools as itt
-
 import logging
 import networkx as nx
 
-from pybel.struct.filters import (
-    build_annotation_dict_all_filter, build_annotation_dict_any_filter, filter_nodes, is_causal_relation,
-)
+from pybel.struct.filters import filter_nodes, is_causal_relation
 from pybel.struct.mutation import (
-    expand_all_node_neighborhoods, expand_downstream_causal, expand_nodes_neighborhoods,
-    expand_upstream_causal, get_downstream_causal_subgraph, get_subgraph_by_edge_filter, get_upstream_causal_subgraph,
+    expand_nodes_neighborhoods, get_multi_causal_downstream, get_multi_causal_upstream,
+    get_subgraph_by_all_shortest_paths, get_subgraph_by_annotation_value, get_subgraph_by_annotations,
+    get_subgraph_by_authors, get_subgraph_by_edge_filter, get_subgraph_by_induction, get_subgraph_by_neighborhood,
+    get_subgraph_by_pubmed, get_subgraph_by_second_neighbors,
 )
 from pybel.struct.pipeline import transformation
-from pybel.struct.utils import update_metadata, update_node_helper
-from .paths import get_nodes_in_all_shortest_paths
 from .random_subgraph import get_random_subgraph
 from .search import search_node_names
-from ..filters.edge_filters import build_author_inclusion_filter, build_edge_data_filter, build_pmid_inclusion_filter
+from ..filters.edge_filters import build_edge_data_filter
 
 log = logging.getLogger(__name__)
 
@@ -89,20 +85,6 @@ class NodeDegreeIterError(ValueError):
 
 
 @transformation
-def get_subgraph_by_induction(graph, nodes):
-    """Induces a graph over the given nodes. Returns None if none of the nodes are in the given graph.
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param iter[tuple] nodes: A list of BEL nodes in the graph
-    :rtype: Optional[pybel.BELGraph]
-    """
-    if all(node not in graph for node in nodes):
-        return
-
-    return graph.subgraph(nodes)
-
-
-@transformation
 def get_subgraph_by_node_filter(graph, node_filters):
     """Induces a graph on the nodes that pass all filters
 
@@ -113,90 +95,6 @@ def get_subgraph_by_node_filter(graph, node_filters):
     :rtype: pybel.BELGraph
     """
     return get_subgraph_by_induction(graph, filter_nodes(graph, node_filters))
-
-
-@transformation
-def get_subgraph_by_neighborhood(graph, nodes):
-    """Gets a BEL graph around the neighborhoods of the given nodes. Returns none if no nodes are in the graph
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param iter[tuple] nodes: An iterable of BEL nodes
-    :return: A BEL graph induced around the neighborhoods of the given nodes
-    :rtype: Optional[pybel.BELGraph]
-    """
-    rv = graph.fresh_copy()
-
-    node_set = set(nodes)
-
-    if all(node not in graph for node in node_set):
-        return
-
-    rv.add_edges_from(
-        (
-            (u, v, k, d)
-            if k < 0 else
-            (u, v, d)
-        )
-        for u, v, k, d in itt.chain(
-            graph.in_edges_iter(nodes, keys=True, data=True),
-            graph.out_edges_iter(nodes, keys=True, data=True)
-        )
-    )
-
-    update_node_helper(graph, rv)
-    update_metadata(graph, rv)
-
-    return rv
-
-
-@transformation
-def get_subgraph_by_second_neighbors(graph, nodes, filter_pathologies=False):
-    """Gets a BEL graph around the neighborhoods of the given nodes, and expands to the neighborhood of those nodes
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param iter[tuple] nodes: An iterable of BEL nodes
-    :param bool filter_pathologies: Should expansion take place around pathologies?
-    :return: A BEL graph induced around the neighborhoods of the given nodes
-    :rtype: Optional[pybel.BELGraph]
-    """
-    result = get_subgraph_by_neighborhood(graph, nodes)
-
-    if result is None:
-        return
-
-    expand_all_node_neighborhoods(graph, result, filter_pathologies=filter_pathologies)
-    return result
-
-
-@transformation
-def get_subgraph_by_all_shortest_paths(graph, nodes, weight=None, remove_pathologies=False):
-    """Induces a subgraph over the nodes in the pairwise shortest paths between all of the nodes in the given list
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param set[tuple] nodes: A set of nodes over which to calculate shortest paths
-    :param str weight: Edge data key corresponding to the edge weight. If None, performs unweighted search
-    :param bool remove_pathologies: Should the pathology nodes be deleted before getting shortest paths?
-    :return: A BEL graph induced over the nodes appearing in the shortest paths between the given nodes
-    :rtype: Optional[pybel.BELGraph]
-    """
-    query_nodes = []
-
-    for node in nodes:
-        if node not in graph:
-            log.debug('%s not in %s', node, graph)
-            continue
-        query_nodes.append(node)
-
-    if not query_nodes:
-        return
-
-    induced_nodes = get_nodes_in_all_shortest_paths(graph, query_nodes, weight=weight,
-                                                    remove_pathologies=remove_pathologies)
-
-    if not induced_nodes:
-        return
-
-    return get_subgraph_by_induction(graph, induced_nodes)
 
 
 @transformation
@@ -212,38 +110,6 @@ def get_subgraph_by_data(graph, annotations):
 
 
 @transformation
-def get_subgraph_by_annotations(graph, annotations, or_=None):
-    """Returns the subgraph given an annotations filter.
-
-    :param graph: pybel.BELGraph graph: A BEL graph
-    :param dict[str,set[str]] annotations: Annotation filters (match all with :func:`pybel.utils.subdict_matches`)
-    :param boolean or_: if True any annotation should be present, if False all annotations should be present in the
-                        edge. Defaults to True.
-    :return: A subgraph of the original BEL graph
-    :rtype: pybel.BELGraph
-    """
-    edge_filter_builder = (
-        build_annotation_dict_any_filter
-        if (or_ is None or or_) else build_annotation_dict_all_filter
-    )
-
-    return get_subgraph_by_edge_filter(graph, edge_filter_builder(annotations))
-
-
-@transformation
-def get_subgraph_by_annotation_value(graph, annotation, value):
-    """Builds a new subgraph induced over all edges whose annotations match the given key and value
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param str annotation: The annotation to group by
-    :param str value: The value for the annotation
-    :return: A subgraph of the original BEL graph
-    :rtype: pybel.BELGraph
-    """
-    return get_subgraph_by_annotations(graph, {annotation: {value}})
-
-
-@transformation
 def get_causal_subgraph(graph):
     """Builds a new subgraph induced over all edges that are causal
 
@@ -252,34 +118,6 @@ def get_causal_subgraph(graph):
     :rtype: pybel.BELGraph
     """
     return get_subgraph_by_edge_filter(graph, is_causal_relation)
-
-
-@transformation
-def get_multi_causal_upstream(graph, nbunch):
-    """Gets the union of all the 2-level deep causal upstream subgraphs from the nbunch
-    
-    :param pybel.BELGraph graph: A BEL graph
-    :param tuple or list[tuple] nbunch: A BEL node or list of BEL nodes
-    :return: A subgraph of the original BEL graph
-    :rtype: pybel.BELGraph
-    """
-    result = get_upstream_causal_subgraph(graph, nbunch)
-    expand_upstream_causal(graph, result)
-    return result
-
-
-@transformation
-def get_multi_causal_downstream(graph, nbunch):
-    """Gets the union of all of the 2-level deep causal downstream subgraphs from the nbunch
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param tuple or list[tuple] nbunch: A BEL node or list of BEL nodes
-    :return: A subgraph of the original BEL graph
-    :rtype: pybel.BELGraph
-    """
-    result = get_downstream_causal_subgraph(graph, nbunch)
-    expand_downstream_causal(graph, result)
-    return result
 
 
 @transformation
@@ -386,28 +224,6 @@ def get_subgraph(graph, seed_method=None, seed_data=None, expand_nodes=None, rem
     )
 
     return result
-
-
-@transformation
-def get_subgraph_by_pubmed(graph, pubmed_identifiers):
-    """Induces a subgraph over the edges retrieved from the given PubMed identifier(s)
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param str or list[str] pubmed_identifiers: A PubMed identifier or list of PubMed identifiers
-    :rtype: pybel.BELGraph
-    """
-    return get_subgraph_by_edge_filter(graph, build_pmid_inclusion_filter(pubmed_identifiers))
-
-
-@transformation
-def get_subgraph_by_authors(graph, authors):
-    """Induces a subgraph over the edges retrieved publications by the given author(s)
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param str or list[str] authors: An author or list of authors
-    :rtype: pybel.BELGraph
-    """
-    return get_subgraph_by_edge_filter(graph, build_author_inclusion_filter(authors))
 
 
 @transformation

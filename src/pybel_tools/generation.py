@@ -21,12 +21,12 @@ This method has been applied in the following Jupyter Notebooks:
 """
 
 from pybel.constants import BIOPROCESS
-from pybel.struct import get_nodes_by_function
+from pybel.struct import data_missing_key_builder, get_nodes_by_function
+from pybel.struct.filters import filter_nodes
 from pybel.struct.mutation import expand_upstream_causal, get_upstream_causal_subgraph
 from pybel.struct.pipeline import in_place_transformation, transformation
 from .constants import WEIGHT
 from .mutation import collapse_consistent_edges, remove_inconsistent_edges
-from .selection.leaves import get_unweighted_upstream_leaves
 
 __all__ = [
     'remove_unweighted_leaves',
@@ -37,6 +37,48 @@ __all__ = [
     'generate_mechanism',
     'generate_bioprocess_mechanisms',
 ]
+
+
+def node_is_upstream_leaf(graph, node):
+    """Return if the node is an upstream leaf. An upstream leaf is defined as a node that has no in-edges, and exactly
+    1 out-edge.
+
+    :param pybel.BELGraph graph: A BEL graph
+    :param tuple node: A BEL node
+    :return: If the node is an upstream leaf
+    :rtype: bool
+    """
+    return 0 == len(graph.predecessors(node)) and 1 == len(graph.successors(node))
+
+
+def get_upstream_leaves(graph):
+    """Get all leaves of the graph (with no incoming edges and only one outgoing edge).
+
+    .. seealso:: :func:`upstream_leaf_predicate`
+
+    :param pybel.BELGraph graph: A BEL graph
+    :return: An iterator over nodes that are upstream leaves
+    :rtype: iter[tuple]
+    """
+    return filter_nodes(graph, node_is_upstream_leaf)
+
+
+def get_unweighted_upstream_leaves(graph, key=None):
+    """Get all leaves of the graph with no incoming edges, one outgoing edge, and without the given key in
+    its data dictionary.
+
+    .. seealso :: :func:`data_does_not_contain_key_builder`
+
+    :param pybel.BELGraph graph: A BEL graph
+    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
+     :data:`pybel_tools.constants.WEIGHT`.
+    :return: An iterable over leaves (nodes with an in-degree of 0) that don't have the given annotation
+    :rtype: iter[tuple]
+    """
+    if key is None:
+        key = WEIGHT
+
+    return filter_nodes(graph, [node_is_upstream_leaf, data_missing_key_builder(key)])
 
 
 @in_place_transformation

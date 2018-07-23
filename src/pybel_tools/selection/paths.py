@@ -1,13 +1,18 @@
 # -*- coding: utf-8 -*-
 
 import itertools as itt
+
+import networkx as nx
 from operator import itemgetter
 from random import sample
 
-import networkx as nx
-from networkx import all_shortest_paths
-
-from pybel.constants import *
+from pybel.constants import (
+    ANALOGOUS_TO, ASSOCIATION, BIOMARKER_FOR, CAUSES_NO_CHANGE, DECREASES, DIRECTLY_DECREASES, DIRECTLY_INCREASES,
+    EQUIVALENT_TO, HAS_COMPONENT, HAS_MEMBER, HAS_PRODUCT, HAS_REACTANT, HAS_VARIANT, INCREASES, IS_A,
+    NEGATIVE_CORRELATION, POSITIVE_CORRELATION, PROGONSTIC_BIOMARKER_FOR, RATE_LIMITING_STEP_OF, REGULATES, RELATION,
+    SUBPROCESS_OF, TRANSCRIBED_TO, TRANSLATED_TO,
+)
+from pybel.struct.mutation import get_nodes_in_all_shortest_paths
 
 __all__ = [
     'get_nodes_in_all_shortest_paths',
@@ -22,7 +27,8 @@ default_edge_ranking = {
     DECREASES: 2,
     DIRECTLY_DECREASES: 3,
     RATE_LIMITING_STEP_OF: 0,
-    CAUSES_NO_CHANGE: 0, REGULATES: 0,
+    CAUSES_NO_CHANGE: 0,
+    REGULATES: 0,
     NEGATIVE_CORRELATION: 2,
     POSITIVE_CORRELATION: 2,
     ASSOCIATION: 1,
@@ -61,39 +67,6 @@ def rank_path(graph, path, edge_ranking=None):
     edge_ranking = default_edge_ranking if edge_ranking is None else edge_ranking
 
     return sum(max(edge_ranking[d[RELATION]] for d in graph.edge[u][v].values()) for u, v in pairwise(path))
-
-
-def _get_nodes_in_all_shortest_paths_helper(graph, nodes, weight=None, remove_pathologies=True):
-    if remove_pathologies:
-        graph = graph.copy()
-        for node, data in graph.nodes(data=True):
-            if data[FUNCTION] == PATHOLOGY:
-                graph.remove_node(node)
-
-    for u, v in itt.product(nodes, repeat=2):
-        try:
-            yield from all_shortest_paths(graph, u, v, weight=weight)
-        except nx.exception.NetworkXNoPath:
-            continue
-
-
-def get_nodes_in_all_shortest_paths(graph, nodes, weight=None, remove_pathologies=False):
-    """Gets all shortest paths from all nodes to all other nodes in the given list and returns the set of all nodes 
-    contained in those paths using :func:`networkx.all_shortest_paths`.
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param iter[tuple] nodes: The list of nodes to use to use to find all shortest paths
-    :param str weight: Edge data key corresponding to the edge weight. If none, uses unweighted search.
-    :param bool remove_pathologies: Should pathology nodes be removed first?
-    :return: A set of nodes appearing in the shortest paths between nodes in the BEL graph
-    :rtype: set[tuple]
-
-    .. note:: This can be trivially parallelized using :func:`networkx.single_source_shortest_path`
-    """
-    shortest_paths_nodes_iterator = _get_nodes_in_all_shortest_paths_helper(graph, nodes, weight=weight,
-                                                                            remove_pathologies=remove_pathologies)
-
-    return set(itt.chain.from_iterable(shortest_paths_nodes_iterator))
 
 
 # TODO consider all shortest paths?

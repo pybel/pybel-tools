@@ -4,11 +4,23 @@
 
 from pybel.struct.pipeline import in_place_transformation
 
-from ..summary.edge_summary import get_inconsistent_edges
+from ..summary.edge_summary import pair_is_consistent
 
 __all__ = [
     'remove_inconsistent_edges',
 ]
+
+
+def get_inconsistent_edges(graph):
+    """Returns an iterator over inconsistent edges
+
+    :param pybel.BELGraph graph: A BEL graph
+    :return: An iterator over (source, target) node pairs corresponding to edges with many inconsistent relations
+    :rtype: iter
+    """
+    for u, v in graph.edges():
+        if not pair_is_consistent(graph, u, v):
+            yield u, v
 
 
 @in_place_transformation

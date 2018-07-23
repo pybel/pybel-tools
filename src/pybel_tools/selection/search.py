@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from pybel.struct.filters import filter_nodes
-from ..filters.node_filters import build_node_cname_search, build_node_name_search, namespace_inclusion_builder
+from pybel.struct.filters import build_node_name_search, filter_nodes
+from ..filters.node_filters import build_node_cname_search, namespace_inclusion_builder
 
 __all__ = [
     'search_node_names',
@@ -43,10 +43,12 @@ def search_node_namespace_names(graph, query, namespace):
     :return: An iterator over nodes whose names match the search query
     :rtype: iter
     """
-    return filter_nodes(graph, [
+    node_predicates = [
         namespace_inclusion_builder(namespace),
         build_node_name_search(query)
-    ])
+    ]
+
+    return filter_nodes(graph, node_predicates)
 
 
 def search_node_hgnc_names(graph, query):

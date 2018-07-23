@@ -6,10 +6,9 @@ import logging
 
 from pybel.constants import RELATION, TWO_WAY_RELATIONS, unqualified_edge_code
 from pybel.struct import enrich_protein_and_rna_origins
-from pybel.struct.filters import filter_edges
+from pybel.struct.filters import build_relation_predicate, filter_edges
 from pybel.struct.pipeline import in_place_transformation, uni_in_place_transformation
 from ..constants import INFERRED_INVERSE
-from ..filters.edge_filters import build_relation_filter
 from ..utils import safe_add_edge
 
 __all__ = [
@@ -44,11 +43,7 @@ def infer_missing_inverse_edge(graph, relations):
     :param relations: single or iterable of relation names to add their inverse inferred edges
     :type relations: str or iter[str]
     """
-
-    if isinstance(relations, str):
-        return infer_missing_inverse_edge(graph, [relations])
-
-    for u, v, _, d in filter_edges(graph, build_relation_filter(relations)):
+    for u, v, _, d in filter_edges(graph, build_relation_predicate(relations)):
         relation = d[RELATION]
         graph.add_edge(v, u, key=unqualified_edge_code[relation], **{RELATION: INFERRED_INVERSE[relation]})
 
@@ -57,12 +52,9 @@ def infer_missing_inverse_edge(graph, relations):
 def infer_missing_backwards_edge(graph, u, v, k):
     """Adds the same edge, but in the opposite direction if not already present
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param u: A BEL node
+    :type graph: pybel.BELGraph
     :type u: tuple
-    :param v: A BEL node
     :type v: tuple
-    :param k: The edge key
     :type k: int
     """
     if u in graph.edge[v]:

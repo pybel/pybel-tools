@@ -22,11 +22,9 @@ __all__ = [
     'get_annotations_containing_keyword',
     'count_annotation_values',
     'count_annotation_values_filtered',
-    'get_all_relations',
     'pair_is_consistent',
     'get_consistent_edges',
     'pair_has_contradiction',
-    'get_inconsistent_edges',
     'get_contradictory_pairs',
     'count_pathologies',
     'relation_set_has_contradictions',
@@ -197,32 +195,8 @@ def count_annotation_values_filtered(graph, annotation, source_filter=None, targ
     )
 
 
-def _iter_pairs(graph):
-    """Iterates over unique node-node pairs in the graph
-    
-    :param pybel.BELGraph graph: A BEL graph
-    :rtype: iter
-    """
-    for u, v in set(graph.edges_iter()):
-        yield u, v
-
-
-def get_all_relations(graph, u, v):
-    """Returns the set of all relations between a given pair of nodes
-    
-    :param pybel.BELGraph graph: A BEL graph
-    :param tuple u: The source BEL node
-    :param tuple v: The target BEL node
-    :rtype: set[str]
-    """
-    return {
-        data[RELATION]
-        for data in graph.edge[u][v].values()
-    }
-
-
 def pair_is_consistent(graph, u, v):
-    """Returns if the edges between the given nodes are consistent, meaning they all have the same relation
+    """Return if the edges between the given nodes are consistent, meaning they all have the same relation.
 
     :param pybel.BELGraph graph: A BEL graph
     :param tuple u: The source BEL node
@@ -239,7 +213,7 @@ def pair_is_consistent(graph, u, v):
 
 
 def relation_set_has_contradictions(relations):
-    """Returns if the set of relations contains a contradiction
+    """Return if the set of relations contains a contradiction.
 
     :param set[str] relations: A set of relations
     :rtype: bool
@@ -284,18 +258,6 @@ def get_consistent_edges(graph):
     """
     for u, v in graph.edges():
         if pair_is_consistent(graph, u, v):
-            yield u, v
-
-
-def get_inconsistent_edges(graph):
-    """Returns an iterator over inconsistent edges
-
-    :param pybel.BELGraph graph: A BEL graph
-    :return: An iterator over (source, target) node pairs corresponding to edges with many inconsistent relations
-    :rtype: iter
-    """
-    for u, v in _iter_pairs(graph):
-        if not pair_is_consistent(graph, u, v):
             yield u, v
 
 

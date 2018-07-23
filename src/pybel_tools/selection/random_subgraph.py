@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
+import time
+
 import logging
 import numpy as np
-import time
 from random import choice, seed as seed_python_random
 
 from pybel.struct.mutation.utils import remove_isolated_nodes
 from pybel.struct.pipeline import transformation
 from pybel.struct.utils import update_node_helper
-from ..constants import SAMPLE_RANDOM_EDGE_COUNT, SAMPLE_RANDOM_EDGE_SEED_COUNT
 
 __all__ = [
     'randomly_select_node',
@@ -16,6 +16,11 @@ __all__ = [
 ]
 
 log = logging.getLogger(__name__)
+
+#: How many edges should be sampled from a graph that's still reasonable to display
+SAMPLE_RANDOM_EDGE_COUNT = 250
+#: How many edges should be sampled as "seed" edges
+SAMPLE_RANDOM_EDGE_SEED_COUNT = 5
 
 
 def randomly_select_node(graph, no_grow, random_state):
