@@ -10,7 +10,7 @@ from pybel.constants import *
 from pybel.struct.filters import get_nodes
 from pybel.struct.filters.edge_predicates import is_causal_relation
 from pybel.struct.filters.node_predicates import (
-    has_activity, has_variant, is_causal_central, is_causal_sink,
+    has_activity, is_causal_central, is_causal_sink,
     is_causal_source, is_degraded, is_translocated,
 )
 
@@ -27,7 +27,6 @@ __all__ = [
     'get_degradations',
     'get_activities',
     'get_translocated',
-    'count_variants',
     'count_top_centrality',
     'count_top_degrees',
     'get_modifications_count',
@@ -142,20 +141,6 @@ def get_translocated(graph):
     :rtype: set[tuple]
     """
     return get_nodes(graph, is_translocated)
-
-
-def count_variants(graph):
-    """Counts how many of each type of variant a graph has
-
-    :param pybel.BELGraph graph: A BEL graph
-    :rtype: Counter
-    """
-    return Counter(
-        variant_data[KIND]
-        for node, data in graph.iter_node_data_pairs()
-        if has_variant(graph, node)
-        for variant_data in data[VARIANTS]
-    )
 
 
 def count_top_degrees(graph, number=30):
