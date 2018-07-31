@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from . import inline
-from . import visualization
-from .inline import *
-from .visualization import *
+"""A wrapper around PyBEL-Jupyter."""
 
-__all__ = visualization.__all__ + inline.__all__
+from pybel_jupyter import *

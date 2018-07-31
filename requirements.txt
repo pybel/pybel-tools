@@ -1,5 +1,6 @@
 pybel>=0.11.11
 pybel-artifactory
+pybel-jupyter
 pandas
 networkx==1.11
 sqlalchemy
@@ -7,5 +8,4 @@ requests
 click
 scipy
 numpy
-jinja2
 tqdm
