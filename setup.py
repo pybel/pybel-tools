@@ -28,7 +28,6 @@ CLASSIFIERS = [
 INSTALL_REQUIRES = [
     'pybel>=0.11.11',
     'pybel-artifactory',
-    'pybel-jupyter',
     'pandas',
     'networkx==1.11',
     'requests',
