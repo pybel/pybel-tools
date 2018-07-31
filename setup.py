@@ -24,9 +24,9 @@ CLASSIFIERS = [
     'Topic :: Scientific/Engineering :: Bio-Informatics'
 ]
 INSTALL_REQUIRES = [
-    'pybel>=0.11.10',
+    'pybel>=0.11.11',
     'pybel-artifactory',
-    'pandas==0.20.3',
+    'pandas',
     'networkx==1.11',
     'requests',
     'sqlalchemy',
