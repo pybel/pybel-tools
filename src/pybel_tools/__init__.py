@@ -46,8 +46,9 @@ installation difficult for Windows users, for whom Python cannot easily build C 
 
 from . import io, utils
 from .io import *
+from .utils import get_version
 
-__all__ = io.__all__
+__all__ = io.__all__ + ['get_version']
 
 __version__ = '0.6.1-dev'
 
