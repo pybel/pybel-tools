@@ -220,6 +220,7 @@ def collapse_to_protein_interactions(graph):
     """Collapse to a graph made of only causal gene/protein edges.
 
     :param pybel.BELGraph graph: A BEL Graph
+    :rtype: pybel.BELGraph
     """
     rv = graph.copy()
 

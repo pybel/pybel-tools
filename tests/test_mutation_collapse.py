@@ -3,7 +3,9 @@
 import unittest
 
 from pybel import BELGraph
-from pybel.constants import *
+from pybel.constants import (
+    ASSOCIATION, DECREASES, DIRECTLY_INCREASES, GENE, INCREASES, MIRNA, POSITIVE_CORRELATION, PROTEIN, RELATION, RNA,
+)
 from pybel.dsl import abundance, pathology, protein
 from pybel_tools.mutation.collapse import collapse_to_protein_interactions
 
