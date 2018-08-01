@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
-"""A wrapper around PyBEL-Jupyter."""
+"""A wrapper around PyBEL-Jupyter.
+
+This functionality has been moved to: https://github.com/pybel/pybel-jupyter.
+"""
 
 import warnings
 
