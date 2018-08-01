@@ -16,10 +16,11 @@ A general use for an edge filter function is to use the built-in :func:`filter` 
 from collections import Iterable
 
 from pybel.constants import *
-from pybel.struct.filters import count_passed_edge_filter
-from pybel.struct.filters.edge_predicates import (
-    edge_has_annotation, edge_predicate, has_authors, has_pubmed, is_causal_relation,
+from pybel.struct.filters import (
+    build_annotation_dict_all_filter, build_annotation_dict_any_filter,
+    count_passed_edge_filter,
 )
+from pybel.struct.filters.edge_predicates import edge_predicate, has_authors, has_pubmed, is_causal_relation
 from pybel.struct.filters.node_predicates import is_pathology
 from pybel.utils import subdict_matches
 
@@ -28,7 +29,6 @@ __all__ = [
     'build_edge_data_filter',
     'build_annotation_dict_all_filter',
     'build_annotation_dict_any_filter',
-    'build_relation_filter',
     'build_pmid_inclusion_filter',
     'build_pmid_exclusion_filter',
     'build_author_inclusion_filter',
@@ -69,87 +69,6 @@ def build_edge_data_filter(annotations, partial_match=True):
         return subdict_matches(data, annotations, partial_match=partial_match)
 
     return annotation_dict_filter
-
-
-def build_annotation_dict_all_filter(annotations, partial_match=True):
-    """Builds a filter that keeps edges whose data dictionaries's annotations entry are superdictionaries to the given
-    dictionary
-
-    :param dict annotations: The annotation query dict to match
-    :param bool partial_match: Should the query values be used as partial or exact matches? Defaults to :code:`True`.
-    :rtype: (pybel.BELGraph, tuple, tuple, int) -> bool
-    """
-
-    @edge_predicate
-    def annotation_dict_filter(data):
-        """A filter that matches edges with the given dictionary as a subdictionary"""
-        return subdict_matches(data[ANNOTATIONS], annotations, partial_match=partial_match)
-
-    return annotation_dict_filter
-
-
-def build_annotation_dict_any_filter(annotations):
-    """Builds a filter that keeps edges whose data dictionaries's annotations entry contain any match to
-    the target dictionary
-
-    :param dict annotations: The annotation query dict to match
-    """
-
-    @edge_predicate
-    def annotation_dict_filter(data):
-        """A filter that matches edges with the given dictionary as a subdictionary
-
-        :param dict data: A PyBEL edge data dictionary
-        :rtype: bool
-        """
-        return any(
-            edge_has_annotation(data, key) and data[ANNOTATIONS][key] == value
-            for key, values in annotations.items()
-            for value in values
-        )
-
-    return annotation_dict_filter
-
-
-def build_relation_filter(relations):
-    """Builds a filter that passes only for edges with the given relation
-    
-    :param relations: A relation or iterable of relations
-    :type relations: str or iter[str]
-    :return: An edge filter function (graph, node, node, key, data) -> bool
-    :rtype: (pybel.BELGraph, tuple, tuple, int) -> bool
-    """
-
-    if isinstance(relations, str):
-        @edge_predicate
-        def relation_filter(data):
-            """Only passes for edges with the contained relation
-
-            :param dict data: A PyBEL edge data dictionary
-            :return: If the edge has the contained relation
-            :rtype: bool
-            """
-            return data[RELATION] == relations
-
-        return relation_filter
-
-    elif isinstance(relations, Iterable):
-        relation_set = set(relations)
-
-        @edge_predicate
-        def relation_filter(data):
-            """Only passes for edges with one of the contained relations
-
-            :param dict data: A PyBEL edge data dictionary
-            :return: If the edge has one of the contained relations
-            :rtype: bool
-            """
-            return data[RELATION] in relation_set
-
-        return relation_filter
-
-    else:
-        raise ValueError('Invalid type for argument: {}'.format(relations))
 
 
 def build_pmid_inclusion_filter(pmid):
@@ -330,7 +249,6 @@ def build_target_namespace_filter(namespaces):
     :rtype: (pybel.BELGraph, tuple, tuple, int) -> bool
     """
     if isinstance(namespaces, str):
-
         def target_namespace_filter(graph, u, v, k):
             return node_has_namespace(graph, v, namespaces)
 

@@ -2,9 +2,8 @@
 
 import random
 
-from pybel import BELGraph
-from .utils import update_node_helper
-from .. import pipeline
+from pybel.struct.pipeline import transformation
+from pybel.struct.utils import update_node_helper
 from ..utils import safe_add_edge
 
 __all__ = [
@@ -15,7 +14,7 @@ __all__ = [
 ]
 
 
-@pipeline.mutator
+@transformation
 def random_by_nodes(graph, percentage=None):
     """Gets a random graph by inducing over a percentage of the original nodes
 
@@ -39,7 +38,7 @@ def random_by_nodes(graph, percentage=None):
     return result
 
 
-@pipeline.mutator
+@transformation
 def random_by_edges(graph, percentage=None):
     """Gets a random graph by keeping a certain percentage of original edges
 
@@ -56,17 +55,17 @@ def random_by_edges(graph, percentage=None):
 
     subedges = random.sample(edges, n)
 
-    result = BELGraph()
+    rv = graph.fresh_copy()
 
     for u, v, k in subedges:
-        safe_add_edge(result, u, v, k, graph.edge[u][v][k])
+        safe_add_edge(rv, u, v, k, graph.edge[u][v][k])
 
-    update_node_helper(graph, result)
+    update_node_helper(graph, rv)
 
-    return result
+    return rv
 
 
-@pipeline.mutator
+@transformation
 def shuffle_node_data(graph, key, percentage=None):
     """Shuffles the node's data. Useful for permutation testing.
 
@@ -91,7 +90,7 @@ def shuffle_node_data(graph, key, percentage=None):
     return result
 
 
-@pipeline.mutator
+@transformation
 def shuffle_relations(graph, percentage=None):
     """Shuffles the relations. Useful for permutation testing.
 

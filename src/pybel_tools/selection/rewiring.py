@@ -1,21 +1,18 @@
 # -*- coding: utf-8 -*-
 
-"""
-
-This module has functions that help produce random permutations over networks.
+"""Functions for producing random permutations over networks.
 
 Random permutations are useful in statistical testing over aggregate statistics.
-
 """
 
 import random
 
 from pybel.constants import RELATION
-from .. import pipeline
+from pybel.struct.pipeline import transformation
 
 
 def is_edge_consistent(graph, u, v):
-    """Checks if all edges between two nodes have the same relation
+    """Check if all edges between two nodes have the same relation.
 
     :param pybel.BELGraph graph: A BEL Graph
     :param tuple u: The source BEL node
@@ -30,28 +27,29 @@ def is_edge_consistent(graph, u, v):
 
 
 def all_edges_consistent(graph):
-    """Returns if all edges are consistent in a graph. Wraps :func:`pybel_tools.utils.is_edge_consistent`
+    """Return if all edges are consistent in a graph. Wraps :func:`pybel_tools.utils.is_edge_consistent`.
 
     :param pybel.BELGraph graph: A BEL graph
     :return: Are all edges consistent
     :rtype: bool
     """
-    return all(is_edge_consistent(graph, u, v) for u, v in graph.edges_iter())
+    return all(
+        is_edge_consistent(graph, u, v)
+        for u, v in graph.edges()
+    )
 
 
-@pipeline.mutator
-def rewire_targets(graph, p):
-    """Rewires a graph's edges' target nodes
-
+@transformation
+def rewire_targets(graph, rewiring_probability):
+    """Rewire a graph's edges' target nodes.
 
     - For BEL graphs, assumes edge consistency (all edges between two given nodes are have the same relation)
     - Doesn't make self-edges
 
     :param pybel.BELGraph graph: A BEL graph
-    :param p: The probability of rewiring
+    :param float rewiring_probability: The probability of rewiring (between 0 and 1)
     :return: A rewired BEL graph
     """
-
     if not all_edges_consistent(graph):
         raise ValueError('{} is not consistent'.format(graph))
 
@@ -59,7 +57,7 @@ def rewire_targets(graph, p):
     nodes = result.nodes()
 
     for u, v in result.edges():
-        if random.random() < p:
+        if random.random() < rewiring_probability:
             continue
 
         w = random.choice(nodes)

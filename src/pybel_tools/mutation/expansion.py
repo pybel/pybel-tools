@@ -1,23 +1,18 @@
 # -*- coding: utf-8 -*-
 
 import itertools as itt
-import logging
 from collections import Counter, defaultdict
 
-from pybel import BELGraph
+import logging
+
 from pybel.constants import *
-from pybel.struct import left_full_join
-from pybel.struct.filters import and_edge_predicates, concatenate_node_predicates
+from pybel.struct.filters import and_edge_predicates, concatenate_node_predicates, get_nodes_by_function
 from pybel.struct.filters.edge_predicates import edge_has_annotation, is_causal_relation
 from pybel.struct.filters.node_predicates import keep_node_permissive
-from .utils import ensure_node_from_universe, update_node_helper
-from .. import pipeline
-from ..filters.node_filters import exclude_pathology_filter
-from ..filters.node_selection import get_nodes_by_function
+from pybel.struct.pipeline import uni_in_place_transformation
 from ..utils import safe_add_edge
 
 __all__ = [
-    'get_upstream_causal_subgraph',
     'get_peripheral_successor_edges',
     'get_peripheral_predecessor_edges',
     'count_sources',
@@ -27,10 +22,6 @@ __all__ = [
     'get_subgraph_edges',
     'get_subgraph_peripheral_nodes',
     'expand_periphery',
-    'expand_node_neighborhood',
-    'expand_nodes_neighborhoods',
-    'expand_all_node_neighborhoods',
-    'expand_upstream_causal_subgraph',
     'enrich_grouping',
     'enrich_complexes',
     'enrich_composites',
@@ -39,54 +30,9 @@ __all__ = [
     'enrich_unqualified',
     'expand_internal',
     'expand_internal_causal',
-    'expand_downstream_causal_subgraph',
-    'expand_node_predecessors',
-    'expand_node_successors',
-    'get_downstream_causal_subgraph',
 ]
 
 log = logging.getLogger(__name__)
-
-
-@pipeline.uni_mutator
-def get_upstream_causal_subgraph(graph, nbunch):
-    """Induces a subgraph from all of the upstream causal entities of the nodes in the nbunch
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param tuple or list[tuple] nbunch: A BEL node or iterable of BEL nodes
-    :return: A BEL Graph
-    :rtype: pybel.BELGraph
-    """
-    result = BELGraph()
-
-    for u, v, k, d in graph.in_edges_iter(nbunch, keys=True, data=True):
-        if d[RELATION] in CAUSAL_RELATIONS:
-            result.add_edge(u, v, key=k, attr_dict=d)
-
-    update_node_helper(graph, result)
-
-    return result
-
-
-@pipeline.uni_mutator
-def get_downstream_causal_subgraph(graph, nbunch):
-    """Induces a subgraph from all of the downstream causal entities of the nodes in the nbunch
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param nbunch: A BEL node or iterable of BEL nodes
-    :type nbunch: tuple or list[tuple]
-    :return: A BEL Graph
-    :rtype: pybel.BELGraph
-    """
-    result = BELGraph()
-
-    for u, v, d in graph.out_edges_iter(nbunch, data=True):
-        if d[RELATION] in CAUSAL_RELATIONS:
-            result.add_edge(u, v, attr_dict=d)
-
-    update_node_helper(graph, result)
-
-    return result
 
 
 def get_peripheral_successor_edges(graph, subgraph):
@@ -233,7 +179,7 @@ def get_subgraph_peripheral_nodes(graph, subgraph, node_filters=None, edge_filte
     return result
 
 
-@pipeline.uni_in_place_mutator
+@uni_in_place_transformation
 def expand_periphery(universe, graph, node_filters=None, edge_filters=None, threshold=2):
     """Iterates over all possible edges, peripheral to a given subgraph, that could be added from the given graph.
     Edges could be added if they go to nodes that are involved in relationships that occur with more than the
@@ -274,7 +220,7 @@ def expand_periphery(universe, graph, node_filters=None, edge_filters=None, thre
                 safe_add_edge(graph, node, v, k, d)
 
 
-@pipeline.uni_in_place_mutator
+@uni_in_place_transformation
 def enrich_grouping(universe, graph, function, relation):
     """Adds all of the grouped elements. See :func:`enrich_complexes`, :func:`enrich_composites`, and
     :func:`enrich_reactions`
@@ -297,10 +243,9 @@ def enrich_grouping(universe, graph, function, relation):
                 graph.add_unqualified_edge(u, v, relation)
 
 
-@pipeline.uni_in_place_mutator
+@uni_in_place_transformation
 def enrich_complexes(universe, graph):
-    """Adds all of the members of the complexes in the subgraph that are in the original graph with appropriate
-    :data:`pybel.constants.HAS_COMPONENT` relationships, in place.
+    """Add all of the members of the complex abundances to the graph.
 
     :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
     :param pybel.BELGraph graph: The target BEL graph to enrich
@@ -308,10 +253,9 @@ def enrich_complexes(universe, graph):
     enrich_grouping(universe, graph, COMPLEX, HAS_COMPONENT)
 
 
-@pipeline.uni_in_place_mutator
+@uni_in_place_transformation
 def enrich_composites(universe, graph):
-    """Adds all of the members of the composite abundances in the subgraph that are in the original graph with
-    appropriate :data:`pybel.constants.HAS_COMPONENT` relationships, in place.
+    """Adds all of the members of the composite abundances to the graph.
 
     :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
     :param pybel.BELGraph graph: The target BEL graph to enrich
@@ -319,11 +263,9 @@ def enrich_composites(universe, graph):
     enrich_grouping(universe, graph, COMPOSITE, HAS_COMPONENT)
 
 
-@pipeline.uni_in_place_mutator
+@uni_in_place_transformation
 def enrich_reactions(universe, graph):
-    """Adds all of the reactants and products of reactions in the subgraph that are in the original graph with
-    appropriate :data:`pybel.constants.HAS_REACTANT` and :data:`pybel.constants.HAS_PRODUCT` relationships,
-    respectively, in place.
+    """Adds all of the reactants and products of reactions to the graph.
 
     :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
     :param pybel.BELGraph graph: The target BEL graph to enrich
@@ -332,19 +274,19 @@ def enrich_reactions(universe, graph):
     enrich_grouping(universe, graph, REACTION, HAS_PRODUCT)
 
 
-@pipeline.uni_in_place_mutator
-def enrich_variants(universe, graph, function=None):
-    """Adds the reference nodes for all variants of the given function
+@uni_in_place_transformation
+def enrich_variants(universe, graph, func=None):
+    """Add the reference nodes for all variants of the given function.
 
     :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
     :param pybel.BELGraph graph: The target BEL graph to enrich
-    :param str or iter[str] function: The function by which the subject of each triple is filtered. Defaults to
+    :param str or iter[str] func: The function by which the subject of each triple is filtered. Defaults to
                                       the set of protein, rna, mirna, and gene.
     """
-    if function is None:
-        function = {PROTEIN, RNA, MIRNA, GENE}
+    if func is None:
+        func = {PROTEIN, RNA, MIRNA, GENE}
 
-    nodes = list(get_nodes_by_function(graph, function))
+    nodes = list(get_nodes_by_function(graph, func))
     for u, v, d in universe.in_edges_iter(nodes, data=True):
         if d[RELATION] != HAS_VARIANT:
             continue
@@ -356,9 +298,9 @@ def enrich_variants(universe, graph, function=None):
             graph.add_unqualified_edge(u, v, HAS_VARIANT)
 
 
-@pipeline.uni_in_place_mutator
+@uni_in_place_transformation
 def enrich_unqualified(universe, graph):
-    """Enriches the subgraph with the unqualified edges from the graph.
+    """Enrich the subgraph with the unqualified edges from the graph.
 
     :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
     :param pybel.BELGraph graph: The target BEL graph to enrich
@@ -390,7 +332,7 @@ def enrich_unqualified(universe, graph):
 
 
 # TODO should this bother checking multiple relationship types?
-@pipeline.uni_in_place_mutator
+@uni_in_place_transformation
 def expand_internal(universe, graph, edge_filters=None):
     """Edges between entities in the subgraph that pass the given filters
 
@@ -420,9 +362,11 @@ def expand_internal(universe, graph, edge_filters=None):
             log.debug('Multiple relationship types found between %s and %s', u, v)
 
 
-@pipeline.uni_in_place_mutator
+@uni_in_place_transformation
 def expand_internal_causal(universe, graph):
-    """Adds causal edges between entities in the subgraph. Is an extremely thin wrapper around :func:`expand_internal`.
+    """Adds causal edges between entities in the subgraph.
+
+    Is an extremely thin wrapper around :func:`expand_internal`.
 
     :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
     :param pybel.BELGraph graph: The target BEL graph to enrich with causal relations between contained nodes
@@ -434,114 +378,3 @@ def expand_internal_causal(universe, graph):
     >>> pbt.mutation.expand_internal(universe, graph, edge_filters=is_causal_relation)
     """
     expand_internal(universe, graph, edge_filters=is_causal_relation)
-
-
-@pipeline.uni_in_place_mutator
-def expand_node_predecessors(universe, graph, node):
-    """Expands around the predecessors of the given node in the result graph by looking at the universe graph,
-    in place.
-
-    :param pybel.BELGraph universe: The graph containing the stuff to add
-    :param pybel.BELGraph graph: The graph to add stuff to
-    :param tuple node: A node tuple from the query graph
-    """
-    ensure_node_from_universe(universe, graph, node)
-
-    skip_successors = set()
-    for successor in universe.successors_iter(node):  # TODO switch to node bunch
-        if successor in graph:
-            skip_successors.add(successor)
-            continue
-        graph.add_node(successor, attr_dict=universe.node[successor])
-
-    for source, successor, key, data in universe.out_edges_iter(node, data=True, keys=True):
-        if successor in skip_successors:
-            continue
-        safe_add_edge(graph, source, successor, key, data)
-
-
-@pipeline.uni_in_place_mutator
-def expand_node_successors(universe, graph, node):
-    """Expands around the successors of the given node in the result graph by looking at the universe graph,
-    in place.
-
-    :param pybel.BELGraph universe: The graph containing the stuff to add
-    :param pybel.BELGraph graph: The graph to add stuff to
-    :param tuple node: A node tuples from the query graph
-    """
-    ensure_node_from_universe(universe, graph, node)
-
-    skip_predecessors = set()
-    for predecessor in universe.predecessors_iter(node):  # TODO switch to node bunch
-        if predecessor in graph:
-            skip_predecessors.add(predecessor)
-            continue
-        graph.add_node(predecessor, attr_dict=universe.node[predecessor])
-
-    for predecessor, target, key, data in universe.in_edges_iter(node, data=True, keys=True):
-        if predecessor in skip_predecessors:
-            continue
-        safe_add_edge(graph, predecessor, target, key, data)
-
-
-@pipeline.uni_in_place_mutator
-def expand_node_neighborhood(universe, graph, node):
-    """Expands around the neighborhoods of the given node in the result graph by looking at the universe graph,
-    in place.
-
-    :param pybel.BELGraph universe: The graph containing the stuff to add
-    :param pybel.BELGraph graph: The graph to add stuff to
-    :param tuple node: A node tuples from the query graph
-    """
-    expand_node_predecessors(universe, graph, node)
-    expand_node_successors(universe, graph, node)
-
-
-@pipeline.uni_in_place_mutator
-def expand_nodes_neighborhoods(universe, graph, nodes):
-    """Expands around the neighborhoods of the given node in the result graph by looking at the universe graph,
-    in place.
-
-    :param pybel.BELGraph universe: The graph containing the stuff to add
-    :param pybel.BELGraph graph: The graph to add stuff to
-    :param list[tuple] nodes: A node tuples from the query graph
-    """
-    for node in nodes:
-        expand_node_neighborhood(universe, graph, node)
-
-
-@pipeline.uni_in_place_mutator
-def expand_all_node_neighborhoods(universe, graph, filter_pathologies=False):
-    """Expands the neighborhoods of all nodes in the given graph based on the universe graph.
-
-    :param pybel.BELGraph universe: The graph containing the stuff to add
-    :param pybel.BELGraph  graph: The graph to add stuff to
-    :param bool filter_pathologies: Should expansion take place around pathologies?
-    """
-    for node in list(graph):
-        if filter_pathologies and exclude_pathology_filter(graph, node):
-            continue
-
-        expand_node_neighborhood(universe, graph, node)
-
-
-@pipeline.uni_in_place_mutator
-def expand_upstream_causal_subgraph(universe, graph):
-    """Adds the upstream causal relations to the given subgraph
-
-    :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
-    :param pybel.BELGraph graph: The target BEL graph to enrich with upstream causal controllers of contained nodes
-    """
-    upstream = get_upstream_causal_subgraph(universe, graph.nodes())
-    left_full_join(graph, upstream)
-
-
-@pipeline.uni_in_place_mutator
-def expand_downstream_causal_subgraph(universe, graph):
-    """Adds the downstream causal relations to the given subgraph
-
-    :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
-    :param pybel.BELGraph graph: The target BEL graph to enrich with downstream causal controllers of contained nodes
-    """
-    downstream = get_downstream_causal_subgraph(universe, graph.nodes())
-    left_full_join(graph, downstream)

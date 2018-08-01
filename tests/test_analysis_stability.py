@@ -2,6 +2,7 @@ import unittest
 
 from pybel import BELGraph
 from pybel.constants import *
+from pybel.dsl import protein
 from pybel_tools.analysis.stability import *
 from pybel_tools.mutation.inference import infer_missing_two_way_edges
 
@@ -10,15 +11,15 @@ class TestUnstableTriplets(unittest.TestCase):
     def test_separate_unstable(self):
         graph = BELGraph()
 
-        a = PROTEIN, 'HGNC', 'A'
-        b = PROTEIN, 'HGNC', 'B'
-        c = PROTEIN, 'HGNC', 'C'
-        d = PROTEIN, 'HGNC', 'D'
+        a_data = protein('HGNC', 'A')
+        b_data = protein('HGNC', 'B')
+        c_data = protein('HGNC', 'C')
+        d_data = protein('HGNC', 'D')
 
-        graph.add_simple_node(*a)
-        graph.add_simple_node(*b)
-        graph.add_simple_node(*c)
-        graph.add_simple_node(*d)
+        a = graph.add_node_from_data(a_data)
+        b = graph.add_node_from_data(b_data)
+        c = graph.add_node_from_data(c_data)
+        d = graph.add_node_from_data(d_data)
 
         graph.add_edge(a, b, **{RELATION: POSITIVE_CORRELATION})
         graph.add_edge(a, c, **{RELATION: POSITIVE_CORRELATION})
@@ -48,47 +49,47 @@ class TestUnstableTriplets(unittest.TestCase):
         self.assertEqual((a, b, c), result[0])
 
     def test_mutually_unstable(self):
-        g = BELGraph()
+        graph = BELGraph()
 
-        a = PROTEIN, 'HGNC', 'A'
-        b = PROTEIN, 'HGNC', 'B'
-        c = PROTEIN, 'HGNC', 'C'
-        d = PROTEIN, 'HGNC', 'D'
+        a_data = protein('HGNC', 'A')
+        b_data = protein('HGNC', 'B')
+        c_data = protein('HGNC', 'C')
+        d_data = protein('HGNC', 'D')
 
-        g.add_simple_node(*a)
-        g.add_simple_node(*b)
-        g.add_simple_node(*c)
-        g.add_simple_node(*d)
+        a = graph.add_node_from_data(a_data)
+        b = graph.add_node_from_data(b_data)
+        c = graph.add_node_from_data(c_data)
+        d = graph.add_node_from_data(d_data)
 
-        g.add_edge(a, b, **{RELATION: NEGATIVE_CORRELATION})
-        g.add_edge(a, c, **{RELATION: NEGATIVE_CORRELATION})
-        g.add_edge(c, b, **{RELATION: NEGATIVE_CORRELATION})
-        g.add_edge(c, d, **{RELATION: POSITIVE_CORRELATION})
+        graph.add_edge(a, b, **{RELATION: NEGATIVE_CORRELATION})
+        graph.add_edge(a, c, **{RELATION: NEGATIVE_CORRELATION})
+        graph.add_edge(c, b, **{RELATION: NEGATIVE_CORRELATION})
+        graph.add_edge(c, d, **{RELATION: POSITIVE_CORRELATION})
 
-        infer_missing_two_way_edges(g)
+        infer_missing_two_way_edges(graph)
 
-        result = tuple(get_mutually_unstable_correlation_triples(g))
+        result = tuple(get_mutually_unstable_correlation_triples(graph))
 
         self.assertEqual(1, len(result))
         self.assertEqual((a, b, c), result[0])
 
     def test_jens_alpha(self):
-        g = BELGraph()
+        graph = BELGraph()
 
-        a = PROTEIN, 'HGNC', 'A'
-        b = PROTEIN, 'HGNC', 'B'
-        c = PROTEIN, 'HGNC', 'C'
-        d = PROTEIN, 'HGNC', 'D'
-        e = PROTEIN, 'HGNC', 'e'
+        a_data = protein('HGNC', 'A')
+        b_data = protein('HGNC', 'B')
+        c_data = protein('HGNC', 'C')
+        d_data = protein('HGNC', 'D')
+        e_data = protein('HGNC', 'e')
 
-        g.add_simple_node(*a)
-        g.add_simple_node(*b)
-        g.add_simple_node(*c)
-        g.add_simple_node(*d)
-        g.add_simple_node(*e)
+        a = graph.add_node_from_data(a_data)
+        b = graph.add_node_from_data(b_data)
+        c = graph.add_node_from_data(c_data)
+        d = graph.add_node_from_data(d_data)
+        e = graph.add_node_from_data(e_data)
 
-        g.add_edge(a, b, **{RELATION: INCREASES})
-        g.add_edge(a, c, **{RELATION: DECREASES})
-        g.add_edge(c, b, **{RELATION: NEGATIVE_CORRELATION})
-        g.add_edge(e, c, **{RELATION: POSITIVE_CORRELATION})
-        g.add_edge(e, b, **{RELATION: POSITIVE_CORRELATION})
+        graph.add_edge(a, b, **{RELATION: INCREASES})
+        graph.add_edge(a, c, **{RELATION: DECREASES})
+        graph.add_edge(c, b, **{RELATION: NEGATIVE_CORRELATION})
+        graph.add_edge(e, c, **{RELATION: POSITIVE_CORRELATION})
+        graph.add_edge(e, b, **{RELATION: POSITIVE_CORRELATION})

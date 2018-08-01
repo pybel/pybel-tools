@@ -5,10 +5,13 @@ import logging
 
 from networkx import DiGraph, Graph
 
-from pybel.constants import *
-from ..mutation import update_node_helper
+from pybel.constants import (
+    CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, CORRELATIVE_RELATIONS,
+    NEGATIVE_CORRELATION, POSITIVE_CORRELATION, RELATION,
+)
+from pybel.struct.utils import update_node_helper
 from ..selection import get_causal_subgraph
-from ..summary import get_all_relations, relation_set_has_contradictions
+from ..summary import relation_set_has_contradictions
 
 __all__ = [
     'get_contradiction_summary',
@@ -41,7 +44,7 @@ def get_contradiction_summary(graph):
     :rtype: iter[tuple]
     """
     for u, v in set(graph.edges_iter()):
-        relations = get_all_relations(graph, u, v)
+        relations = {data[RELATION] for data in graph[u][v].values()}
         if relation_set_has_contradictions(relations):
             yield u, v, relations
 

@@ -1,29 +1,31 @@
 # -*- coding: utf-8 -*-
 
-"""This algorithm has multiple steps
+"""An implementation of chemical-based mechanism enrichment with NeuroMMSig [HoytDomingoFernandez2018]_.
+
+This algorithm has multiple steps:
 
 1. Select NeuroMMSig networks for AD, PD, and epilepsy
 2. Select drugs from DrugBank, and their targets
 3. Run NeuroMMSig algorithm on target list for each network and each mechanism
 4. Store in database
+
+.. [HoytDomingoFernandez2018] Charles Tapley Hoyt, Daniel Domingo-Fernández, Nora Balzer, Anka Güldenpfennig,
+    Martin Hofmann-Apitius; `A systematic approach for identifying shared mechanisms in epilepsy and its comorbidities
+    <https://doi.org/10.1093/database/bay050>`_, Database, Volume 2018, 1 January 2018, bay050
 """
 
 import itertools as itt
 import logging
 import os
 
-import bio2bel_drugbank
-from bio2bel_drugbank.constants import DATA_DIR as DRUGBANK_DATA_DIR
 from tqdm import tqdm
 
 from pybel.dsl import gene as gene_dsl
+from pybel.struct.grouping import get_subgraphs_by_annotation
+from pybel.struct.summary import get_annotation_values
 from pybel_tools.analysis.neurommsig import get_neurommsig_score, neurommsig_graph_preprocessor
-from pybel_tools.grouping import get_subgraphs_by_annotation
-from pybel_tools.summary import get_annotation_values
 
 log = logging.getLogger(__name__)
-
-_dti_cache_path = os.path.join(DRUGBANK_DATA_DIR, 'drug_to_gene_symbols.json')
 
 
 def _get_drug_target_interactions():
@@ -31,6 +33,8 @@ def _get_drug_target_interactions():
 
     :rtype: dict[str,list[str]]
     """
+    import bio2bel_drugbank
+
     drugbank_manager = bio2bel_drugbank.Manager()
     if not drugbank_manager.is_populated():
         drugbank_manager.populate()

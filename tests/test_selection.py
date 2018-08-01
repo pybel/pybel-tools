@@ -1,160 +1,78 @@
 # -*- coding: utf-8 -*-
 
-import itertools as itt
-import random
-import unittest
-from collections import Counter
-from uuid import uuid4
+from pybel.constants import (
+    ABUNDANCE, ANNOTATIONS, CITATION, CITATION_REFERENCE, CITATION_TYPE, CITATION_TYPE_PUBMED, EVIDENCE, GENE, MIRNA,
+    PATHOLOGY, PROTEIN, RNA,
+)
+from pybel_tools.selection import get_subgraph_by_data
+from tests.constants import ExampleNetworkMixin
 
-import numpy as np
+HGNC = 'HGNC'
+GOBP = 'GOBP'
+CHEBI = 'CHEBI'
 
-from pybel import BELGraph
-from pybel.constants import INCREASES, PROTEIN
-from pybel.dsl import protein
-from pybel_tools.selection import get_random_subgraph
-from pybel_tools.selection.random_subgraph import randomly_select_node
+g1 = GENE, HGNC, '1'
+r1 = RNA, HGNC, '1'
+p1 = PROTEIN, HGNC, '1'
+
+g2 = GENE, HGNC, '2'
+r2 = RNA, HGNC, '2'
+p2 = PROTEIN, HGNC, '2'
+
+g3 = GENE, HGNC, '3'
+r3 = RNA, HGNC, '3'
+p3 = PROTEIN, HGNC, '3'
+
+g4 = GENE, HGNC, '4'
+m4 = MIRNA, HGNC, '4'
+
+a5 = ABUNDANCE, CHEBI, '5'
+p5 = PATHOLOGY, GOBP, '5'
 
 
-def n():
-    """Generates a PyBEL node tuple
+class TestGetSubgraphByData(ExampleNetworkMixin):
+    """Test building sub-graphs by data filters."""
 
-    :rtype: tuple
-    """
-    return PROTEIN, 'TEST', str(uuid4())
+    def test_annotation_filter(self):
+        """Test building a sub-graph by an annotation filter."""
+        test_network = self.network2  # Defined in test.constants.TestNetworks
 
+        filtered_network = get_subgraph_by_data(test_network, {ANNOTATIONS: {'Annotation': 'foo2'}})
 
-class TestRandomSelectNode(unittest.TestCase):
-    """Test random node selection"""
+        self.assertEqual(2, filtered_network.number_of_nodes())
+        self.assertEqual(1, filtered_network.number_of_edges())
+        self.assertIn((GENE, 'HGNC', 'f'), filtered_network)
+        self.assertIn((PROTEIN, 'HGNC', 'e'), filtered_network)
 
-    def setUp(self):
-        self.random_state = np.random.RandomState(seed=127)
-        self.trials = 30000
+    def test_evidence_filter(self):
+        """Test building a sub-graph by an evidence filter."""
+        test_network = self.graph_1  # Defined in test.constants.TestNetworks
 
-    def test_randomly_select_node_1(self):
-        """Tests that randomly selecting nodes works"""
-        a, b, c, d = (n() for _ in range(4))
+        filtered_network = get_subgraph_by_data(test_network, {EVIDENCE: ['Evidence 1', 'Evidence 2']})
 
-        g = BELGraph()
-        g.add_edge(a, b)
-        g.add_edge(b, c)
-        g.add_edge(b, d)
+        self.assertEqual(3, filtered_network.number_of_nodes())
+        self.assertEqual(2, filtered_network.number_of_edges())
+        self.assertIn((PROTEIN, 'HGNC', 'a'), filtered_network)
+        self.assertIn((PROTEIN, 'HGNC', 'b'), filtered_network)
+        self.assertIn((RNA, 'HGNC', 'd'), filtered_network)
 
-        self.assertEqual(1, g.degree(a))
-        self.assertEqual(3, g.degree(b))
-        self.assertEqual(1, g.degree(c))
-        self.assertEqual(1, g.degree(d))
+    def test_citation_filter(self):
+        """Test building a sub-graph by a citation filter."""
+        test_network = self.graph_1  # Defined in test.constants.TestNetworks
 
-        no_grow = set()
-
-        node_counter = Counter(
-            randomly_select_node(g, no_grow, self.random_state)
-            for _ in range(self.trials)
+        filtered_network = get_subgraph_by_data(
+            test_network,
+            {
+                CITATION: {
+                    CITATION_TYPE: CITATION_TYPE_PUBMED,
+                    CITATION_REFERENCE: ['2', '1'],
+                },
+            }
         )
 
-        self.assertIn(a, node_counter)
-        self.assertAlmostEqual((1 / 6), node_counter[a] / self.trials, places=2)
+        self.assertEqual(3, filtered_network.number_of_nodes())
+        self.assertEqual(2, filtered_network.number_of_edges())
 
-        self.assertIn(b, node_counter)
-        self.assertAlmostEqual((3 / 6), node_counter[b] / self.trials, places=2)
-
-        self.assertIn(c, node_counter)
-        self.assertAlmostEqual((1 / 6), node_counter[c] / self.trials, places=2)
-
-        self.assertIn(d, node_counter)
-        self.assertAlmostEqual((1 / 6), node_counter[d] / self.trials, places=2)
-
-    def test_randomly_select_node_2(self):
-        """Tests that randomly selecting nodes works, but disallow C"""
-        a, b, c, d = (n() for _ in range(4))
-
-        g = BELGraph()
-        g.add_edge(a, b)
-        g.add_edge(b, c)
-        g.add_edge(b, d)
-
-        self.assertEqual(1, g.degree(a))
-        self.assertEqual(3, g.degree(b))
-        self.assertEqual(1, g.degree(c))
-        self.assertEqual(1, g.degree(d))
-
-        no_grow = {c}
-
-        node_counter = Counter(
-            randomly_select_node(g, no_grow, self.random_state)
-            for _ in range(self.trials)
-        )
-
-        self.assertIn(a, node_counter)
-        self.assertAlmostEqual((1 / 5), node_counter[a] / self.trials, places=2)
-
-        self.assertIn(b, node_counter)
-        self.assertAlmostEqual((3 / 5), node_counter[b] / self.trials, places=2)
-
-        self.assertNotIn(c, node_counter)
-
-        self.assertIn(d, node_counter)
-        self.assertAlmostEqual((1 / 5), node_counter[d] / self.trials, places=2)
-
-
-def make_nodes(n):
-    """Returns a list of PyBEL node data dictionaries
-
-    :param int n: number nodes
-    :rtype: list[protein]
-    """
-    return [
-        protein(namespace='NS', name=str(i))
-        for i in range(1, n)
-    ]
-
-
-class TestRandomSample(unittest.TestCase):
-    def setUp(self):
-        self.random_state = np.random.seed(127)
-        random.seed(127)
-
-    def test_okay(self):
-        graph = BELGraph()
-        nodes = make_nodes(50)
-
-        edges = list(itt.combinations(nodes, r=2))
-        random.shuffle(edges)
-
-        n_edges = 500
-
-        for u, v in edges[:n_edges]:
-            graph.add_qualified_edge(
-                u, v,
-                relation=INCREASES,
-                citation=str(uuid4()),
-                evidence=str(uuid4()),
-            )
-
-        self.assertEqual(n_edges, graph.number_of_edges())
-
-        sg = get_random_subgraph(graph, number_edges=250, number_seed_edges=5, seed=127)
-        self.assertEqual(250, sg.number_of_edges())
-
-    def test_too_small(self):
-        graph = BELGraph()
-        nodes = make_nodes(11)
-
-        edges = list(itt.combinations(nodes, r=2))
-        random.shuffle(edges)
-
-        n_edges = 25
-
-        for u, v in edges[:n_edges]:
-            graph.add_qualified_edge(
-                u, v,
-                relation=INCREASES,
-                citation=str(uuid4()),
-                evidence=str(uuid4()),
-            )
-
-        self.assertEqual(n_edges, graph.number_of_edges())
-
-        sg = get_random_subgraph(graph, number_edges=250, number_seed_edges=5, seed=127)
-
-        self.assertEqual(graph.number_of_edges(), sg.number_of_edges(),
-                         msg='since graph is too small, the subgraph should contain the whole thing')
+        self.assertIn((PROTEIN, 'HGNC', 'a'), filtered_network)
+        self.assertIn((PROTEIN, 'HGNC', 'b'), filtered_network)
+        self.assertIn((RNA, 'HGNC', 'd'), filtered_network)

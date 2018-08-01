@@ -1,14 +1,18 @@
 # -*- coding: utf-8 -*-
 
-
 import itertools as itt
-from itertools import product, tee
-from random import sample
 
 import networkx as nx
-from networkx import all_shortest_paths
+from operator import itemgetter
+from random import sample
 
-from pybel.constants import *
+from pybel.constants import (
+    ANALOGOUS_TO, ASSOCIATION, BIOMARKER_FOR, CAUSES_NO_CHANGE, DECREASES, DIRECTLY_DECREASES, DIRECTLY_INCREASES,
+    EQUIVALENT_TO, HAS_COMPONENT, HAS_MEMBER, HAS_PRODUCT, HAS_REACTANT, HAS_VARIANT, INCREASES, IS_A,
+    NEGATIVE_CORRELATION, POSITIVE_CORRELATION, PROGONSTIC_BIOMARKER_FOR, RATE_LIMITING_STEP_OF, REGULATES, RELATION,
+    SUBPROCESS_OF, TRANSCRIBED_TO, TRANSLATED_TO,
+)
+from pybel.struct.mutation import get_nodes_in_all_shortest_paths
 
 __all__ = [
     'get_nodes_in_all_shortest_paths',
@@ -23,7 +27,8 @@ default_edge_ranking = {
     DECREASES: 2,
     DIRECTLY_DECREASES: 3,
     RATE_LIMITING_STEP_OF: 0,
-    CAUSES_NO_CHANGE: 0, REGULATES: 0,
+    CAUSES_NO_CHANGE: 0,
+    REGULATES: 0,
     NEGATIVE_CORRELATION: 2,
     POSITIVE_CORRELATION: 2,
     ASSOCIATION: 1,
@@ -45,7 +50,7 @@ default_edge_ranking = {
 
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
-    a, b = tee(iterable)
+    a, b = itt.tee(iterable)
     next(b, None)
     return zip(a, b)
 
@@ -64,41 +69,8 @@ def rank_path(graph, path, edge_ranking=None):
     return sum(max(edge_ranking[d[RELATION]] for d in graph.edge[u][v].values()) for u, v in pairwise(path))
 
 
-def _get_nodes_in_all_shortest_paths_helper(graph, nodes, weight=None, remove_pathologies=True):
-    if remove_pathologies:
-        graph = graph.copy()
-        for node, data in graph.nodes(data=True):
-            if data[FUNCTION] == PATHOLOGY:
-                graph.remove_node(node)
-
-    for u, v in product(nodes, repeat=2):
-        try:
-            yield from all_shortest_paths(graph, u, v, weight=weight)
-        except nx.exception.NetworkXNoPath:
-            continue
-
-
-def get_nodes_in_all_shortest_paths(graph, nodes, weight=None, remove_pathologies=True):
-    """Gets all shortest paths from all nodes to all other nodes in the given list and returns the set of all nodes 
-    contained in those paths using :func:`networkx.all_shortest_paths`.
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param iter[tuple] nodes: The list of nodes to use to use to find all shortest paths
-    :param str weight: Edge data key corresponding to the edge weight. If none, uses unweighted search.
-    :param bool remove_pathologies: Should pathology nodes be removed first?
-    :return: A set of nodes appearing in the shortest paths between nodes in the BEL graph
-    :rtype: set[tuple]
-
-    .. note:: This can be trivially parallelized using :func:`networkx.single_source_shortest_path`
-    """
-    shortest_paths_nodes_iterator = _get_nodes_in_all_shortest_paths_helper(graph, nodes, weight=weight,
-                                                                            remove_pathologies=remove_pathologies)
-
-    return set(itt.chain.from_iterable(shortest_paths_nodes_iterator))
-
-
 # TODO consider all shortest paths?
-def _get_shortest__path_between_subgraphs_helper(graph, a, b):
+def _get_shortest_path_between_subgraphs_helper(graph, a, b):
     """Calculate the shortest path that occurs between two disconnected subgraphs A and B going through nodes in
     the source graph
 
@@ -119,9 +91,9 @@ def _get_shortest__path_between_subgraphs_helper(graph, a, b):
 
     min_len = min(map(len, shortest_paths))
     return [
-        path
-        for path in shortest_paths
-        if len(path) == min_len
+        shortest_path
+        for shortest_path in shortest_paths
+        if len(shortest_path) == min_len
     ]
 
 
@@ -135,7 +107,7 @@ def get_shortest_directed_path_between_subgraphs(graph, a, b):
     :return: A list of the shortest paths between the two subgraphs
     :rtype: list
     """
-    return _get_shortest__path_between_subgraphs_helper(graph, a, b)
+    return _get_shortest_path_between_subgraphs_helper(graph, a, b)
 
 
 def get_shortest_undirected_path_between_subgraphs(graph, a, b):
@@ -148,7 +120,7 @@ def get_shortest_undirected_path_between_subgraphs(graph, a, b):
     :rtype: list
     """
     ug = graph.to_undirected()
-    return _get_shortest__path_between_subgraphs_helper(ug, a, b)
+    return _get_shortest_path_between_subgraphs_helper(ug, a, b)
 
 
 def find_root_in_path(graph, path_nodes):
@@ -163,9 +135,9 @@ def find_root_in_path(graph, path_nodes):
     path_graph = graph.subgraph(path_nodes)
 
     # node_in_degree_tuple: list of tuples with (node,in_degree_of_node) in ascending order
-    node_in_degree_tuple = sorted([(n, d) for n, d in path_graph.in_degree().items()], key=lambda x: x[1])
+    node_in_degree_tuple = sorted([(n, d) for n, d in path_graph.in_degree().items()], key=itemgetter(1))
     # node_out_degree_tuple: ordered list of tuples with (node,in_degree_of_node) in descending order
-    node_out_degree_tuple = sorted([(n, d) for n, d in path_graph.out_degree().items()], key=lambda x: x[1],
+    node_out_degree_tuple = sorted([(n, d) for n, d in path_graph.out_degree().items()], key=itemgetter(1),
                                    reverse=True)
 
     # In case all have the same in degree it needs to be reference before
@@ -180,7 +152,7 @@ def find_root_in_path(graph, path_nodes):
     # If there are multiple nodes with minimum in_degree take the one with max out degree
     # (in case multiple have the same out degree pick one random)
     if tied_root_index != 0:
-        root_tuple = max(node_out_degree_tuple[:tied_root_index], key=lambda x: x[1])
+        root_tuple = max(node_out_degree_tuple[:tied_root_index], key=itemgetter(1))
     else:
         root_tuple = node_in_degree_tuple[0]
 

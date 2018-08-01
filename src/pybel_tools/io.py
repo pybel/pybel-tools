@@ -23,19 +23,19 @@ _json_extension = '.json'
 
 
 def get_corresponding_gpickle_path(path):
-    return path[:-len(_bel_extension)] + _gpickle_extension
+    return path + _gpickle_extension
 
 
 def get_corresponding_json_path(path):
-    return path[:-len(_bel_extension)] + _json_extension
+    return path + _json_extension
 
 
-def from_path_ensure_pickle(path, connection=None, **kwargs):
+def from_path_ensure_pickle(path, manager=None, **kwargs):
     """Parses a path exactly like :func:`pybel.from_path` unless a corresponding .gpickle file is available
 
     :param str path: A file path
-    :param connection: database connection string to cache, pre-built :class:`Manager`, or None to use default cache
-    :type connection: Optional[str or pybel.manager.Manager]
+    :param manager: database connection string to cache, pre-built :class:`Manager`, or None to use default cache
+    :type manager: Optional[pybel.manager.Manager]
     :param kwargs:
     :rtype: pybel.BELGraph
     """
@@ -48,7 +48,6 @@ def from_path_ensure_pickle(path, connection=None, **kwargs):
         with open(gpickle_path, 'rb') as file:
             return from_pickle(file)
 
-    manager = Manager.ensure(connection=connection)
     graph = from_path(path, manager=manager, **kwargs)
 
     with open(gpickle_path, 'wb') as file:
@@ -127,27 +126,28 @@ def iter_paths_from_directory(directory):
         yield filename
 
 
-def iter_from_directory(directory, connection=None):
+def iter_from_directory(directory, manager=None):
     """Parses all BEL scripts in the given directory with :func:`load_paths` and returns the union of the resulting
     graphs.
 
     :param str directory: A path to a directory
-    :param connection: database connection string to cache, pre-built :class:`Manager`, or None to use default cache
-    :type connection: Optional[str or pybel.manager.Manager]
+    :type manager: Optional[pybel.manager.Manager]
     :rtype: iter[pybel.BELGraph]
     """
+    if manager is None:
+        manager = Manager()
+
     for filename in iter_paths_from_directory(directory):
         path = os.path.join(directory, filename)
-        yield from_path_ensure_pickle(path, connection=connection)
+        yield from_path_ensure_pickle(path, manager=manager)
 
 
-def from_directory(directory, connection=None):
+def from_directory(directory, manager=None):
     """Parses all BEL scripts in the given directory with :func:`load_paths` and returns the union of the resulting
     graphs.
 
     :param str directory: A path to a directory
-    :param connection: database connection string to cache, pre-built :class:`Manager`, or None to use default cache
-    :type connection: Optional[str or pybel.manager.Manager]
+    :type manager: Optional[ pybel.manager.Manager]
     :rtype: pybel.BELGraph
     """
-    return union(iter_from_directory(directory, connection=connection))
+    return union(iter_from_directory(directory, manager=manager))

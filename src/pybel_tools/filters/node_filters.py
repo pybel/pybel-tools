@@ -13,13 +13,11 @@ A general use for a node filter function is to use the built-in :func:`filter` i
 :code:`filter(your_node_filter, graph)`
 """
 
-from __future__ import print_function
-
 from collections import Iterable
 
-from pybel.constants import *
-from pybel.struct.filters.node_filters import count_passed_node_filter
-from pybel.struct.filters.node_predicates import node_predicate
+from pybel.constants import FUNCTION, FUSION, HAS_MEMBER, LABEL, NAMESPACE, PATHOLOGY, PROTEIN, RELATION, VARIANTS
+from pybel.struct.filters import build_node_data_search, build_node_key_search, data_missing_key_builder
+from pybel.struct.filters.node_filters import count_passed_node_filter, filter_nodes
 from ..constants import CNAME
 
 __all__ = [
@@ -38,10 +36,8 @@ __all__ = [
     'node_missing_label',
     'include_pathology_filter',
     'exclude_pathology_filter',
-    'node_is_upstream_leaf',
     'build_node_data_search',
     'build_node_key_search',
-    'build_node_name_search',
     'build_node_cname_search',
     'iter_undefined_families',
 ]
@@ -107,7 +103,7 @@ def node_exclusion_filter_builder(nodes):
 
 def _single_function_inclusion_filter_builder(func):
     def function_inclusion_filter(graph, node):
-        """Passes only for a node that has the enclosed function
+        """Pass only for a node that has the enclosed function.
 
         :param BELGraph graph: A BEL Graph
         :param tuple node: A BEL node
@@ -123,7 +119,7 @@ def _collection_function_inclusion_builder(funcs):
     funcs = set(funcs)
 
     def functions_inclusion_filter(graph, node):
-        """Passes only for a node that is one of the enclosed functions
+        """Pass only for a node that is one of the enclosed functions.
 
         :param BELGraph graph: A BEL Graph
         :param tuple node: A BEL node
@@ -136,12 +132,12 @@ def _collection_function_inclusion_builder(funcs):
 
 
 def function_inclusion_filter_builder(func):
-    """Builds a filter that only passes on nodes of the given function(s)
+    """Build a filter that only passes on nodes of the given function(s).
 
     :param func: A BEL Function or list/set/tuple of BEL functions
     :type func: str or iter[str]
-    :return: A node filter (graph, node) -> bool
-    :rtype: types.FunctionType
+    :return: A node predicate
+    :rtype: (pybel.BELGraph, tuple) -> bool
     """
     if isinstance(func, str):
         return _single_function_inclusion_filter_builder(func)
@@ -153,16 +149,16 @@ def function_inclusion_filter_builder(func):
 
 
 def function_exclusion_filter_builder(func):
-    """Builds a filter that fails on nodes of the given function(s)
+    """Build a filter that fails on nodes of the given function(s).
 
     :param func: A BEL Function or list/set/tuple of BEL functions
     :type func: str or list[str] or tuple[str] or set[str]
-    :return: A node filter (graph, node) -> bool
-    :rtype: types.FunctionType
+    :return: A node predicate
+    :rtype: (pybel.BELGraph, tuple) -> bool
     """
     if isinstance(func, str):
         def function_exclusion_filter(graph, node):
-            """Passes only for a node that doesn't have the enclosed function
+            """Pass only for a node that doesn't have the enclosed function.
 
             :param pybel.BELGraph graph: A BEL Graph
             :param tuple node: A BEL node
@@ -177,7 +173,7 @@ def function_exclusion_filter_builder(func):
         functions = set(func)
 
         def functions_exclusion_filter(graph, node):
-            """Passes only for a node that doesn't have the enclosed functions
+            """Pass only for a node that doesn't have the enclosed functions.
 
             :param pybel.BELGraph graph: A BEL Graph
             :param tuple node: A BEL node
@@ -192,12 +188,12 @@ def function_exclusion_filter_builder(func):
 
 
 def function_namespace_inclusion_builder(func, namespace):
-    """Builds a filter function for matching the given BEL function with the given namespace or namespaces
+    """Build a filter function for matching the given BEL function with the given namespace or namespaces.
 
     :param str func: A BEL function
     :param str or iter[str] namespace: The namespace to serach by
-    :return: A node filter (graph, node) -> bool
-    :rtype: types.FunctionType
+    :return: A node predicate
+    :rtype: (pybel.BELGraph, tuple) -> bool
     """
     if isinstance(namespace, str):
         def function_namespace_filter(graph, node):
@@ -233,11 +229,11 @@ def function_namespace_inclusion_builder(func, namespace):
 
 
 def namespace_inclusion_builder(namespace):
-    """Builds a predicate for namespace inclusion
+    """Build a predicate for namespace inclusion.
 
     :param str or iter[str] namespace: A namespace or iter of namespaces
-    :return: A node filter (graph, node) -> bool
-    :rtype: types.FunctionType
+    :return: A node predicate
+    :rtype: (pybel.BELGraph, tuple) -> bool
     """
     if isinstance(namespace, str):
 
@@ -256,7 +252,7 @@ def namespace_inclusion_builder(namespace):
         namespaces = set(namespace)
 
         def namespaces_filter(graph, node):
-            """Passes only for a node that has a namespace in the enclosed set
+            """Pass only for a node that has a namespace in the enclosed set.
 
             :param pybel.BELGraph graph: A BEL Graph
             :param tuple node: A BEL node
@@ -270,15 +266,15 @@ def namespace_inclusion_builder(namespace):
 
 
 def data_contains_key_builder(key):
-    """Builds a filter that passes only on nodes that have the given key in their data dictionary
+    """Build a filter that passes only on nodes that have the given key in their data dictionary.
 
     :param str key: A key for the node's data dictionary
-    :return: A node filter (graph, node) -> bool
-    :rtype: types.FunctionType
+    :return: A node predicate
+    :rtype: (pybel.BELGraph, tuple) -> bool
     """
 
     def data_contains_key(graph, node):
-        """Passes only for a node that contains the enclosed key in its data dictionary
+        """Pass only for a node that contains the enclosed key in its data dictionary.
 
         :param pybel.BELGraph graph: A BEL Graph
         :param tuple node: A BEL node
@@ -288,27 +284,6 @@ def data_contains_key_builder(key):
         return key in graph.node[node]
 
     return data_contains_key
-
-
-def data_missing_key_builder(key):
-    """Builds a filter that passes only on nodes that don't have the given key in their data dictionary
-
-    :param str key: A key for the node's data dictionary
-    :return: A node filter (graph, node) -> bool
-    :rtype: types.FunctionType
-    """
-
-    def data_does_not_contain_key(graph, node):
-        """Passes only for a node that doesn't contain the enclosed key in its data dictionary
-
-        :param pybel.BELGraph graph: A BEL Graph
-        :param tuple node: A BEL node
-        :return: If the node doesn't contain the enclosed key in its data dictionary
-        :rtype: bool
-        """
-        return key not in graph.node[node]
-
-    return data_does_not_contain_key
 
 
 #: Passes for nodes that have been annotated with a canonical name
@@ -332,82 +307,16 @@ include_pathology_filter = function_inclusion_filter_builder(PATHOLOGY)
 exclude_pathology_filter = function_exclusion_filter_builder(PATHOLOGY)
 
 
-def node_is_upstream_leaf(graph, node):
-    """Returns if the node is an upstream leaf. An upstream leaf is defined as a node that has no in-edges, and exactly
-    1 out-edge.
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param tuple node: A BEL node
-    :return: If the node is an upstream leaf
-    :rtype: bool
-    """
-    return 0 == len(graph.predecessors(node)) and 1 == len(graph.successors(node))
-
-
 # TODO node filter that is false for abundances with no in-edges
 
 
-def build_node_data_search(key, data_filter):
-    """Passes for nodes who have the given key in their data dictionaries and whose associated values pass the given
-    filter function
-
-    :param str key: The node data dictionary key to check
-    :param types.FunctionType data_filter: The filter to apply to the node data dictionary
-    :return: A node predicate (graph, node) -> bool
-    :rtype: types.FunctionType
-    """
-
-    @node_predicate
-    def node_data_filter(data):
-        """Passes if the given node has a given data annotated and passes the contained filter
-        
-        :param dict data: A PyBEL node data dictionary
-        :return: If the node has the contained key in its data dictionary and passes the contained filter
-        :rtype: bool
-        """
-        return key in data and data_filter(data[key])
-
-    return node_data_filter
-
-
-def build_node_key_search(query, key):
-    """Builds a node filter that only passes for nodes whose values for the given key are superstrings of the query 
-    string(s)
-    
-    :param query: The query string or strings to check if they're in the node name
-    :type query: str or iter[str]
-    :param str key: The key for the node data dictionary. Should refer only to entries that have str values
-    :return: A node predicate (graph, node) -> bool
-    :rtype: types.FunctionType
-    """
-    if isinstance(query, str):
-        return build_node_data_search(key, lambda s: query.lower() in s.lower())
-
-    if isinstance(query, Iterable):
-        return build_node_data_search(key, lambda s: any(q.lower() in s.lower() for q in query))
-
-    raise TypeError('query is wrong type: %s', query)
-
-
-def build_node_name_search(query):
-    """Searches nodes' names. Is a thin wrapper around :func:`build_node_key_search` with 
-    :data:`pybel.constants.NAME`
-
-    :param query: The query string or strings to check if they're in the node name
-    :type query: str or iter[str]
-    :return: A node predicate (graph, node) -> bool
-    :rtype: types.FunctionType
-    """
-    return build_node_key_search(query, NAME)
-
-
 def build_node_cname_search(query):
-    """Searches nodes' canonical names. Is a thin wrapper around :func:`build_node_key_search`.
+    """Search nodes' canonical names. Is a thin wrapper around :func:`build_node_key_search`.
 
     :param query: The query string or strings to check if they're in the node name
     :type query: str or iter[str]
-    :return: A node predicate (graph, node) -> bool
-    :rtype: types.FunctionType
+    :return: A node predicate
+    :rtype: (pybel.BELGraph, tuple) -> bool
     """
     return build_node_key_search(query, CNAME)
 
@@ -421,14 +330,12 @@ def iter_undefined_families(graph, namespace):
     :return: An iterator over nodes that don't
     :rtype: iter[tuple]
     """
-    filters = [
+    node_predicates = [
         function_inclusion_filter_builder(PROTEIN),
         namespace_inclusion_builder(namespace)
     ]
 
-    from pybel.struct.filters.node_filters import filter_nodes
-
-    for node in filter_nodes(graph, filters):
+    for node in filter_nodes(graph, node_predicates):
         if VARIANTS or FUSION in graph.node[node]:
             continue
 

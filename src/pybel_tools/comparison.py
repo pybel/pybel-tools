@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-
 import itertools as itt
+
 import logging
 
 from .summary.edge_summary import get_edge_relations

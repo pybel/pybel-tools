@@ -7,11 +7,11 @@ from pybel.constants import CITATION, CITATION_AUTHORS, CITATION_REFERENCE, HASH
 from pybel.manager.citation_utils import get_citations_by_pmids
 from pybel.struct.filters import filter_edges, filter_nodes
 from pybel.struct.filters.edge_predicates import has_authors, has_pubmed
+from pybel.struct.pipeline import in_place_transformation, uni_in_place_transformation
 from pybel.struct.summary import get_pubmed_identifiers
 from pybel.struct.summary.node_summary import get_namespaces
 from pybel.tokens import node_to_tuple
 from pybel.utils import hash_edge, hash_node
-from .. import pipeline
 from ..constants import CNAME
 from ..filters.node_filters import node_missing_cname
 from ..summary.edge_summary import get_annotations
@@ -27,7 +27,7 @@ __all__ = [
 log = logging.getLogger(__name__)
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def parse_authors(graph, force_parse=False):
     """Parses all of the citation author strings to lists by splitting on the pipe character "|"
 
@@ -61,7 +61,7 @@ def parse_authors(graph, force_parse=False):
     return all_authors
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def serialize_authors(graph, force_serialize=False):
     """Recombines all authors with the pipe character "|".
 
@@ -84,7 +84,7 @@ def serialize_authors(graph, force_serialize=False):
         del graph.graph['PYBEL_PARSED_AUTHORS']
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def add_canonical_names(graph, replace=False):
     """Adds a canonical name to each node's data dictionary if they are missing, in place. 
 
@@ -97,7 +97,7 @@ def add_canonical_names(graph, replace=False):
         graph.node[node][CNAME] = calculate_canonical_name(graph, node)
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def enrich_pubmed_citations(graph, stringify_authors=False, manager=None):
     """Overwrites all PubMed citations with values from NCBI's eUtils lookup service.
 
@@ -140,7 +140,7 @@ def enrich_pubmed_citations(graph, stringify_authors=False, manager=None):
     return errors
 
 
-@pipeline.uni_in_place_mutator
+@uni_in_place_transformation
 def update_context(universe, graph):
     """Updates the context of a subgraph from the universe of all knowledge.
 
@@ -150,9 +150,7 @@ def update_context(universe, graph):
     for namespace in get_namespaces(graph):
         if namespace in universe.namespace_url:
             graph.namespace_url[namespace] = universe.namespace_url[namespace]
-        elif namespace in universe.namespace_owl:
-            graph.namespace_owl[namespace] = universe.namespace_owl[namespace]
-        elif namespace in universe.namespace_owl:
+        elif namespace in universe.namespace_pattern:
             graph.namespace_pattern[namespace] = universe.namespace_pattern[namespace]
         else:
             log.warning('namespace: %s missing from universe', namespace)
@@ -160,10 +158,10 @@ def update_context(universe, graph):
     for annotation in get_annotations(graph):
         if annotation in universe.annotation_url:
             graph.annotation_url[annotation] = universe.annotation_url[annotation]
-        elif annotation in universe.annotation_owl:
-            graph.annotation_owl[annotation] = universe.annotation_owl[annotation]
-        elif annotation in universe.annotation_owl:
+        elif annotation in universe.annotation_pattern:
             graph.annotation_pattern[annotation] = universe.annotation_pattern[annotation]
+        elif annotation in universe.annotation_list:
+            graph.annotation_list[annotation] = universe.annotation_list[annotation]
         else:
             log.warning('annotation: %s missing from universe', annotation)
 

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+"""Setup.py for PyBEL-Tools."""
+
 import codecs
 import os
 import re
@@ -24,24 +26,19 @@ CLASSIFIERS = [
     'Topic :: Scientific/Engineering :: Bio-Informatics'
 ]
 INSTALL_REQUIRES = [
-    'pybel>=0.11.2',
+    'pybel>=0.11.11',
     'pybel-artifactory',
-    'pandas==0.20.3',
+    'pandas',
     'networkx==1.11',
     'requests',
     'sqlalchemy',
     'click',
     'scipy',
     'numpy',
-    'jinja2',
     'tqdm',
 ]
 
-EXTRAS_REQUIRE = {
-    'ipython': [
-        'ipython',  # Enable inline viewing in Jupyter notebooks
-    ],
-}
+EXTRAS_REQUIRE = {}
 TESTS_REQUIRE = []
 ENTRY_POINTS = {
     'console_scripts': [

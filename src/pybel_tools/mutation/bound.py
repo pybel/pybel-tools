@@ -2,8 +2,8 @@
 
 """This module builds mutation functions that are bound to a manager"""
 
-from .expansion import expand_node_neighborhood
-from ..pipeline import in_place_mutator, uni_in_place_mutator
+from pybel.struct.mutation.expansion.neighborhood import expand_node_neighborhood
+from pybel.struct.pipeline import in_place_transformation, uni_in_place_transformation
 
 __all__ = [
     'build_expand_node_neighborhood_by_hash',
@@ -18,7 +18,7 @@ def build_expand_node_neighborhood_by_hash(manager):
     :rtype: (pybel.BELGraph, pybel.BELGraph, str) -> None
     """
 
-    @uni_in_place_mutator
+    @uni_in_place_transformation
     def expand_node_neighborhood_by_hash(universe, graph, node_hash):
         """Expands around the neighborhoods of a node by identifier
 
@@ -39,7 +39,7 @@ def build_delete_node_by_hash(manager):
     :rtype: (pybel.BELGraph, str) -> None
     """
 
-    @in_place_mutator
+    @in_place_transformation
     def delete_node_by_hash(graph, node_hash):
         """Removes a node by identifier
 

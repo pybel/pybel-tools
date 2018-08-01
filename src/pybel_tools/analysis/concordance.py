@@ -2,22 +2,20 @@
 
 """Performs concordance analysis"""
 
+from collections import defaultdict
+
 import enum
 import logging
-from collections import defaultdict
 from functools import partial
 
 from pybel.constants import (
+    CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, CAUSES_NO_CHANGE, NEGATIVE_CORRELATION, POSITIVE_CORRELATION,
     RELATION,
-    CAUSAL_DECREASE_RELATIONS,
-    CAUSAL_INCREASE_RELATIONS,
-    CAUSES_NO_CHANGE,
-    POSITIVE_CORRELATION,
-    NEGATIVE_CORRELATION,
 )
-from ..mutation import collapse_all_variants, collapse_by_central_dogma_to_genes_out_place
-from ..mutation.random import random_by_edges, shuffle_relations, shuffle_node_data
-from ..grouping import get_subgraphs_by_annotation
+from pybel.struct import get_subgraphs_by_annotation
+from pybel.struct.mutation import collapse_to_genes
+from ..mutation import collapse_all_variants
+from ..mutation.random import random_by_edges, shuffle_node_data, shuffle_relations
 
 __all__ = [
     'Concordance',
@@ -221,7 +219,8 @@ def calculate_concordance_probability(graph, key, cutoff=None, permutations=None
     else:
         raise ValueError
 
-    graph = collapse_by_central_dogma_to_genes_out_place(graph)
+    graph = graph.copy()
+    collapse_to_genes(graph)
     collapse_all_variants(graph)
 
     score = calculate_concordance(graph, key, cutoff=cutoff)

@@ -135,7 +135,7 @@ def upload(manager, path, skip_check_version, to_service, service_url, exclude_d
 
     if os.path.isdir(path):
         log.info('uploading recursively from: %s', path)
-        upload_recursive(path, connection=manager, exclude_directory_pattern=exclude_directory_pattern)
+        upload_recursive(path, manager=manager, exclude_directory_pattern=exclude_directory_pattern)
 
     elif os.path.isfile(path):
         from pybel import from_pickle
@@ -145,7 +145,7 @@ def upload(manager, path, skip_check_version, to_service, service_url, exclude_d
             to_web(graph, service_url)
         else:
             from pybel import to_database
-            to_database(graph, connection=manager, store_parts=True)
+            to_database(graph, manager=manager, store_parts=True)
 
 
 @io.command()
@@ -188,12 +188,12 @@ def convert(manager, enable_upload, enrich_citations, no_citation_clearing, allo
 
     successes, failures = convert_paths(
         paths=paths,
-        connection=manager,
+        manager=manager,
         upload=enable_upload,
-        enrich_citations=enrich_citations,
+        do_enrich_pubmed_citations=enrich_citations,
         citation_clearing=(not no_citation_clearing),
         allow_nested=allow_nested,
-        send=send_pybel_web,
+        do_to_web=send_pybel_web,
         use_tqdm=True
     )
 
@@ -228,7 +228,7 @@ def merge_directory(manager, directory, name, debug):
 
     enable_cool_mode()
 
-    graph = from_directory(directory, connection=manager)
+    graph = from_directory(directory, manager=manager)
     to_pickle(graph, file=path)
 
 

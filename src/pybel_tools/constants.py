@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from pybel.constants import HAS_COMPONENT, HAS_PRODUCT, HAS_REACTANT, HAS_VARIANT, TRANSCRIBED_TO, TRANSLATED_TO
 
 IS_PRODUCT_OF = 'isProductOf'
@@ -28,7 +26,7 @@ so_url_fmt = "http://togows.dbcls.jp/entry/ncbi-pubmed/{}/so"
 CNAME = 'cname'
 WEIGHT = 'weight'
 
-VERSION = '0.5.3'
+VERSION = '0.6.1'
 
 # Resources
 
@@ -45,7 +43,3 @@ BMS_BASE = 'BMS_BASE'
 
 DEFAULT_SERVICE_URL = 'https://pybel.scai.fraunhofer.de'
 
-#: How many edges should be sampled from a graph that's still reasonable to display
-SAMPLE_RANDOM_EDGE_COUNT = 250
-#: How many edges should be sampled as "seed" edges
-SAMPLE_RANDOM_EDGE_SEED_COUNT = 5

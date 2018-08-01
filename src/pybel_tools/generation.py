@@ -21,14 +21,12 @@ This method has been applied in the following Jupyter Notebooks:
 """
 
 from pybel.constants import BIOPROCESS
-from . import pipeline
+from pybel.struct import data_missing_key_builder, get_nodes_by_function
+from pybel.struct.filters import filter_nodes
+from pybel.struct.mutation import expand_upstream_causal, get_upstream_causal_subgraph
+from pybel.struct.pipeline import in_place_transformation, transformation
 from .constants import WEIGHT
-from .filters.node_selection import get_nodes_by_function
-from .mutation import (
-    collapse_consistent_edges, expand_upstream_causal_subgraph, get_upstream_causal_subgraph,
-    remove_inconsistent_edges,
-)
-from .selection.leaves import get_unweighted_upstream_leaves
+from .mutation import collapse_consistent_edges, remove_inconsistent_edges
 
 __all__ = [
     'remove_unweighted_leaves',
@@ -41,7 +39,49 @@ __all__ = [
 ]
 
 
-@pipeline.in_place_mutator
+def node_is_upstream_leaf(graph, node):
+    """Return if the node is an upstream leaf. An upstream leaf is defined as a node that has no in-edges, and exactly
+    1 out-edge.
+
+    :param pybel.BELGraph graph: A BEL graph
+    :param tuple node: A BEL node
+    :return: If the node is an upstream leaf
+    :rtype: bool
+    """
+    return 0 == len(graph.predecessors(node)) and 1 == len(graph.successors(node))
+
+
+def get_upstream_leaves(graph):
+    """Get all leaves of the graph (with no incoming edges and only one outgoing edge).
+
+    .. seealso:: :func:`upstream_leaf_predicate`
+
+    :param pybel.BELGraph graph: A BEL graph
+    :return: An iterator over nodes that are upstream leaves
+    :rtype: iter[tuple]
+    """
+    return filter_nodes(graph, node_is_upstream_leaf)
+
+
+def get_unweighted_upstream_leaves(graph, key=None):
+    """Get all leaves of the graph with no incoming edges, one outgoing edge, and without the given key in
+    its data dictionary.
+
+    .. seealso :: :func:`data_does_not_contain_key_builder`
+
+    :param pybel.BELGraph graph: A BEL graph
+    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
+     :data:`pybel_tools.constants.WEIGHT`.
+    :return: An iterable over leaves (nodes with an in-degree of 0) that don't have the given annotation
+    :rtype: iter[tuple]
+    """
+    if key is None:
+        key = WEIGHT
+
+    return filter_nodes(graph, [node_is_upstream_leaf, data_missing_key_builder(key)])
+
+
+@in_place_transformation
 def remove_unweighted_leaves(graph, key=None):
     """Remove nodes that are leaves and that don't have a weight (or other key) attribute set.
 
@@ -79,7 +119,7 @@ def get_unweighted_sources(graph, key=None):
             yield node
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def remove_unweighted_sources(graph, key=None):
     """Prunes unannotated nodes on the periphery of the subgraph
 
@@ -91,7 +131,7 @@ def remove_unweighted_sources(graph, key=None):
     graph.remove_nodes_from(nodes)
 
 
-@pipeline.in_place_mutator
+@in_place_transformation
 def prune_mechanism_by_data(graph, key=None):
     """Removes all leaves and source nodes that don't have weights. Is a thin wrapper around 
     :func:`remove_unweighted_leaves` and :func:`remove_unweighted_sources`
@@ -109,7 +149,7 @@ def prune_mechanism_by_data(graph, key=None):
     remove_unweighted_sources(graph, key=key)
 
 
-@pipeline.mutator
+@transformation
 def generate_mechanism(graph, node, key=None):
     """Generates a mechanistic subgraph upstream of the given node
 
@@ -121,7 +161,7 @@ def generate_mechanism(graph, node, key=None):
     :rtype: pybel.BELGraph
     """
     subgraph = get_upstream_causal_subgraph(graph, node)
-    expand_upstream_causal_subgraph(graph, subgraph)
+    expand_upstream_causal(graph, subgraph)
     remove_inconsistent_edges(subgraph)
     collapse_consistent_edges(subgraph)
 
@@ -131,7 +171,6 @@ def generate_mechanism(graph, node, key=None):
     return subgraph
 
 
-@pipeline.splitter
 def generate_bioprocess_mechanisms(graph, key=None):
     """Generate a mechanistic subgraph for each biological process in the graph using :func:`generate_mechanism`
 

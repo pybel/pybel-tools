@@ -8,10 +8,11 @@ import os
 from pybel import from_pickle, to_database, to_pickle, to_web
 from pybel.io.exc import ImportVersionWarning
 from pybel.manager import Manager
+from pybel.struct.mutation import enrich_protein_and_rna_origins
+from pybel.struct.summary import get_annotation_values
 from .io import from_path_ensure_pickle
-from .mutation import add_canonical_names, enrich_pubmed_citations, infer_central_dogma as infer_central_dogma_mutator
+from .mutation import add_canonical_names, enrich_pubmed_citations
 from .selection import get_subgraph_by_annotation_value
-from .summary import get_annotation_values
 
 __all__ = [
     'subgraphs_to_pickles',
@@ -40,30 +41,30 @@ def get_paths_recursive(directory, extension='.bel', exclude_directory_pattern=N
                 yield os.path.join(root, file)
 
 
-def convert_paths(paths, connection=None, upload=False, canonicalize=True, infer_central_dogma=True,
-                  enrich_citations=False, send=False, **kwargs):
-    """Recursively parses and either uploads/pickles graphs in a given set of files
+def convert_paths(paths, manager=None, upload=False, canonicalize=True, do_enrich_protein_and_rna_origins=True,
+                  do_enrich_pubmed_citations=False, do_to_web=False, **kwargs):
+    """Parse and either uploads/pickles graphs in a given set of files, recursively.
 
     :param iter[str] paths: The paths to convert
-    :param connection: The connection
-    :type connection: None or str or pybel.manager.Manager
+    :type manager: Optional[pybel.manager.Manager]
     :param bool upload: Should the networks be uploaded to the cache?
     :param bool canonicalize: Calculate canonical nodes?
-    :param bool infer_central_dogma: Should the central dogma be inferred for all proteins, RNAs, and miRNAs
-    :param bool enrich_citations: Should the citations be enriched using Entrez Utils?
-    :param bool send: Send to PyBEL Web?
+    :param bool do_enrich_protein_and_rna_origins: Should the RNA and gene be inferred for each protein?
+    :param bool do_enrich_pubmed_citations: Should the citations be enriched using Entrez Utils?
+    :param bool do_to_web: Send to BEL Commons?
     :param kwargs: Parameters to pass to :func:`pybel.from_path`
     :return: A pair of a dictionary {path: bel graph} and list of failed paths
     :rtype: tuple[dict[str,pybel.BELGraph],list[str]]
     """
-    manager = Manager.ensure(connection)
-
     successes = {}
     failures = []
 
+    if manager is None:
+        manager = Manager()
+
     for path in paths:
         try:
-            graph = from_path_ensure_pickle(path, connection=manager, **kwargs)
+            graph = from_path_ensure_pickle(path, manager=manager, **kwargs)
         except Exception as e:
             log.exception('problem parsing %s', path)
             failures.append((path, e))
@@ -72,16 +73,16 @@ def convert_paths(paths, connection=None, upload=False, canonicalize=True, infer
         if canonicalize:
             add_canonical_names(graph)
 
-        if infer_central_dogma:
-            infer_central_dogma_mutator(graph)
+        if do_enrich_protein_and_rna_origins:
+            enrich_protein_and_rna_origins(graph)
 
-        if enrich_citations:
+        if do_enrich_pubmed_citations:
             enrich_pubmed_citations(graph=graph, manager=manager)
 
         if upload:
-            to_database(graph, connection=manager, store_parts=True)
+            to_database(graph, manager=manager, store_parts=True)
 
-        if send:
+        if do_to_web:
             response = to_web(graph)
             log.info('sent to PyBEL Web with response: %s', response.json())
 
@@ -90,17 +91,16 @@ def convert_paths(paths, connection=None, upload=False, canonicalize=True, infer
     return successes, failures
 
 
-def convert_directory(directory, connection=None, upload=False, pickle=False, canonicalize=True,
-                      infer_central_dogma=True, enrich_citations=False, enrich_genes=False, enrich_go=False, send=False,
-                      exclude_directory_pattern=None, version_in_path=False, **kwargs):
-    """Recursively parses and either uploads/pickles graphs in a given directory and sub-directories
+def convert_directory(directory, manager=None, upload=False, pickle=False, canonicalize=True,
+                      do_enrich_protein_and_rna_origins=True, enrich_citations=False, enrich_genes=False,
+                      enrich_go=False, send=False, exclude_directory_pattern=None, version_in_path=False, **kwargs):
+    """Parse and either uploads/pickles graphs in a given directory and recursively for sub-directories.
 
     :param str directory: The directory to look through
-    :param connection: The connection
-    :type connection: None or str or pybel.manager.Manage.
+    :type manager: Optional[pybel.manager.Manager]
     :param bool upload: Should the networks be uploaded to the cache?
     :param bool pickle: Should the networks be saved as pickles?
-    :param bool infer_central_dogma: Should the central dogma be inferred for all proteins, RNAs, and miRNAs
+    :param bool do_enrich_protein_and_rna_origins: Should the central dogma be inferred for all proteins, RNAs, and miRNAs
     :param bool enrich_citations: Should the citations be enriched using Entrez Utils?
     :param bool enrich_genes: Should the genes' descriptions be downloaded from Gene Cards?
     :param bool enrich_go: Should the biological processes' descriptions be downloaded from Gene Ontology?
@@ -114,15 +114,15 @@ def convert_directory(directory, connection=None, upload=False, pickle=False, ca
 
     result = convert_paths(
         paths,
-        connection=connection,
+        manager=manager,
         upload=upload,
         pickle=pickle,
         canonicalize=canonicalize,
-        infer_central_dogma=infer_central_dogma,
-        enrich_citations=enrich_citations,
+        do_enrich_protein_and_rna_origins=do_enrich_protein_and_rna_origins,
+        do_enrich_pubmed_citations=enrich_citations,
         enrich_genes=enrich_genes,
         enrich_go=enrich_go,
-        send=send,
+        do_to_web=send,
         version_in_path=version_in_path,
         **kwargs
     )
@@ -130,15 +130,13 @@ def convert_directory(directory, connection=None, upload=False, pickle=False, ca
     return result
 
 
-def upload_recursive(directory, connection=None, exclude_directory_pattern=None):
+def upload_recursive(directory, manager=None, exclude_directory_pattern=None):
     """Recursively uploads all gpickles in a given directory and sub-directories
     
     :param str directory: the directory to traverse
-    :param connection: A connection string or manager
-    :type connection: Optional[str or pybel.manage.Manager]
+    :type manager: Optional[pybel.manager.Manager]
     :param Optional[str] exclude_directory_pattern: Any directory names to exclude
     """
-    manager = Manager.ensure(connection)
     paths = list(get_paths_recursive(
         directory,
         extension='.gpickle',
@@ -153,7 +151,7 @@ def upload_recursive(directory, connection=None, exclude_directory_pattern=None)
             log.warning('%s uses a pickle from an old version of PyBEL. Quitting.', path)
             continue
 
-        to_database(network, connection=manager, store_parts=True)
+        to_database(network, manager=manager, store_parts=True)
 
 
 def subgraphs_to_pickles(network, annotation, directory=None):

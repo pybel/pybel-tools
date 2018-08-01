@@ -10,15 +10,15 @@ Reference for testing Flask
 import logging
 import unittest
 
-from pybel import BELGraph
+from pybel import BELGraph, Pipeline
 from pybel.examples import egf_graph
 from pybel.examples.homology_example import (
     homology_graph, mouse_csf1_protein, mouse_csf1_rna,
     mouse_mapk1_protein, mouse_mapk1_rna,
 )
 from pybel.examples.sialic_acid_example import dap12, shp1, shp2, sialic_acid_graph, syk, trem2
-from pybel_tools.mutation import collapse_by_central_dogma_to_genes, expand_internal, infer_central_dogma
-from pybel_tools.pipeline import Pipeline
+from pybel.struct.mutation import collapse_to_genes, enrich_protein_and_rna_origins
+from pybel_tools.mutation import expand_internal
 from pybel_tools.query import Query
 from pybel_tools.selection import get_subgraph_by_annotation_value
 from tests.constants import ExampleNetworkMixin, make_graph_1, protein_a_tuple
@@ -47,7 +47,7 @@ class QueryTest(ExampleNetworkMixin):
     def test_pipeline(self):
         test_graph_1 = self.graph_1  # Defined in test.constants.TestNetworks
 
-        infer_central_dogma(test_graph_1)
+        enrich_protein_and_rna_origins(test_graph_1)
 
         self.assertEqual(9, test_graph_1.number_of_nodes())  # 4 nodes already there +  2*2 proteins + 1 (rna)
         self.assertEqual(8, test_graph_1.number_of_edges())  # 3 already there + 2*2 proteins + 1 (rna)
@@ -55,7 +55,7 @@ class QueryTest(ExampleNetworkMixin):
         network = self.manager.insert_graph(test_graph_1)
 
         pipeline = Pipeline()
-        pipeline.append(collapse_by_central_dogma_to_genes)
+        pipeline.append(collapse_to_genes)
 
         query = Query(
             network_ids=[network.id],
@@ -69,7 +69,7 @@ class QueryTest(ExampleNetworkMixin):
     def test_pipeline_2(self):
         test_network = self.graph_1  # Defined in test.constants.TestNetworks
 
-        infer_central_dogma(test_network)
+        enrich_protein_and_rna_origins(test_network)
 
         network = self.manager.insert_graph(test_network)
         network_id = network.id
@@ -97,7 +97,7 @@ class QueryTest(ExampleNetworkMixin):
         query.append_network(egf_network.id)
         query.append_network(sialic_acid_network.id)
         query.append_seeding_neighbors([syk.as_tuple()])
-        query.append_pipeline(infer_central_dogma)
+        query.append_pipeline(enrich_protein_and_rna_origins)
 
         result = query.run(self.manager, in_place=False)
         self.assertIsNotNone(result, msg='Query returned none')
