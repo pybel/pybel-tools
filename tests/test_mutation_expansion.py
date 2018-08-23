@@ -42,18 +42,3 @@ class TestEnrichGraph(unittest.TestCase):
 
         self.assertEqual(3, graph.number_of_nodes())
         self.assertEqual(2, graph.number_of_edges())
-
-    def test_enrich_reactions(self):
-        graph = BELGraph()
-
-        r1 = graph.add_node_from_data(reaction_1)
-
-        self.assertEqual(3, graph.number_of_nodes())
-        self.assertEqual(2, graph.number_of_edges())
-
-        enrich_reactions(graph, graph)
-
-        # The graph should have now two more nodes (p1, p2) and two new edges connecting the proteins with the reaction
-
-        self.assertEqual(3, graph.number_of_nodes())
-        self.assertEqual(2, graph.number_of_edges())
