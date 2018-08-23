@@ -33,7 +33,7 @@ class TestEnrichGraph(unittest.TestCase):
         p2 = graph.add_node_from_data(p2_data)
         c1 = graph.add_node_from_data(complex_1)
 
-        self.assertEqual(2, graph.number_of_nodes())
+        self.assertEqual(3, graph.number_of_nodes())
         self.assertEqual(0, graph.number_of_edges())
 
         enrich_complexes(graph, graph)
