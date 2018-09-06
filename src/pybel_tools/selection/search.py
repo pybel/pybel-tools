@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
 from pybel.struct.filters import build_node_name_search, filter_nodes
-from ..filters.node_filters import build_node_cname_search, namespace_inclusion_builder
+from ..filters.node_filters import namespace_inclusion_builder
 
 __all__ = [
     'search_node_names',
     'search_node_namespace_names',
     'search_node_hgnc_names',
-    'search_node_cnames'
 ]
 
 
@@ -61,15 +60,3 @@ def search_node_hgnc_names(graph, query):
     :rtype: iter
     """
     return search_node_namespace_names(graph, query, namespace='HGNC')
-
-
-def search_node_cnames(graph, query):
-    """Search for nodes whose canonical names contain a given string(s).
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param query: The search query
-    :type query: str or iter[str]
-    :return: An iterator over nodes whose canonical names match the search query
-    :rtype: iter
-    """
-    return filter_nodes(graph, build_node_cname_search(query))

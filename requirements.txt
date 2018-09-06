@@ -1,7 +1,7 @@
-pybel>=0.11.11
+pybel>=0.12.0
 pybel-artifactory
 pandas
-networkx==1.11
+networkx
 sqlalchemy
 requests
 click

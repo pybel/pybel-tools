@@ -33,7 +33,7 @@ def compare(graph, annotation='Subgraph'):
 
     canonical_mechanisms = {}
     for sg in get_annotation_values(graph, annotation):
-        m = get_subgraph_by_annotation_value(graph, annotation=annotation, value=sg)
+        m = get_subgraph_by_annotation_value(graph, annotation=annotation, values=sg)
         # TODO filters?
         canonical_mechanisms[sg] = m
 

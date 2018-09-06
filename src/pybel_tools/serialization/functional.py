@@ -3,7 +3,7 @@
 """This module serializes BEL statements to a functional JSON for use with OpenBEL API tools"""
 
 from pybel.constants import *
-from pybel.parser import BelParser
+from pybel.parser import BELParser
 
 __all__ = [
     'convert_for_belief',
@@ -48,7 +48,7 @@ def parse_to_belief(statement, parser):
     """
 
     :param str statement: 
-    :param BelParser parser: 
+    :param BELParser parser:
     :return: 
     """
     tokens = parser.parseString(statement)

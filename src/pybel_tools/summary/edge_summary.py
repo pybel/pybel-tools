@@ -2,8 +2,9 @@
 
 """This module contains functions that provide summaries of the edges in a graph"""
 
-import itertools as itt
 from collections import Counter, defaultdict
+
+import itertools as itt
 
 from pybel.constants import (
     ANNOTATIONS, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, CAUSES_NO_CHANGE,
@@ -11,7 +12,10 @@ from pybel.constants import (
 )
 from pybel.struct.filters.edge_predicates import edge_has_annotation
 from pybel.struct.filters.node_predicates import keep_node_permissive
-from pybel.struct.summary import get_annotation_values, iter_annotation_value_pairs, iter_annotation_values
+from pybel.struct.summary import (
+    count_relations, get_annotation_values, iter_annotation_value_pairs,
+    iter_annotation_values,
+)
 
 __all__ = [
     'count_relations',
@@ -31,19 +35,6 @@ __all__ = [
     'get_unused_annotations',
     'get_unused_list_annotation_values',
 ]
-
-
-def count_relations(graph):
-    """Returns a histogram over all relationships in a graph
-
-    :param pybel.BELGraph graph: A BEL graph
-    :return: A Counter from {relation type: frequency}
-    :rtype: collections.Counter
-    """
-    return Counter(
-        data[RELATION]
-        for _, _, data in graph.edges_iter(data=True)
-    )
 
 
 def group_dict_set(iterator):

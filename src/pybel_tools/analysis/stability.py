@@ -43,7 +43,7 @@ def get_contradiction_summary(graph):
     :param pybel.BELGraph graph: A BEL graph
     :rtype: iter[tuple]
     """
-    for u, v in set(graph.edges_iter()):
+    for u, v in set(graph.edges()):
         relations = {data[RELATION] for data in graph[u][v].values()}
         if relation_set_has_contradictions(relations):
             yield u, v, relations
@@ -61,11 +61,11 @@ def get_regulatory_pairs(graph):
 
     results = set()
 
-    for u, v, d in cg.edges_iter(data=True):
+    for u, v, d in cg.edges(data=True):
         if d[RELATION] not in CAUSAL_INCREASE_RELATIONS:
             continue
 
-        if cg.has_edge(v, u) and any(dd[RELATION] in CAUSAL_DECREASE_RELATIONS for dd in cg.edge[v][u].values()):
+        if cg.has_edge(v, u) and any(dd[RELATION] in CAUSAL_DECREASE_RELATIONS for dd in cg[v][u].values()):
             results.add((u, v))
 
     return results
@@ -83,11 +83,11 @@ def get_chaotic_pairs(graph):
 
     results = set()
 
-    for u, v, d in cg.edges_iter(data=True):
+    for u, v, d in cg.edges(data=True):
         if d[RELATION] not in CAUSAL_INCREASE_RELATIONS:
             continue
 
-        if cg.has_edge(v, u) and any(dd[RELATION] in CAUSAL_INCREASE_RELATIONS for dd in cg.edge[v][u].values()):
+        if cg.has_edge(v, u) and any(dd[RELATION] in CAUSAL_INCREASE_RELATIONS for dd in cg[v][u].values()):
             results.add(tuple(sorted([u, v], key=str)))
 
     return results
@@ -105,11 +105,11 @@ def get_dampened_pairs(graph):
 
     results = set()
 
-    for u, v, d in cg.edges_iter(data=True):
+    for u, v, d in cg.edges(data=True):
         if d[RELATION] not in CAUSAL_DECREASE_RELATIONS:
             continue
 
-        if cg.has_edge(v, u) and any(dd[RELATION] in CAUSAL_DECREASE_RELATIONS for dd in cg.edge[v][u].values()):
+        if cg.has_edge(v, u) and any(dd[RELATION] in CAUSAL_DECREASE_RELATIONS for dd in cg[v][u].values()):
             results.add(tuple(sorted([u, v], key=str)))
 
     return results
@@ -123,17 +123,17 @@ def get_correlation_graph(graph):
     """
     result = Graph()
 
-    for u, v, d in graph.edges_iter(data=True):
+    for u, v, d in graph.edges(data=True):
         if d[RELATION] not in CORRELATIVE_RELATIONS:
             continue
 
         if not result.has_edge(u, v):
             result.add_edge(u, v, **{d[RELATION]: True})
 
-        elif d[RELATION] not in result.edge[u][v]:
+        elif d[RELATION] not in result[u][v]:
             log.log(5, 'broken correlation relation for %s, %s', u, v)
-            result.edge[u][v][d[RELATION]] = True
-            result.edge[v][u][d[RELATION]] = True
+            result[u][v][d[RELATION]] = True
+            result[v][u][d[RELATION]] = True
 
     return result
 
@@ -147,7 +147,7 @@ def get_correlation_triangles(graph):
     return {
         tuple(sorted([n, u, v], key=str))
         for n in graph
-        for u, v in itt.combinations(graph.edge[n], 2)
+        for u, v in itt.combinations(graph[n], 2)
         if graph.has_edge(u, v)
     }
 
@@ -161,7 +161,7 @@ def get_triangles(graph):
     """
     results = set()
 
-    for a, b in graph.edges_iter():
+    for a, b in graph.edges():
         for c in graph.successors(b):
             if graph.has_edge(c, a):
                 canonical_ordering = tuple(sorted([a, b, c], key=str))
@@ -181,14 +181,14 @@ def get_separate_unstable_correlation_triples(graph):
     cg = get_correlation_graph(graph)
 
     for a, b, c in get_correlation_triangles(cg):
-        if POSITIVE_CORRELATION in cg.edge[a][b] and POSITIVE_CORRELATION in cg.edge[b][c] and NEGATIVE_CORRELATION in \
-                cg.edge[a][c]:
+        if POSITIVE_CORRELATION in cg[a][b] and POSITIVE_CORRELATION in cg[b][c] and NEGATIVE_CORRELATION in \
+                cg[a][c]:
             yield b, a, c
-        if POSITIVE_CORRELATION in cg.edge[a][b] and NEGATIVE_CORRELATION in cg.edge[b][c] and POSITIVE_CORRELATION in \
-                cg.edge[a][c]:
+        if POSITIVE_CORRELATION in cg[a][b] and NEGATIVE_CORRELATION in cg[b][c] and POSITIVE_CORRELATION in \
+                cg[a][c]:
             yield a, b, c
-        if NEGATIVE_CORRELATION in cg.edge[a][b] and POSITIVE_CORRELATION in cg.edge[b][c] and POSITIVE_CORRELATION in \
-                cg.edge[a][c]:
+        if NEGATIVE_CORRELATION in cg[a][b] and POSITIVE_CORRELATION in cg[b][c] and POSITIVE_CORRELATION in \
+                cg[a][c]:
             yield c, a, b
 
 
@@ -202,7 +202,7 @@ def get_mutually_unstable_correlation_triples(graph):
     cg = get_correlation_graph(graph)
 
     for a, b, c in get_correlation_triangles(cg):
-        if all(NEGATIVE_CORRELATION in x for x in (cg.edge[a][b], cg.edge[b][c], cg.edge[a][c])):
+        if all(NEGATIVE_CORRELATION in x for x in (cg[a][b], cg[b][c], cg[a][c])):
             yield a, b, c
 
 
@@ -224,7 +224,7 @@ def jens_transformation_alpha(graph):
     """
     result = DiGraph()
 
-    for u, v, k, d in graph.edges_iter(keys=True, data=True):
+    for u, v, k, d in graph.edges(keys=True, data=True):
         relation = d[RELATION]
 
         if relation == POSITIVE_CORRELATION:
@@ -261,7 +261,7 @@ def jens_transformation_beta(graph):
     """
     result = DiGraph()
 
-    for u, v, k, d in graph.edges_iter(keys=True, data=True):
+    for u, v, k, d in graph.edges(keys=True, data=True):
         relation = d[RELATION]
 
         if relation == NEGATIVE_CORRELATION:
@@ -301,15 +301,15 @@ def _get_mismatch_triplets_helper(graph, relation_set):
     for node in graph:
         children = {
             target
-            for _, target, data in graph.out_edges_iter(node, data=True)
+            for _, target, data in graph.out_edges(node, data=True)
             if data[RELATION] in relation_set
         }
 
         for a, b in itt.combinations(children, 2):
-            if b not in graph.edge[a]:
+            if b not in graph[a]:
                 continue
 
-            if any(d[RELATION] == NEGATIVE_CORRELATION for d in graph.edge[a][b].values()):
+            if any(d[RELATION] == NEGATIVE_CORRELATION for d in graph[a][b].values()):
                 yield node, a, b
 
 
@@ -341,7 +341,7 @@ def _get_disregulated_triplets_helper(graph, relation_set):
     """
     result = DiGraph()
 
-    for u, v, d in graph.edges_iter(data=True):
+    for u, v, d in graph.edges(data=True):
         if d[RELATION] in relation_set:
             result.add_edge(u, v)
 

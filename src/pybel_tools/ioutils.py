@@ -11,7 +11,7 @@ from pybel.manager import Manager
 from pybel.struct.mutation import enrich_protein_and_rna_origins
 from pybel.struct.summary import get_annotation_values
 from .io import from_path_ensure_pickle
-from .mutation import add_canonical_names, enrich_pubmed_citations
+from .mutation import enrich_pubmed_citations
 from .selection import get_subgraph_by_annotation_value
 
 __all__ = [
@@ -41,14 +41,13 @@ def get_paths_recursive(directory, extension='.bel', exclude_directory_pattern=N
                 yield os.path.join(root, file)
 
 
-def convert_paths(paths, manager=None, upload=False, canonicalize=True, do_enrich_protein_and_rna_origins=True,
+def convert_paths(paths, manager=None, upload=False, do_enrich_protein_and_rna_origins=True,
                   do_enrich_pubmed_citations=False, do_to_web=False, **kwargs):
     """Parse and either uploads/pickles graphs in a given set of files, recursively.
 
     :param iter[str] paths: The paths to convert
     :type manager: Optional[pybel.manager.Manager]
     :param bool upload: Should the networks be uploaded to the cache?
-    :param bool canonicalize: Calculate canonical nodes?
     :param bool do_enrich_protein_and_rna_origins: Should the RNA and gene be inferred for each protein?
     :param bool do_enrich_pubmed_citations: Should the citations be enriched using Entrez Utils?
     :param bool do_to_web: Send to BEL Commons?
@@ -69,9 +68,6 @@ def convert_paths(paths, manager=None, upload=False, canonicalize=True, do_enric
             log.exception('problem parsing %s', path)
             failures.append((path, e))
             continue
-
-        if canonicalize:
-            add_canonical_names(graph)
 
         if do_enrich_protein_and_rna_origins:
             enrich_protein_and_rna_origins(graph)

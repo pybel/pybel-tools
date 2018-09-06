@@ -35,7 +35,6 @@ Links
 
    summary
    filters
-   comparison
    selection
    integration
    mutation

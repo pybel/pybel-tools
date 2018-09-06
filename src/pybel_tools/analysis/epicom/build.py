@@ -46,7 +46,7 @@ def build_database(manager, annotation_url=None):
 
     annotation_url = annotation_url or NEUROMMSIG_DEFAULT_URL
 
-    annotation = manager.get_annotation_by_url(annotation_url)
+    annotation = manager.get_namespace_by(annotation_url)
 
     if annotation is None:
         raise RuntimeError('no graphs in database with given annotation')

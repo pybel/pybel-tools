@@ -5,10 +5,9 @@ import tempfile
 import unittest
 
 from pybel import BELGraph
-from pybel.constants import *
 from pybel.dsl import gene, protein, rna
 from pybel.manager import Manager
-from uuid import uuid4
+from pybel.testing.utils import n
 
 HGNC = 'HGNC'
 
@@ -40,19 +39,8 @@ protein_h = protein(namespace=HGNC, name='h')
 protein_i = protein(namespace=HGNC, name='i')
 protein_j = protein(namespace=HGNC, name='j')
 
-protein_a_tuple = PROTEIN, HGNC, 'a'
-protein_b_tuple = PROTEIN, HGNC, 'b'
-gene_c_tuple = GENE, HGNC, 'c'
-rna_d_tuple = RNA, HGNC, 'd'
-protein_e_tuple = PROTEIN, HGNC, 'e'
-gene_f_tuple = GENE, HGNC, 'f'
-protein_g_tuple = PROTEIN, HGNC, 'g'
-protein_h_tuple = PROTEIN, HGNC, 'h'
-protein_i_tuple = PROTEIN, HGNC, 'i'
-protein_j_tuple = PROTEIN, HGNC, 'j'
 
-
-def make_graph_1():
+def make_graph_1() -> BELGraph:
     graph = BELGraph(
         name='PyBEL Tools Example Network 1',
         version='1.1.0',
@@ -66,40 +54,35 @@ def make_graph_1():
     graph.add_node_from_data(gene_c)
     graph.add_node_from_data(rna_d)
 
-    graph.add_edge(protein_a_tuple, protein_b_tuple, attr_dict={
-        RELATION: INCREASES,
-        CITATION: {
-            CITATION_TYPE: CITATION_TYPE_PUBMED,
-            CITATION_REFERENCE: '1',
-        },
-        EVIDENCE: 'Evidence 1',
-        ANNOTATIONS: {'Annotation': 'foo'}
-    })
+    graph.add_increases(
+        protein_a,
+        protein_b,
+        citation='1',
+        evidence='Evidence 1',
+        annotations={'Annotation': 'foo'}
+    )
 
-    graph.add_edge(rna_d_tuple, protein_a_tuple, attr_dict={
-        RELATION: INCREASES,
-        CITATION: {
-            CITATION_TYPE: CITATION_TYPE_PUBMED,
-            CITATION_REFERENCE: '2',
-        },
-        EVIDENCE: 'Evidence 2',
-        ANNOTATIONS: {'Annotation': 'foo'}
-    })
+    graph.add_increases(
+        rna_d,
+        protein_a,
+        citation='2',
+        evidence='Evidence 2',
+        annotations={'Annotation': 'foo'}
+    )
 
-    graph.add_edge(gene_c_tuple, protein_b_tuple, attr_dict={
-        RELATION: DECREASES,
-        CITATION: {
-            CITATION_TYPE: CITATION_TYPE_PUBMED,
-            CITATION_REFERENCE: '3',
-        },
-        EVIDENCE: 'Evidence 3',
-        ANNOTATIONS: {'Annotation': 'foo'}
-    })
+    graph.add_decreases(
+        gene_c,
+        protein_b,
+        citation='3',
+        evidence='Evidence 3',
+        annotations={'Annotation': 'foo'}
+    )
 
     return graph
 
 
-def make_graph_2():
+def make_graph_2() -> BELGraph:
+    """Make an example graph."""
     graph = BELGraph(
         name='PyBEL Tools Example Network 2',
         version='1.0.0',
@@ -112,36 +95,32 @@ def make_graph_2():
     graph.add_node_from_data(protein_e)
     graph.add_node_from_data(protein_b)
 
-    graph.add_edge(protein_e_tuple, protein_b_tuple, attr_dict={
-        RELATION: INCREASES,
-        CITATION: {
-            CITATION_TYPE: CITATION_TYPE_PUBMED,
-            CITATION_REFERENCE: '1',
-        },
-        EVIDENCE: 'Evidence 1',
-        ANNOTATIONS: {'Annotation': 'foo'}
-    })
+    graph.add_increases(
+        protein_e,
+        protein_b,
+        citation='1',
+        evidence='Evidence 1',
+        annotations={'Annotation': 'foo'},
+    )
 
-    graph.add_edge(gene_f_tuple, protein_e_tuple, attr_dict={
-        RELATION: INCREASES,
-        CITATION: {
-            CITATION_TYPE: CITATION_TYPE_PUBMED,
-            CITATION_REFERENCE: '2',
-        },
-        EVIDENCE: 'Evidence 2',
-        ANNOTATIONS: {'Annotation': 'foo2'}
-    })
+    graph.add_increases(
+        gene_f,
+        protein_e,
+        citation='2',
+        evidence='Evidence 2',
+        annotations={'Annotation': 'foo2'}
+    )
 
     return graph
 
 
-def make_graph_3():
-    """
+def make_graph_3() -> BELGraph:
+    """Make an example graph.
+
     A -> B -| C
     D -| F -> C
     C -| F
     C -- G
-
     """
     graph = BELGraph(
         name='PyBEL Tools Example Network 3',
@@ -151,48 +130,31 @@ def make_graph_3():
         contact='charles.hoyt@scai.fraunhofer.de',
     )
 
-    graph.add_edge(protein_a_tuple, protein_b_tuple, attr_dict={
-        RELATION: INCREASES,
-    })
-
-    graph.add_edge(protein_b_tuple, gene_c_tuple, attr_dict={
-        RELATION: DECREASES,
-    })
-
-    graph.add_edge(rna_d_tuple, gene_f_tuple, attr_dict={
-        RELATION: DECREASES,
-    })
-
-    graph.add_edge(protein_e_tuple, gene_f_tuple, attr_dict={
-        RELATION: INCREASES,
-    })
-
-    graph.add_edge(gene_f_tuple, gene_c_tuple, attr_dict={
-        RELATION: INCREASES,
-    })
-
-    graph.add_edge(gene_c_tuple, protein_g_tuple, attr_dict={
-        RELATION: ASSOCIATION,
-    })
+    graph.add_increases(protein_a, protein_b, n(), n())
+    graph.add_decreases(protein_b, gene_c, n(), n())
+    graph.add_decreases(rna_d, gene_f, n(), n())
+    graph.add_increases(protein_e, gene_f, n(), n())
+    graph.add_increases(gene_f, gene_c, n(), n())
+    graph.add_association(gene_c, protein_g, n(), n())
 
     return graph
 
 
-def make_graph_4():
-    """
+def make_graph_4() -> BELGraph:
+    """Make an example graph.
+
     A -> B
-            B -| C
-            B -| D
-            B -| E
-            B -| F
-            B -> G
+    B -| C
+    B -| D
+    B -| E
+    B -| F
+    B -> G
 
-            B -> H
-            B -| H
+    B -> H
+    B -| H
 
-            B -> I
-            B -- J
-
+    B -> I
+    B -- J
     """
     graph = BELGraph(
         name='PyBEL Tools Example Network 4',
@@ -202,45 +164,16 @@ def make_graph_4():
         contact='charles.hoyt@scai.fraunhofer.de',
     )
 
-    graph.add_edge(protein_a_tuple, protein_b_tuple, attr_dict={
-        RELATION: INCREASES,
-    })
-
-    graph.add_edge(protein_b_tuple, gene_c_tuple, attr_dict={
-        RELATION: DECREASES,
-    })
-
-    graph.add_edge(protein_b_tuple, rna_d_tuple, attr_dict={
-        RELATION: DECREASES,
-    })
-
-    graph.add_edge(protein_b_tuple, protein_e_tuple, attr_dict={
-        RELATION: DECREASES,
-    })
-
-    graph.add_edge(protein_b_tuple, gene_f_tuple, attr_dict={
-        RELATION: DECREASES,
-    })
-
-    graph.add_edge(protein_b_tuple, protein_g_tuple, attr_dict={
-        RELATION: INCREASES,
-    })
-
-    graph.add_edge(protein_b_tuple, protein_h_tuple, attr_dict={
-        RELATION: DECREASES,
-    })
-
-    graph.add_edge(protein_b_tuple, protein_h_tuple, attr_dict={
-        RELATION: INCREASES,
-    })
-
-    graph.add_edge(protein_b_tuple, protein_i_tuple, attr_dict={
-        RELATION: INCREASES,
-    })
-
-    graph.add_edge(protein_b_tuple, protein_j_tuple, attr_dict={
-        RELATION: ASSOCIATION,
-    })
+    graph.add_increases(protein_a, protein_b, n(), n())
+    graph.add_decreases(protein_b, gene_c, n(), n())
+    graph.add_decreases(protein_b, rna_d, n(), n())
+    graph.add_decreases(protein_b, protein_e, n(), n())
+    graph.add_decreases(protein_b, gene_f, n(), n())
+    graph.add_increases(protein_b, protein_g, n(), n())
+    graph.add_decreases(protein_b, protein_h, n(), n())
+    graph.add_increases(protein_b, protein_h, n(), n())
+    graph.add_increases(protein_b, protein_i, n(), n())
+    graph.add_association(protein_b, protein_j, n(), n())
 
     return graph
 
@@ -261,6 +194,3 @@ class ExampleNetworkMixin(unittest.TestCase):
         self.network2 = make_graph_2()
         self.network3 = make_graph_3()
         self.network4 = make_graph_4()
-
-def n():
-    return str(uuid4())

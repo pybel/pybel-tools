@@ -1,22 +1,20 @@
 # -*- coding: utf-8 -*-
 
-"""
+"""Functions for summarizing graphs.
 
 This module contains functions that provide aggregate summaries of graphs including visualization with matplotlib,
 printing summary information, and exporting summarized graphs
-
 """
 
 from __future__ import print_function
 
 import logging
+import warnings
 
-import networkx as nx
 import pandas as pd
 
 from pybel.struct.summary.node_summary import count_functions
 from .edge_summary import count_relations
-from .provenance import count_unique_authors, count_unique_citations
 
 __all__ = [
     'plot_summary_axes',
@@ -108,25 +106,8 @@ def info_list(graph):
     :param pybel.BELGraph graph: A BEL graph
     :rtype: list
     """
-    number_nodes = graph.number_of_nodes()
-    result = [
-        ('Nodes', number_nodes),
-        ('Edges', graph.number_of_edges()),
-        ('Citations', count_unique_citations(graph)),
-        ('Authors', count_unique_authors(graph)),
-        ('Network density', nx.density(graph)),
-        ('Components', nx.number_weakly_connected_components(graph)),
-    ]
-
-    try:
-        result.append(('Average degree', sum(graph.in_degree().values()) / float(number_nodes)))
-    except ZeroDivisionError:
-        log.info('Graph has no nodes')
-
-    if graph.warnings:
-        result.append(('Compilation warnings', len(graph.warnings)))
-
-    return result
+    warnings.warn('info_list is deprecated.', DeprecationWarning)
+    return graph._describe_list()
 
 
 def info_json(graph):
@@ -135,7 +116,8 @@ def info_json(graph):
     :param pybel.BELGraph graph: A BEL graph
     :rtype: dict
     """
-    return dict(info_list(graph))
+    warnings.warn('info_json is deprecated. Use BELGraph.summary_dict()', DeprecationWarning)
+    return graph.summary_dict()
 
 
 def info_str(graph):
@@ -144,7 +126,8 @@ def info_str(graph):
     :param pybel.BELGraph graph: A BEL graph
     :rtype: str
     """
-    return '\n'.join('{}: {}'.format(k, v) for k, v in info_list(graph))
+    warnings.warn('info_str is deprecaged. Use BELGraph.summary_str()', DeprecationWarning)
+    return graph.summary_str()
 
 
 def print_summary(graph, file=None):
@@ -153,4 +136,5 @@ def print_summary(graph, file=None):
     :param pybel.BELGraph graph: A BEL graph
     :param file: A writeable file or file-like object. If None, defaults to :data:`sys.stdout`
     """
-    print(info_str(graph), file=file)
+    warnings.warn('print_summary is deprecated. use BELGraph.summarize()', DeprecationWarning)
+    graph.summarize(file=file)

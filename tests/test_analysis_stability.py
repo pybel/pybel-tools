@@ -35,9 +35,9 @@ class TestUnstableTriplets(unittest.TestCase):
         self.assertTrue(cg.has_edge(a, b))
         self.assertTrue(cg.has_edge(a, c))
         self.assertTrue(cg.has_edge(b, c))
-        self.assertIn(POSITIVE_CORRELATION, cg.edge[a][b])
-        self.assertIn(POSITIVE_CORRELATION, cg.edge[a][c])
-        self.assertIn(NEGATIVE_CORRELATION, cg.edge[c][b])
+        self.assertIn(POSITIVE_CORRELATION, cg[a][b])
+        self.assertIn(POSITIVE_CORRELATION, cg[a][c])
+        self.assertIn(NEGATIVE_CORRELATION, cg[c][b])
 
         triangles = tuple(get_correlation_triangles(cg))
 

@@ -23,10 +23,9 @@ title_url_fmt = "http://togows.dbcls.jp/entry/ncbi-pubmed/{}/title"
 #: SO gives short citation information
 so_url_fmt = "http://togows.dbcls.jp/entry/ncbi-pubmed/{}/so"
 
-CNAME = 'cname'
 WEIGHT = 'weight'
 
-VERSION = '0.6.2-dev'
+VERSION = '0.7.0-dev'
 
 # Resources
 
