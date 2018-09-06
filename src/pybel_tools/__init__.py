@@ -50,7 +50,7 @@ from .utils import get_version
 
 __all__ = io.__all__ + ['get_version']
 
-__version__ = '0.7.0-dev'
+__version__ = '0.7.0'
 
 __title__ = 'pybel_tools'
 __description__ = 'Tools for using BEL documents in Python'
