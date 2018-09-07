@@ -4,6 +4,8 @@
 
 from pybel.struct.mutation.expansion.neighborhood import expand_node_neighborhood
 from pybel.struct.pipeline import in_place_transformation, uni_in_place_transformation
+from pybel import Manager
+
 
 __all__ = [
     'build_expand_node_neighborhood_by_hash',
@@ -11,10 +13,9 @@ __all__ = [
 ]
 
 
-def build_expand_node_neighborhood_by_hash(manager):
-    """Makes a expand function that's bound to the manager
+def build_expand_node_neighborhood_by_hash(manager: Manager):
+    """Make an expand function that's bound to the manager.
 
-    :param pybel.manager.Manager manager: A BEL manager
     :rtype: (pybel.BELGraph, pybel.BELGraph, str) -> None
     """
 
@@ -26,16 +27,15 @@ def build_expand_node_neighborhood_by_hash(manager):
         :param pybel.BELGraph graph: A BEL graph
         :param str node_hash: The node hash
         """
-        node = manager.get_node_tuple_by_hash(node_hash)
+        node = manager.get_dsl_by_hash(node_hash)
         return expand_node_neighborhood(universe, graph, node)
 
     return expand_node_neighborhood_by_hash
 
 
-def build_delete_node_by_hash(manager):
-    """Makes a delete function that's bound to the manager
+def build_delete_node_by_hash(manager: Manager):
+    """Make a delete function that's bound to the manager.
 
-    :param pybel.manager.Manager manager: A BEL manager
     :rtype: (pybel.BELGraph, str) -> None
     """
 
@@ -46,7 +46,7 @@ def build_delete_node_by_hash(manager):
         :param pybel.BELGraph graph: A BEL graph
         :param str node_hash: A node hash
         """
-        node = manager.get_node_tuple_by_hash(node_hash)
+        node = manager.get_dsl_by_hash(node_hash)
         graph.remove_node(node)
 
     return delete_node_by_hash

@@ -56,7 +56,7 @@ def average_node_annotation(graph, key, annotation='Subgraph', aggregator=None):
     result = {}
     grouping = group_nodes_by_annotation(graph, annotation)
     for subgraph, nodes in grouping.items():
-        values = [graph.node[node][key] for node in nodes if key in graph.node[node]]
+        values = [graph.nodes[node][key] for node in nodes if key in graph.nodes[node]]
         result[subgraph] = aggregator(values)
     return result
 
@@ -83,28 +83,26 @@ def group_nodes_by_annotation_filtered(graph, node_filters=None, annotation='Sub
 
 
 def get_mapped_nodes(graph, namespace, names):
-    """Returns defaultdict with keys: nodes that match the namespace and in names and values other nodes (complexes, variants, orthologous...) or this node.
+    """Returns a dict with keys: nodes that match the namespace and in names and values other nodes (complexes, variants, orthologous...) or this node.
     
     :param pybel.BELGraph graph: A BEL graph
-    :param str namespace: Namespace
-    :param list[str] or set[str] names: List or set of values from which we want to map nodes from
-    :rtype: dict[tuple,set[tuple]]
-    :return: Main node to variants/groups. E.g.,{('Protein', 'HGNC', 'AKT1'): {('Protein', 'HGNC', 'AKT1', ('pmod', ('bel', 'Ph'))}})
+    :param str namespace: The namespace to search
+    :param iter[str] names: List or set of values from which we want to map nodes from
+    :rtype: dict[BaseEntity, set[BaseEntity]]
+    :return: Main node to variants/groups.
     """
     parent_to_variants = defaultdict(set)
 
-    for u, v, d in graph.edges_iter(data=True):
+    names = set(names)
 
-        if d[RELATION] in {HAS_MEMBER, HAS_COMPONENT} and NAMESPACE in graph.node[v] and graph.node[v][
-            NAMESPACE] == namespace and graph.node[v][NAME] in names:
+    for u, v, d in graph.edges(data=True):
+        if d[RELATION] in {HAS_MEMBER, HAS_COMPONENT} and v.get(NAMESPACE) == namespace and v.get(NAME) in names:
             parent_to_variants[v].add(u)
 
-        elif d[RELATION] == HAS_VARIANT and NAMESPACE in graph.node[u] and graph.node[u][NAMESPACE] == namespace and \
-                        graph.node[u][NAME] in names:
+        elif d[RELATION] == HAS_VARIANT and u.get(NAMESPACE) == namespace and u.get(NAME) in names:
             parent_to_variants[u].add(v)
 
-        elif d[RELATION] == ORTHOLOGOUS and NAMESPACE in graph.node[u] and graph.node[u][NAMESPACE] == namespace and \
-                        graph.node[u][NAME] in names:
+        elif d[RELATION] == ORTHOLOGOUS and u.get(NAMESPACE) == namespace and u.get(NAME) in names:
             parent_to_variants[u].add(v)
 
     return dict(parent_to_variants)

@@ -7,9 +7,10 @@
 """
 
 import enum
-import networkx as nx
 from functools import reduce
 from operator import itemgetter
+
+import networkx as nx
 
 from pybel.constants import *
 from ..summary.edge_summary import pair_has_contradiction
@@ -112,7 +113,7 @@ def run_cna(graph, root, targets, relationship_dict=None):
     """ Returns the effect from the root to the target nodes represented as {-1,1}
 
     :param pybel.BELGraph graph: A BEL graph
-    :param tuple root: The root node
+    :param BaseEntity root: The root node
     :param iter targets: The targets nodes
     :param dict relationship_dict: dictionary with relationship effects
     :return list[tuple]:

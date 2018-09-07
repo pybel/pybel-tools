@@ -2,10 +2,12 @@
 
 import logging
 
+from pybel import BELGraph
 from pybel.constants import (
     EQUIVALENT_TO, FUNCTION, GENE, HAS_VARIANT, ORTHOLOGOUS, PROTEIN, RELATION, TRANSCRIBED_TO,
     VARIANTS,
 )
+from pybel.dsl import BaseEntity, Gene
 from pybel.struct.filters import build_relation_predicate, filter_edges, has_polarity
 from pybel.struct.mutation import (
     collapse_nodes, collapse_pair, collapse_to_genes, get_subgraph_by_edge_filter,
@@ -71,7 +73,7 @@ def rewire_variants_to_genes(graph):
             continue
         if VARIANTS not in data:
             continue
-        if any(d[RELATION] == TRANSCRIBED_TO for u, v, d in graph.in_edges_iter(data=True)):
+        if any(d[RELATION] == TRANSCRIBED_TO for u, v, d in graph.in_edges(data=True)):
             graph.node[node][FUNCTION] = GENE
 
 
@@ -226,15 +228,8 @@ def collapse_to_protein_interactions(graph):
 
     collapse_to_genes(rv)
 
-    def is_edge_ppi(g, u, v, k):
-        """Checks if an edge is a PPI.
-
-        :type g: pybel.BELGraph
-        :type u: tuple
-        :type v: tuple
-        :type k: int
-        :rtype: bool
-        """
-        return g.node[u][FUNCTION] == GENE and g.node[v][FUNCTION] == GENE
+    def is_edge_ppi(g: BELGraph, u: BaseEntity, v: BaseEntity, k: str) -> bool:
+        """Check if an edge is a PPI."""
+        return isinstance(u, Gene) and isinstance(v, Gene)
 
     return get_subgraph_by_edge_filter(rv, edge_predicates=[has_polarity, is_edge_ppi])

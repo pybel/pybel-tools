@@ -35,12 +35,12 @@ class TestIntegrate(unittest.TestCase):
         overlay_type_data(g, {'a': 1, 'b': 2, 'c': -1}, GENE, HGNC, label=label, impute=0)
 
         for node in g1, g2, g3, g4:
-            self.assertIn(label, g.node[node.as_tuple()])
+            self.assertIn(label, g.nodes[node])
 
         for node in r1, p1:
-            self.assertNotIn(label, g.node[node.as_tuple()])
+            self.assertNotIn(label, g.nodes[node])
 
-        self.assertEqual(1, g.node[g1.as_tuple()][label])
-        self.assertEqual(2, g.node[g2.as_tuple()][label])
-        self.assertEqual(-1, g.node[g3.as_tuple()][label])
-        self.assertEqual(0, g.node[g4.as_tuple()][label])
+        self.assertEqual(1, g.nodes[g1][label])
+        self.assertEqual(2, g.nodes[g2][label])
+        self.assertEqual(-1, g.nodes[g3][label])
+        self.assertEqual(0, g.nodes[g4][label])

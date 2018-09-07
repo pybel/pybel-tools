@@ -14,10 +14,10 @@ This algorithm has multiple steps:
     <https://doi.org/10.1093/database/bay050>`_, Database, Volume 2018, 1 January 2018, bay050
 """
 
-import itertools as itt
 import logging
 import os
 
+import itertools as itt
 from tqdm import tqdm
 
 from pybel.dsl import gene as gene_dsl
@@ -29,7 +29,7 @@ log = logging.getLogger(__name__)
 
 
 def _get_drug_target_interactions():
-    """Gets a mapping from drugs to their list of gene
+    """Get a mapping from drugs to their list of gene.
 
     :rtype: dict[str,list[str]]
     """
@@ -61,7 +61,7 @@ def epicom_on_graph(graph, dtis, preprocess=True):
         graph = neurommsig_graph_preprocessor(graph)
 
     log.info('stratifying %s', graph)
-    subgraphs = get_subgraphs_by_annotation(graph, annotation='Subgraph', keep_undefined=False)
+    subgraphs = get_subgraphs_by_annotation(graph, annotation='Subgraph', sentinel='UNDEFINED')
 
     log.info('running subgraphs x drugs for %s', graph)
     it = itt.product(sorted(subgraphs), sorted(dtis))

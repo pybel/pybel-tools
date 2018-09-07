@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import itertools as itt
-
-import networkx as nx
 from operator import itemgetter
-from random import sample
+
+import itertools as itt
+import networkx as nx
 
 from pybel.constants import (
     ANALOGOUS_TO, ASSOCIATION, BIOMARKER_FOR, CAUSES_NO_CHANGE, DECREASES, DIRECTLY_DECREASES, DIRECTLY_INCREASES,
@@ -18,7 +17,6 @@ __all__ = [
     'get_nodes_in_all_shortest_paths',
     'get_shortest_directed_path_between_subgraphs',
     'get_shortest_undirected_path_between_subgraphs',
-    'get_random_path',
 ]
 
 default_edge_ranking = {
@@ -157,37 +155,3 @@ def find_root_in_path(graph, path_nodes):
         root_tuple = node_in_degree_tuple[0]
 
     return path_graph, root_tuple[0]
-
-
-def get_random_path(graph):
-    """Gets a random path from the graph as a list of nodes
-
-    :param pybel.BELGraph graph: A BEL graph
-    :rtype: list[tuple]
-    """
-    graph = graph.to_undirected()
-
-    nodes = graph.nodes()
-
-    def pick_random_pair():
-        """Gets a pair of random nodes
-
-        :rtype: tuple
-        """
-        return sample(nodes, k=2)
-
-    source, target = pick_random_pair()
-
-    tries = 0
-    sentinel_tries = 5
-
-    while not nx.has_path(graph, source, target) and tries < sentinel_tries:
-        tries += 1
-        source, target = pick_random_pair()
-
-    if tries == sentinel_tries:
-        return [source]
-
-    shortest_path = nx.shortest_path(graph, source=source, target=target)
-
-    return shortest_path

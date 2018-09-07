@@ -2,26 +2,19 @@
 
 import logging
 
-from pybel.canonicalize import calculate_canonical_name
-from pybel.constants import CITATION, CITATION_AUTHORS, CITATION_REFERENCE, HASH
+from pybel.constants import CITATION, CITATION_AUTHORS, CITATION_REFERENCE
 from pybel.manager.citation_utils import get_citations_by_pmids
-from pybel.struct.filters import filter_edges, filter_nodes
+from pybel.struct.filters import filter_edges
 from pybel.struct.filters.edge_predicates import has_authors, has_pubmed
 from pybel.struct.pipeline import in_place_transformation, uni_in_place_transformation
 from pybel.struct.summary import get_pubmed_identifiers
 from pybel.struct.summary.node_summary import get_namespaces
-from pybel.tokens import node_to_tuple
-from pybel.utils import hash_edge, hash_node
-from ..constants import CNAME
-from ..filters.node_filters import node_missing_cname
 from ..summary.edge_summary import get_annotations
 
 __all__ = [
     'parse_authors',
     'serialize_authors',
-    'add_canonical_names',
     'enrich_pubmed_citations',
-    'add_identifiers',
 ]
 
 log = logging.getLogger(__name__)
@@ -54,7 +47,7 @@ def parse_authors(graph, force_parse=False):
 
         edge_authors = list(author_str.split('|'))
         all_authors.update(edge_authors)
-        graph.edge[u][v][k][CITATION][CITATION_AUTHORS] = edge_authors
+        graph[u][v][k][CITATION][CITATION_AUTHORS] = edge_authors
 
     graph.graph['PYBEL_PARSED_AUTHORS'] = True
 
@@ -78,23 +71,10 @@ def serialize_authors(graph, force_serialize=False):
         if not isinstance(authors, list):
             continue
 
-        graph.edge[u][v][k][CITATION][CITATION_AUTHORS] = '|'.join(authors)
+        graph[u][v][k][CITATION][CITATION_AUTHORS] = '|'.join(authors)
 
     if 'PYBEL_PARSED_AUTHORS' in graph.graph:
         del graph.graph['PYBEL_PARSED_AUTHORS']
-
-
-@in_place_transformation
-def add_canonical_names(graph, replace=False):
-    """Adds a canonical name to each node's data dictionary if they are missing, in place. 
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param bool replace: Should the canonical names be recalculated?
-    """
-    nodes = graph if replace else filter_nodes(graph, node_missing_cname)
-
-    for node in nodes:
-        graph.node[node][CNAME] = calculate_canonical_name(graph, node)
 
 
 @in_place_transformation
@@ -121,14 +101,14 @@ def enrich_pubmed_citations(graph, stringify_authors=False, manager=None):
     pmid_data, errors = get_citations_by_pmids(manager=manager, pmids=pmids)
 
     for u, v, k in filter_edges(graph, has_pubmed):
-        pmid = graph.edge[u][v][k][CITATION][CITATION_REFERENCE].strip()
+        pmid = graph[u][v][k][CITATION][CITATION_REFERENCE].strip()
 
         if pmid not in pmid_data:
             log.warning('Missing data for PubMed identifier: %s', pmid)
             errors.add(pmid)
             continue
 
-        graph.edge[u][v][k][CITATION].update(pmid_data[pmid])
+        graph[u][v][k][CITATION].update(pmid_data[pmid])
 
     if stringify_authors:
         serialize_authors(graph)
@@ -164,24 +144,3 @@ def update_context(universe, graph):
             graph.annotation_list[annotation] = universe.annotation_list[annotation]
         else:
             log.warning('annotation: %s missing from universe', annotation)
-
-
-def add_identifiers(graph):  # FIXME this function shouldn't have to exist.
-    """Adds stable node and edge identifiers to the graph, in-place using the PyBEL
-    node and edge hashes as a hexadecimal str.
-
-    :param pybel.BELGraph graph: A BEL Graph
-    """
-    for node, data in graph.iter_node_data_pairs():
-        if HASH in data:
-            continue
-
-        canonical_node_tuple = node_to_tuple(data)
-        canonical_node_hash = hash_node(canonical_node_tuple)
-        graph.node[node][HASH] = canonical_node_hash
-
-    for u, v, k, data in graph.edges_iter(keys=True, data=True):
-        if HASH in data:
-            continue
-
-        graph.edge[u][v][k][HASH] = hash_edge(u, v, data)

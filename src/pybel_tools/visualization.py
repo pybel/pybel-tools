@@ -18,8 +18,8 @@ def to_jupyter(*args, **kwargs):
     try:
         from pybel_jupyter import to_jupyter
     except ImportError:
-        raise ImportError("""pybel_tools.visualization.to_jupyter has been moved to the pybel_jupyter module. 
-        
+        raise ImportError("""pybel_tools.visualization.to_jupyter has been moved to the pybel_jupyter module.
+
         Please install pybel_jupyter with pip install pybel-jupyter.
         """)
     else:
@@ -31,7 +31,7 @@ def to_html(*args, **kwargs):
     try:
         from pybel_jupyter import to_html
     except ImportError:
-        raise ImportError("""pybel_tools.visualization.to_jupyter has been moved to the pybel_jupyter module. 
+        raise ImportError("""pybel_tools.visualization.to_jupyter has been moved to the pybel_jupyter module.
 
         Please install pybel_jupyter with pip install pybel-jupyter.
         """)

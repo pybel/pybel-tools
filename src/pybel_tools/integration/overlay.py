@@ -64,7 +64,7 @@ def overlay_type_data(graph, data, func, namespace, label=None, overwrite=False,
     :param Optional[float] impute: The value to use for missing data
     """
     new_data = {
-        node: data.get(graph.node[node][NAME], impute)
+        node: data.get(node[NAME], impute)
         for node in filter_nodes(graph, function_namespace_inclusion_builder(func, namespace))
     }
 

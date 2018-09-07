@@ -17,11 +17,9 @@ from collections import Iterable
 
 from pybel.constants import *
 from pybel.struct.filters import (
-    build_annotation_dict_all_filter, build_annotation_dict_any_filter,
-    count_passed_edge_filter,
+    build_annotation_dict_all_filter, build_annotation_dict_any_filter, count_passed_edge_filter,
 )
-from pybel.struct.filters.edge_predicates import edge_predicate, has_authors, has_pubmed, is_causal_relation
-from pybel.struct.filters.node_predicates import is_pathology
+from pybel.struct.filters.edge_predicates import edge_predicate, has_authors, has_pathology_causal, has_pubmed
 from pybel.utils import subdict_matches
 
 __all__ = [
@@ -43,7 +41,7 @@ def summarize_edge_filter(graph, edge_filters):
 
     :param pybel.BELGraph graph: A BEL graph
     :param edge_filters: A filter or list of filters
-    :type edge_filters: (pybel.BELGraph, tuple, tuple, int) -> bool or iter[(pybel.BELGraph, tuple, tuple, int) -> bool]
+    :type edge_filters: (pybel.BELGraph, BaseEntity, BaseEntity, str) -> bool or iter[(pybel.BELGraph, BaseEntity, BaseEntity, str) -> bool]
     """
     passed = count_passed_edge_filter(graph, edge_filters)
     print('{}/{} edges passed {}'.format(
@@ -56,28 +54,28 @@ def summarize_edge_filter(graph, edge_filters):
 
 
 def build_edge_data_filter(annotations, partial_match=True):
-    """Builds a filter that keeps edges whose data dictionaries are superdictionaries to the given dictionary
+    """Build a filter that keeps edges whose data dictionaries are super-dictionaries to the given dictionary.
 
     :param dict annotations: The annotation query dict to match
     :param bool partial_match: Should the query values be used as partial or exact matches? Defaults to :code:`True`.
-    :rtype: (pybel.BELGraph, tuple, tuple, int) -> bool
+    :rtype: (pybel.BELGraph, BaseEntity, BaseEntity, str) -> bool
     """
 
     @edge_predicate
     def annotation_dict_filter(data):
-        """A filter that matches edges with the given dictionary as a subdictionary"""
+        """A filter that matches edges with the given dictionary as a sub-dictionary."""
         return subdict_matches(data, annotations, partial_match=partial_match)
 
     return annotation_dict_filter
 
 
 def build_pmid_inclusion_filter(pmid):
-    """Only passes for edges with citations whose references are one of the given PubMed identifiers
+    """Pass for edges with citations whose references are one of the given PubMed identifiers.
     
     :param pmid: A PubMed identifier or list of PubMed identifiers to filter for
     :type pmid: str or iter[str]
     :return: An edge filter function (graph, node, node, key, data) -> bool
-    :rtype: (pybel.BELGraph, tuple, tuple, int) -> bool
+    :rtype: (pybel.BELGraph, BaseEntity, BaseEntity, str) -> bool
     """
 
     if isinstance(pmid, str):
@@ -110,12 +108,12 @@ def build_pmid_inclusion_filter(pmid):
 
 
 def build_pmid_exclusion_filter(pmid):
-    """Fails for edges with citations whose references are one of the given PubMed identifiers
+    """Fail for edges with citations whose references are one of the given PubMed identifiers.
 
     :param pmid: A PubMed identifier or list of PubMed identifiers to filter against
     :type pmid: str or iter[str]
     :return: An edge filter function (graph, node, node, key, data) -> bool
-    :rtype: (pybel.BELGraph, tuple, tuple, int) -> bool
+    :rtype: (pybel.BELGraph, BaseEntity, BaseEntity, str) -> bool
     """
 
     if isinstance(pmid, str):
@@ -154,7 +152,7 @@ def build_author_inclusion_filter(author):
     :param author: The author or list of authors to filter by
     :type author: str or iter[str]
     :return: An edge filter
-    :rtype: (pybel.BELGraph, tuple, tuple, int) -> bool
+    :rtype: (pybel.BELGraph, BaseEntity, BaseEntity, str) -> bool
     """
     if isinstance(author, str):
 
@@ -189,24 +187,6 @@ def build_author_inclusion_filter(author):
         return author_filter
 
 
-def has_pathology_causal(graph, u, v, k):
-    """Returns if the subject of this edge is a pathology and participates in a causal relation where the object is
-    not a pathology. These relations are generally nonsense.
-
-    :param pybel.BELGraph graph: A BEL Graph
-    :param tuple u: A BEL node
-    :param tuple v: A BEL node
-    :param int k: The edge key between the given nodes
-    :return: If the subject of this edge is a pathology and it participates in a causal reaction.
-    :rtype: bool
-    """
-    return (
-            is_pathology(graph, u) and
-            is_causal_relation(graph, u, v, k) and
-            graph.node[v][FUNCTION] not in {PATHOLOGY, BIOPROCESS}
-    )
-
-
 def node_has_namespace(graph, node, namespace):
     ns = graph.node[node].get(NAMESPACE)
     return ns is not None and ns == namespace
@@ -222,7 +202,7 @@ def build_source_namespace_filter(namespaces):
 
     :param namespaces: The namespace or namespaces to filter by
     :type namespaces: str or iter[str]
-    :rtype: (pybel.BELGraph, tuple, tuple, int) -> bool
+    :rtype: (pybel.BELGraph, BaseEntity, BaseEntity, str) -> bool
     """
     if isinstance(namespaces, str):
 
@@ -246,7 +226,7 @@ def build_target_namespace_filter(namespaces):
 
     :param namespaces: The namespace or namespaces to filter by
     :type namespaces: str or iter[str]
-    :rtype: (pybel.BELGraph, tuple, tuple, int) -> bool
+    :rtype: (pybel.BELGraph, BaseEntity, BaseEntity, str) -> bool
     """
     if isinstance(namespaces, str):
         def target_namespace_filter(graph, u, v, k):

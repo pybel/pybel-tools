@@ -20,21 +20,20 @@ CENTRALITY_SAMPLES = 200
 
 
 def pairwise(iterable):
-    """ Iterate over pairs in list s -> (s0,s1), (s1,s2), (s2, s3), ..."""
+    """Iterate over pairs in list s -> (s0,s1), (s1,s2), (s2, s3), ..."""
     a, b = itt.tee(iterable)
     next(b, None)
     return zip(a, b)
 
 
 def graph_edge_data_iter(graph):
-    """Iterates over the edge data dictionaries
+    """Iterate over the edge data dictionaries.
 
-    :param graph: A BEL graph
     :type graph: pybel.BELGraph
     :return: An iterator over the edge dictionaries in the graph
-    :rtype: iter
+    :rtype: iter[dict]
     """
-    for _, _, data in graph.edges_iter(data=True):
+    for _, _, data in graph.edges(data=True):
         yield data
 
 
