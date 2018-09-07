@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import itertools as itt
-from collections import Counter, defaultdict
-
 import logging
+from collections import Counter, defaultdict
 
 from pybel.constants import *
 from pybel.struct.filters import and_edge_predicates, concatenate_node_predicates, get_nodes_by_function
 from pybel.struct.filters.edge_predicates import edge_has_annotation, is_causal_relation
 from pybel.struct.filters.node_predicates import keep_node_permissive
 from pybel.struct.pipeline import uni_in_place_transformation
+
 from ..utils import safe_add_edge
 
 __all__ = [
@@ -22,7 +22,6 @@ __all__ = [
     'get_subgraph_edges',
     'get_subgraph_peripheral_nodes',
     'expand_periphery',
-    'enrich_grouping',
     'enrich_complexes',
     'enrich_composites',
     'enrich_reactions',
@@ -45,7 +44,7 @@ def get_peripheral_successor_edges(graph, subgraph):
     :rtype: iter[tuple]
     """
     for u in subgraph:
-        for _, v, k, d in graph.out_edges_iter(u, keys=True, data=True):
+        for _, v, k, d in graph.out_edges(u, keys=True, data=True):
             if v not in subgraph:
                 yield u, v, k, d
 
@@ -209,7 +208,7 @@ def expand_periphery(universe, graph, node_filters=None, edge_filters=None, thre
         if threshold > len(in_subgraph_connections):
             continue
 
-        graph.add_node(node, attr_dict=universe.node[node])
+        graph.add_node(node, attr_dict=universe[node])
 
         for u, edges in pred_d.items():
             for k, d in edges:
@@ -221,61 +220,46 @@ def expand_periphery(universe, graph, node_filters=None, edge_filters=None, thre
 
 
 @uni_in_place_transformation
-def enrich_grouping(universe, graph, function, relation):
-    """Adds all of the grouped elements. See :func:`enrich_complexes`, :func:`enrich_composites`, and
-    :func:`enrich_reactions`
-
-    :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
-    :param pybel.BELGraph graph: The target BEL graph to enrich
-    :param str function: The function by which the subject of each triple is filtered
-    :param str relation: The relationship by which the predicate of each triple is filtered
-    """
-    nodes = list(get_nodes_by_function(graph, function))
-    for u in nodes:
-        for _, v, d in universe.out_edges_iter(u, data=True):
-            if d[RELATION] != relation:
-                continue
-
-            if v not in graph:
-                graph.add_node(v, attr_dict=universe.node[v])
-
-            if v not in graph[u] or unqualified_edge_code[relation] not in graph[u][v]:
-                graph.add_unqualified_edge(u, v, relation)
-
-
-@uni_in_place_transformation
-def enrich_complexes(universe, graph):
+def enrich_complexes(graph):
     """Add all of the members of the complex abundances to the graph.
 
-    :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
     :param pybel.BELGraph graph: The target BEL graph to enrich
     """
-    enrich_grouping(universe, graph, COMPLEX, HAS_COMPONENT)
+    nodes = list(get_nodes_by_function(graph, COMPLEX))
+    for u in nodes:
+        for v in u.members:
+            graph.add_has_component(u, v)
 
 
 @uni_in_place_transformation
-def enrich_composites(universe, graph):
+def enrich_composites(graph):
     """Adds all of the members of the composite abundances to the graph.
 
-    :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
     :param pybel.BELGraph graph: The target BEL graph to enrich
     """
-    enrich_grouping(universe, graph, COMPOSITE, HAS_COMPONENT)
+    nodes = list(get_nodes_by_function(graph, COMPOSITE))
+    for u in nodes:
+        for v in u.members:
+            graph.add_has_component(u, v)
 
 
 @uni_in_place_transformation
-def enrich_reactions(universe, graph):
+def enrich_reactions(graph):
     """Adds all of the reactants and products of reactions to the graph.
 
-    :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
     :param pybel.BELGraph graph: The target BEL graph to enrich
     """
-    enrich_grouping(universe, graph, REACTION, HAS_REACTANT)
-    enrich_grouping(universe, graph, REACTION, HAS_PRODUCT)
+    nodes = list(get_nodes_by_function(graph, REACTION))
+    for u in nodes:
+        for v in u.reactants:
+            graph.add_unqualified_edge(u, v, HAS_REACTANT)
+
+        for v in u.products:
+            graph.add_unqualified_edge(u, v, HAS_PRODUCT)
 
 
 @uni_in_place_transformation
-def enrich_variants(universe, graph, func=None):
+def enrich_variants(graph, func=None):
     """Add the reference nodes for all variants of the given function.
 
     :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
@@ -287,22 +271,20 @@ def enrich_variants(universe, graph, func=None):
         func = {PROTEIN, RNA, MIRNA, GENE}
 
     nodes = list(get_nodes_by_function(graph, func))
-    for u, v, d in universe.in_edges_iter(nodes, data=True):
-        if d[RELATION] != HAS_VARIANT:
+    for u in nodes:
+        parent = u.get_parent()
+
+        if parent is None:
             continue
 
-        if u not in graph:
-            graph.add_node(u, attr_dict=universe.node[u])
-
-        if v not in graph[u] or unqualified_edge_code[HAS_VARIANT] not in graph[u][v]:
-            graph.add_unqualified_edge(u, v, HAS_VARIANT)
+        if parent not in graph:
+            graph.add_has_variant(parent, u)
 
 
 @uni_in_place_transformation
-def enrich_unqualified(universe, graph):
+def enrich_unqualified(graph):
     """Enrich the subgraph with the unqualified edges from the graph.
 
-    :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
     :param pybel.BELGraph graph: The target BEL graph to enrich
 
     The reason you might want to do this is you induce a subgraph from the original graph based on an annotation filter,
@@ -320,15 +302,15 @@ def enrich_unqualified(universe, graph):
 
     Equivalent to:
 
-    >>> enrich_complexes(universe, graph)
-    >>> enrich_composites(universe, graph)
-    >>> enrich_reactions(universe, graph)
-    >>> enrich_variants(universe, graph)
+    >>> enrich_complexes(graph)
+    >>> enrich_composites(graph)
+    >>> enrich_reactions(graph)
+    >>> enrich_variants(graph)
     """
-    enrich_complexes(universe, graph)
-    enrich_composites(universe, graph)
-    enrich_reactions(universe, graph)
-    enrich_variants(universe, graph)
+    enrich_complexes(graph)
+    enrich_composites(graph)
+    enrich_reactions(graph)
+    enrich_variants(graph)
 
 
 # TODO should this bother checking multiple relationship types?
