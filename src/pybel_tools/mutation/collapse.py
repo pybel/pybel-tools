@@ -2,16 +2,13 @@
 
 import logging
 
+import networkx as nx
+
 from pybel import BELGraph
-from pybel.constants import (
-    EQUIVALENT_TO, FUNCTION, GENE, HAS_VARIANT, ORTHOLOGOUS, PROTEIN, RELATION, TRANSCRIBED_TO,
-    VARIANTS,
-)
-from pybel.dsl import BaseEntity, Gene
+from pybel.constants import EQUIVALENT_TO, GENE, HAS_VARIANT, ORTHOLOGOUS, PROTEIN, RELATION
+from pybel.dsl import BaseEntity, Gene, Protein
 from pybel.struct.filters import build_relation_predicate, filter_edges, has_polarity
-from pybel.struct.mutation import (
-    collapse_nodes, collapse_pair, collapse_to_genes, get_subgraph_by_edge_filter,
-)
+from pybel.struct.mutation import collapse_nodes, collapse_pair, collapse_to_genes, get_subgraph_by_edge_filter
 from pybel.struct.pipeline import in_place_transformation, transformation
 from ..filters.edge_filters import build_source_namespace_filter, build_target_namespace_filter
 from ..summary.edge_summary import pair_is_consistent
@@ -28,17 +25,6 @@ __all__ = [
 ]
 
 log = logging.getLogger(__name__)
-
-
-def _collapse_variants_by_function(graph, func):
-    """Collapses all of the given functions' variants' edges to their parents, in-place
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param str func: A BEL function
-    """
-    for parent_node, variant_node, data in graph.edges(data=True):
-        if data[RELATION] == HAS_VARIANT and graph.node[parent_node][FUNCTION] == func:
-            collapse_pair(graph, from_node=variant_node, to_node=parent_node)
 
 
 @in_place_transformation
@@ -59,22 +45,39 @@ def collapse_gene_variants(graph):
     _collapse_variants_by_function(graph, GENE)
 
 
-@in_place_transformation
-def rewire_variants_to_genes(graph):
-    """Finds all protein variants that are pointing to a gene and not a protein and fixes them by changing their
-    function to be :data:`pybel.constants.GENE`, in place
+def _collapse_variants_by_function(graph, func):
+    """Collapses all of the given functions' variants' edges to their parents, in-place
 
     :param pybel.BELGraph graph: A BEL graph
-    
+    :param str func: A BEL function
+    """
+    for parent_node, variant_node, data in graph.edges(data=True):
+        if data[RELATION] == HAS_VARIANT and parent_node.function == func:
+            collapse_pair(graph, from_node=variant_node, to_node=parent_node)
+
+
+@in_place_transformation
+def rewire_variants_to_genes(graph: BELGraph):
+    """Find all protein variants that are pointing to a gene and not a protein and fixes them by changing their
+    function to be :data:`pybel.constants.GENE`, in place
+
     A use case is after running :func:`collapse_to_genes`.
     """
-    for node, data in graph.nodes(data=True):
-        if data[FUNCTION] != PROTEIN:
+
+    mapping = {}
+
+    for node in graph:
+        if not isinstance(node, Protein) or not node.variants:
             continue
-        if VARIANTS not in data:
-            continue
-        if any(d[RELATION] == TRANSCRIBED_TO for u, v, d in graph.in_edges(data=True)):
-            graph.node[node][FUNCTION] = GENE
+
+        mapping[node] = Gene(
+            name=node.name,
+            namespace=node.namespace,
+            identifier=node.identifier,
+            variants=node.variants,
+        )
+
+    nx.relabel_nodes(graph, mapping, copy=False)
 
 
 def _collapse_edge_passing_predicates(graph, edge_predicates=None):
