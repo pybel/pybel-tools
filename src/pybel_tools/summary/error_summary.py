@@ -7,6 +7,7 @@ from collections import Counter, defaultdict
 from pybel.constants import ANNOTATIONS
 from pybel.parser.exc import *
 from pybel.struct.filters.edge_predicates import edge_has_annotation
+from pybel.struct.summary import count_error_types, count_naked_names, get_naked_names
 from pybel.struct.summary.node_summary import get_names_by_namespace, get_namespaces
 from ..utils import count_dict_values
 
@@ -29,51 +30,8 @@ __all__ = [
 ]
 
 
-# TODO replace with pybel.struct.summary.count_error_types
-def count_error_types(graph):
-    """Counts the occurrence of each type of error in a graph
-
-    :param pybel.BELGraph graph: A BEL graph
-    :return: A Counter of {error type: frequency}
-    :rtype: collections.Counter
-    """
-    return Counter(e.__class__.__name__ for _, _, e, _ in graph.warnings)
-
-
-def _naked_names_iter(graph):
-    """Iterates over naked name warnings froma  graph
-
-    :param pybel.BELGraph graph: A BEL graph
-    :rtype: iter[NakedNameWarning]
-    """
-    for _, _, e, _ in graph.warnings:
-        if isinstance(e, NakedNameWarning):
-            yield e.name
-
-
-# TODO replace with pybel.struct.summary.count_naked_names
-def count_naked_names(graph):
-    """Counts the frequency of each naked name (names without namespaces)
-
-    :param pybel.BELGraph graph: A BEL graph
-    :return: A Counter from {name: frequency}
-    :rtype: collections.Counter
-    """
-    return Counter(_naked_names_iter(graph))
-
-
-# TODO replace with pybel.struct.summary.get_naked_names
-def get_naked_names(graph):
-    """Gets the set of naked names in the graph
-
-    :param pybel.BELGraph graph: A BEL graph
-    :rtype: set[str]
-    """
-    return set(_naked_names_iter(graph))
-
-
 def get_namespaces_with_incorrect_names(graph):
-    """Returns the set of all namespaces with incorrect names in the graph
+    """Return the set of all namespaces with incorrect names in the graph.
 
     :param pybel.BELGraph graph: A BEL graph
     :rtype: set[str]
