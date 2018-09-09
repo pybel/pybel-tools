@@ -2,9 +2,8 @@
 
 """This module contains functions that provide summaries of the edges in a graph"""
 
-from collections import Counter, defaultdict
-
 import itertools as itt
+from collections import Counter, defaultdict
 
 from pybel.constants import (
     ANNOTATIONS, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, CAUSES_NO_CHANGE,
@@ -13,8 +12,8 @@ from pybel.constants import (
 from pybel.struct.filters.edge_predicates import edge_has_annotation
 from pybel.struct.filters.node_predicates import keep_node_permissive
 from pybel.struct.summary import (
-    count_relations, get_annotation_values, iter_annotation_value_pairs,
-    iter_annotation_values,
+    count_annotations, count_relations, get_annotation_values, get_annotations, get_unused_annotations,
+    iter_annotation_value_pairs, iter_annotation_values,
 )
 
 __all__ = [
@@ -72,50 +71,6 @@ def count_unique_relations(graph):
     :rtype: collections.Counter
     """
     return Counter(itt.chain.from_iterable(get_edge_relations(graph).values()))
-
-
-def _annotation_iter_helper(graph):
-    """Iterates over the annotation keys
-
-    :param pybel.BELGraph graph:
-    :rtype: iter[str]
-    """
-    return (
-        key
-        for _, _, data in graph.edges(data=True)
-        if ANNOTATIONS in data
-        for key in data[ANNOTATIONS]
-    )
-
-
-def count_annotations(graph):
-    """Counts how many times each annotation is used in the graph
-
-    :param pybel.BELGraph graph: A BEL graph
-    :return: A Counter from {annotation key: frequency}
-    :rtype: collections.Counter
-    """
-    return Counter(_annotation_iter_helper(graph))
-
-
-def get_annotations(graph):
-    """Gets the set of annotations used in the graph
-
-    :param pybel.BELGraph graph: A BEL graph
-    :return: A set of annotation keys
-    :rtype: set[str]
-    """
-    return set(_annotation_iter_helper(graph))
-
-
-def get_unused_annotations(graph):
-    """Gets the set of all annotations that are defined in a graph, but are never used.
-
-    :param pybel.BELGraph graph: A BEL graph
-    :return: A set of annotations
-    :rtype: set[str] 
-    """
-    return graph.defined_annotation_keywords - get_annotations(graph)
 
 
 def get_unused_list_annotation_values(graph):
