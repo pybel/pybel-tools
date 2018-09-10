@@ -11,7 +11,7 @@ from pybel.constants import (
 )
 from pybel.struct.utils import update_node_helper
 from ..selection import get_causal_subgraph
-from ..summary import relation_set_has_contradictions
+from ..summary.contradictions import relation_set_has_contradictions
 
 __all__ = [
     'get_contradiction_summary',

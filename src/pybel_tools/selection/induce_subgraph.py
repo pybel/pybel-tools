@@ -4,6 +4,7 @@ import logging
 
 import networkx as nx
 
+from pybel import BELGraph
 from pybel.struct.filters import filter_nodes, is_causal_relation
 from pybel.struct.mutation import (
     get_multi_causal_downstream, get_multi_causal_upstream, get_random_subgraph, get_subgraph_by_all_shortest_paths,
@@ -50,12 +51,11 @@ def get_subgraph_by_node_filter(graph, node_filters):
 
 
 @transformation
-def get_causal_subgraph(graph):
+def get_causal_subgraph(graph: BELGraph) -> BELGraph:
     """Builds a new subgraph induced over all edges that are causal
 
-    :param pybel.BELGraph graph: A BEL graph
-    :return: A subgraph of the original BEL graph
-    :rtype: pybel.BELGraph
+    :param graph: A BEL graph
+    :return: The causal sub-graph of the original BEL graph
     """
     return get_subgraph_by_edge_filter(graph, is_causal_relation)
 

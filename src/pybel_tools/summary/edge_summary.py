@@ -4,17 +4,19 @@
 
 import itertools as itt
 from collections import Counter, defaultdict
+from typing import Iterable, List, Mapping, Optional, Set, Tuple
 
-from pybel.constants import (
-    ANNOTATIONS, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, CAUSES_NO_CHANGE,
-    FUNCTION, PATHOLOGY, RELATION,
-)
+from pybel import BELGraph
+from pybel.constants import ANNOTATIONS, RELATION
+from pybel.dsl import BaseEntity
 from pybel.struct.filters.edge_predicates import edge_has_annotation
 from pybel.struct.filters.node_predicates import keep_node_permissive
 from pybel.struct.summary import (
-    count_annotations, count_relations, get_annotation_values, get_annotations, get_unused_annotations,
-    iter_annotation_value_pairs, iter_annotation_values,
+    count_annotations, count_pathologies, count_relations, get_annotation_values, get_annotations,
+    get_unused_annotations, iter_annotation_value_pairs, iter_annotation_values,
 )
+from .contradictions import pair_has_contradiction
+from ..filters.typing import NodePredicate
 
 __all__ = [
     'count_relations',
@@ -27,16 +29,14 @@ __all__ = [
     'count_annotation_values_filtered',
     'pair_is_consistent',
     'get_consistent_edges',
-    'pair_has_contradiction',
     'get_contradictory_pairs',
     'count_pathologies',
-    'relation_set_has_contradictions',
     'get_unused_annotations',
     'get_unused_list_annotation_values',
 ]
 
 
-def group_dict_set(iterator):
+def group_dict_set(iterator: Iterable) -> Mapping:
     """Makes a dict that accumulates the values for each key in an iterator of doubles
 
     :param iter[tuple[A,B]] iterator: An iterator
@@ -48,37 +48,34 @@ def group_dict_set(iterator):
     return dict(d)
 
 
-def get_edge_relations(graph):
-    """Builds a dictionary of {node pair: set of edge types}
+def get_edge_relations(graph: BELGraph) -> Mapping[Tuple[BaseEntity, BaseEntity], Set[str]]:
+    """Build a dictionary of {node pair: set of edge types}
 
-    :param pybel.BELGraph graph: A BEL graph
+    :param graph: A BEL graph
     :return: A dictionary of {(node, node): set of edge types}
-    :rtype: dict[tuple[tuple,tuple],set[str]]
     """
     return group_dict_set(
         ((u, v), d[RELATION])
-        for u, v, d in graph.edges_iter(data=True)
+        for u, v, d in graph.edges(data=True)
     )
 
 
-def count_unique_relations(graph):
-    """Returns a histogram of the different types of relations present in a graph.
+def count_unique_relations(graph: BELGraph) -> Counter:
+    """Return a histogram of the different types of relations present in a graph.
 
     Note: this operation only counts each type of edge once for each pair of nodes
 
-    :param pybel.BELGraph graph: A BEL graph
+    :param graph: A BEL graph
     :return: Counter from {relation type: frequency}
-    :rtype: collections.Counter
     """
     return Counter(itt.chain.from_iterable(get_edge_relations(graph).values()))
 
 
-def get_unused_list_annotation_values(graph):
-    """Gets all of the unused values for list annotations
+def get_unused_list_annotation_values(graph: BELGraph) -> Mapping[str, Set[str]]:
+    """Get all of the unused values for list annotations
     
-    :param pybel.BELGraph graph: A BEL graph
+    :param graph: A BEL graph
     :return: A dictionary of {str annotation: set of str values that aren't used}
-    :rtype: dict[str, set[str]]
     """
     result = {}
     for annotation, values in graph.annotation_list.items():
@@ -89,11 +86,11 @@ def get_unused_list_annotation_values(graph):
     return result
 
 
-def get_annotations_containing_keyword(graph, keyword):
-    """Gets annotation/value pairs for values for whom the search string is a substring
+def get_annotations_containing_keyword(graph: BELGraph, keyword: str) -> List[Mapping[str, str]]:
+    """Get annotation/value pairs for values for whom the search string is a substring
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param str keyword: Search for annotations whose values have this as a substring
+    :param graph: A BEL graph
+    :param keyword: Search for annotations whose values have this as a substring
     :rtype: list[dict[str,str]
     """
     return [
@@ -106,122 +103,71 @@ def get_annotations_containing_keyword(graph, keyword):
     ]
 
 
-def count_annotation_values(graph, annotation):
-    """Counts in how many edges each annotation appears in a graph
+def count_annotation_values(graph: BELGraph, annotation: str) -> Counter:
+    """Count in how many edges each annotation appears in a graph
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param str annotation: The annotation to count
+    :param graph: A BEL graph
+    :param annotation: The annotation to count
     :return: A Counter from {annotation value: frequency}
-    :rtype: collections.Counter
     """
     return Counter(iter_annotation_values(graph, annotation))
 
 
-def count_annotation_values_filtered(graph, annotation, source_filter=None, target_filter=None):
-    """Counts in how many edges each annotation appears in a graph, but filter out source nodes and target nodes
+def count_annotation_values_filtered(graph: BELGraph, annotation: str, source_filter: Optional[NodePredicate] = None,
+                                     target_filter: Optional[NodePredicate] = None) -> Counter:
+    """Count in how many edges each annotation appears in a graph, but filter out source nodes and target nodes.
 
     See :func:`pybel_tools.utils.keep_node` for a basic filter.
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param str annotation: The annotation to count
+    :param graph: A BEL graph
+    :param annotation: The annotation to count
     :param source_filter: A predicate (graph, node) -> bool for keeping source nodes
-    :type source_filter: types.FunctionType
     :param target_filter: A predicate (graph, node) -> bool for keeping target nodes
-    :type target_filter: types.FunctionType
     :return: A Counter from {annotation value: frequency}
-    :rtype: Counter
     """
     source_filter = keep_node_permissive if source_filter is None else source_filter
     target_filter = keep_node_permissive if target_filter is None else target_filter
 
     return Counter(
         data[ANNOTATIONS][annotation]
-        for u, v, data in graph.edges_iter(data=True)
+        for u, v, data in graph.edges(data=True)
         if edge_has_annotation(data, annotation) and source_filter(graph, u) and target_filter(graph, v)
     )
 
 
-def pair_is_consistent(graph, u, v):
+def pair_is_consistent(graph: BELGraph, u: BaseEntity, v: BaseEntity) -> Optional[str]:
     """Return if the edges between the given nodes are consistent, meaning they all have the same relation.
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param tuple u: The source BEL node
-    :param tuple v: The target BEL node
+    :param graph: A BEL graph
+    :param u: The source BEL node
+    :param v: The target BEL node
     :return: If the edges aren't consistent, return false, otherwise return the relation type
-    :rtype: bool or str
     """
     relations = {data[RELATION] for data in graph[u][v].values()}
 
     if 1 != len(relations):
-        return False
+        return
 
     return list(relations)[0]
 
 
-def relation_set_has_contradictions(relations):
-    """Return if the set of relations contains a contradiction.
-
-    :param set[str] relations: A set of relations
-    :rtype: bool
-    """
-    has_increases = any(relation in CAUSAL_INCREASE_RELATIONS for relation in relations)
-    has_decreases = any(relation in CAUSAL_DECREASE_RELATIONS for relation in relations)
-    has_cnc = any(relation == CAUSES_NO_CHANGE for relation in relations)
-    return 1 < sum([has_cnc, has_decreases, has_increases])
-
-
-def pair_has_contradiction(graph, u, v):
-    """Checks if a pair of nodes has any contradictions in their causal relationships.
-    
-    :param pybel.BELGraph graph: A BEL graph
-    :param tuple u: The source BEL node
-    :param tuple v: The target BEL node
-    :return: Do the edges between these nodes have a contradiction?
-    :rtype: bool
-    """
-    relations = {data[RELATION] for data in graph[u][v].values()}
-    return relation_set_has_contradictions(relations)
-
-
-def get_contradictory_pairs(graph):
+def get_contradictory_pairs(graph: BELGraph) -> Iterable[Tuple[BaseEntity, BaseEntity]]:
     """Iterates over contradictory node pairs in the graph based on their causal relationships
     
-    :param pybel.BELGraph graph: A BEL graph
+    :param graph: A BEL graph
     :return: An iterator over (source, target) node pairs that have contradictory causal edges
-    :rtype: iter
     """
     for u, v in graph.edges():
         if pair_has_contradiction(graph, u, v):
             yield u, v
 
 
-def get_consistent_edges(graph):
-    """Yields pairs of (source node, target node) for which all of their edges have the same type of relation.
+def get_consistent_edges(graph: BELGraph) -> Iterable[Tuple[BaseEntity, BaseEntity]]:
+    """Yield pairs of (source node, target node) for which all of their edges have the same type of relation.
 
-    :param pybel.BELGraph graph: A BEL graph
+    :param graph: A BEL graph
     :return: An iterator over (source, target) node pairs corresponding to edges with many inconsistent relations
-    :rtype: iter[tuple]
     """
     for u, v in graph.edges():
         if pair_is_consistent(graph, u, v):
             yield u, v
-
-
-def _pathology_iterator(graph):
-    """Iterates over the diseases encountered in edges
-    
-    :param pybel.BELGraph graph: A BEL graph
-    :rtype: iter
-    """
-    for node in itt.chain.from_iterable(graph.edges()):
-        if graph.node[node][FUNCTION] == PATHOLOGY:
-            yield node
-
-
-def count_pathologies(graph):
-    """Returns a counter of all of the mentions of pathologies in a network
-
-    :param pybel.BELGraph graph: A BEL graph
-    :rtype: Counter
-    """
-    return Counter(_pathology_iterator(graph))

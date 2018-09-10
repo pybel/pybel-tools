@@ -7,14 +7,22 @@
 """
 
 import enum
+import logging
 from functools import reduce
 from operator import itemgetter
 
 import networkx as nx
 
-from pybel.constants import *
-from ..summary.edge_summary import pair_has_contradiction
+from pybel.constants import (
+    ANALOGOUS_TO, ASSOCIATION, BIOMARKER_FOR, CAUSES_NO_CHANGE, DECREASES, DIRECTLY_DECREASES, DIRECTLY_INCREASES,
+    EQUIVALENT_TO, HAS_COMPONENT, HAS_MEMBER, HAS_PRODUCT, HAS_REACTANT, HAS_VARIANT, INCREASES, IS_A,
+    NEGATIVE_CORRELATION, POSITIVE_CORRELATION, PROGONSTIC_BIOMARKER_FOR, RATE_LIMITING_STEP_OF, REGULATES, RELATION,
+    SUBPROCESS_OF, TRANSCRIBED_TO, TRANSLATED_TO,
+)
+from ..summary.contradictions import pair_has_contradiction
 from ..utils import pairwise
+
+log = logging.getLogger(__name__)
 
 causal_effect_dict = {
     INCREASES: 1,
@@ -31,7 +39,8 @@ default_edge_ranking = {
     DECREASES: 3,
     DIRECTLY_DECREASES: 4,
     RATE_LIMITING_STEP_OF: 0,
-    CAUSES_NO_CHANGE: 0, REGULATES: 0,
+    CAUSES_NO_CHANGE: 0,
+    REGULATES: 0,
     NEGATIVE_CORRELATION: 2,
     POSITIVE_CORRELATION: 2,
     ASSOCIATION: 1,
