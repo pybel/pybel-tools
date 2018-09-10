@@ -15,12 +15,14 @@ A general use for an edge filter function is to use the built-in :func:`filter` 
 
 from collections import Iterable
 
+from pybel import BELGraph
 from pybel.constants import *
 from pybel.struct.filters import (
     build_annotation_dict_all_filter, build_annotation_dict_any_filter, count_passed_edge_filter,
 )
 from pybel.struct.filters.edge_predicates import edge_predicate, has_authors, has_pathology_causal, has_pubmed
 from pybel.utils import subdict_matches
+from .typing import EdgePredicate, EdgePredicates, Strings
 
 __all__ = [
     'summarize_edge_filter',
@@ -36,12 +38,11 @@ __all__ = [
 ]
 
 
-def summarize_edge_filter(graph, edge_filters):
+def summarize_edge_filter(graph: BELGraph, edge_filters: EdgePredicates):
     """Prints a summary of the number of edges passing a given set of filters
 
-    :param pybel.BELGraph graph: A BEL graph
+    :param graph: A BEL graph
     :param edge_filters: A filter or list of filters
-    :type edge_filters: (pybel.BELGraph, BaseEntity, BaseEntity, str) -> bool or iter[(pybel.BELGraph, BaseEntity, BaseEntity, str) -> bool]
     """
     passed = count_passed_edge_filter(graph, edge_filters)
     print('{}/{} edges passed {}'.format(
@@ -53,12 +54,11 @@ def summarize_edge_filter(graph, edge_filters):
     ))
 
 
-def build_edge_data_filter(annotations, partial_match=True):
+def build_edge_data_filter(annotations, partial_match=True) -> EdgePredicate:
     """Build a filter that keeps edges whose data dictionaries are super-dictionaries to the given dictionary.
 
     :param dict annotations: The annotation query dict to match
     :param bool partial_match: Should the query values be used as partial or exact matches? Defaults to :code:`True`.
-    :rtype: (pybel.BELGraph, BaseEntity, BaseEntity, str) -> bool
     """
 
     @edge_predicate
@@ -69,13 +69,10 @@ def build_edge_data_filter(annotations, partial_match=True):
     return annotation_dict_filter
 
 
-def build_pmid_inclusion_filter(pmid):
+def build_pmid_inclusion_filter(pmid: Strings) -> EdgePredicate:
     """Pass for edges with citations whose references are one of the given PubMed identifiers.
     
     :param pmid: A PubMed identifier or list of PubMed identifiers to filter for
-    :type pmid: str or iter[str]
-    :return: An edge filter function (graph, node, node, key, data) -> bool
-    :rtype: (pybel.BELGraph, BaseEntity, BaseEntity, str) -> bool
     """
 
     if isinstance(pmid, str):
@@ -107,13 +104,10 @@ def build_pmid_inclusion_filter(pmid):
         return pmid_inclusion_filter
 
 
-def build_pmid_exclusion_filter(pmid):
+def build_pmid_exclusion_filter(pmid: Strings) -> EdgePredicate:
     """Fail for edges with citations whose references are one of the given PubMed identifiers.
 
     :param pmid: A PubMed identifier or list of PubMed identifiers to filter against
-    :type pmid: str or iter[str]
-    :return: An edge filter function (graph, node, node, key, data) -> bool
-    :rtype: (pybel.BELGraph, BaseEntity, BaseEntity, str) -> bool
     """
 
     if isinstance(pmid, str):
@@ -146,16 +140,12 @@ def build_pmid_exclusion_filter(pmid):
         return pmid_exclusion_filter
 
 
-def build_author_inclusion_filter(author):
+def build_author_inclusion_filter(author: Strings) -> EdgePredicate:
     """Only passes for edges with author information that matches one of the given authors
     
     :param author: The author or list of authors to filter by
-    :type author: str or iter[str]
-    :return: An edge filter
-    :rtype: (pybel.BELGraph, BaseEntity, BaseEntity, str) -> bool
     """
     if isinstance(author, str):
-
         @edge_predicate
         def author_filter(data):
             """Only passes for edges with citations with an author that matches the contained author
@@ -197,12 +187,10 @@ def node_has_namespaces(graph, node, namespaces):
     return namespace is not None and namespace in namespaces
 
 
-def build_source_namespace_filter(namespaces):
+def build_source_namespace_filter(namespaces: Strings) -> EdgePredicate:
     """Only passes for edges whose source nodes have the given namespace or one of the given namespaces
 
     :param namespaces: The namespace or namespaces to filter by
-    :type namespaces: str or iter[str]
-    :rtype: (pybel.BELGraph, BaseEntity, BaseEntity, str) -> bool
     """
     if isinstance(namespaces, str):
 
@@ -221,12 +209,10 @@ def build_source_namespace_filter(namespaces):
     return source_namespace_filter
 
 
-def build_target_namespace_filter(namespaces):
+def build_target_namespace_filter(namespaces: Strings) -> EdgePredicate:
     """Only passes for edges whose target nodes have the given namespace or one of the given namespaces
 
     :param namespaces: The namespace or namespaces to filter by
-    :type namespaces: str or iter[str]
-    :rtype: (pybel.BELGraph, BaseEntity, BaseEntity, str) -> bool
     """
     if isinstance(namespaces, str):
         def target_namespace_filter(graph, u, v, k):

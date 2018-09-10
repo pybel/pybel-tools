@@ -15,9 +15,12 @@ A general use for a node filter function is to use the built-in :func:`filter` i
 
 from collections import Iterable
 
+from pybel import BELGraph
 from pybel.constants import FUNCTION, LABEL, NAMESPACE, PATHOLOGY
+from pybel.dsl import BaseEntity
 from pybel.struct.filters import build_node_data_search, build_node_key_search, data_missing_key_builder
 from pybel.struct.filters.node_filters import count_passed_node_filter
+from .typing import NodePredicate, NodePredicates, Strings
 
 __all__ = [
     'summarize_node_filter',
@@ -38,12 +41,11 @@ __all__ = [
 ]
 
 
-def summarize_node_filter(graph, node_filters):
-    """Prints a summary of the number of nodes passing a given set of filters
+def summarize_node_filter(graph: BELGraph, node_filters: NodePredicates) -> None:
+    """Print a summary of the number of nodes passing a given set of filters.
 
-    :param pybel.BELGraph graph: A BEL graph
+    :param graph: A BEL graph
     :param node_filters: A node filter or list/tuple of node filters
-    :type node_filters: types.FunctionType or iter[types.FunctionType]
     """
     passed = count_passed_node_filter(graph, node_filters)
     print('{}/{} nodes passed'.format(passed, graph.number_of_nodes()))
@@ -51,20 +53,18 @@ def summarize_node_filter(graph, node_filters):
 
 # Example filters
 
-def node_inclusion_filter_builder(nbunch):
-    """Builds a filter that only passes on nodes in the given list
+def node_inclusion_filter_builder(nodes: Iterable[BaseEntity]) -> NodePredicate:
+    """Builds a filter that only passes on nodes in the given list.
 
-    :param iter[tuple] nbunch: An iterable of BEL nodes
-    :return: A node filter (graph, node) -> bool
-    :rtype: types.FunctionType
+    :param nodes: An iterable of BEL nodes
     """
-    node_set = set(nbunch)
+    node_set = set(nodes)
 
-    def inclusion_filter(graph, node):
+    def inclusion_filter(graph: BELGraph, node: BaseEntity):
         """Passes only for a node that is in the enclosed node list
 
-        :param pybel.BELGraph graph: A BEL Graph
-        :param BaseEntity node:: A BEL node
+        :param graph: A BEL Graph
+        :param node: A BEL node
         :return: If the node is contained within the enclosed node list
         :rtype: bool
         """
@@ -73,13 +73,10 @@ def node_inclusion_filter_builder(nbunch):
     return inclusion_filter
 
 
-def node_exclusion_filter_builder(nodes):
-    """Builds a filter that fails on nodes in the given list
+def node_exclusion_filter_builder(nodes: Iterable[BaseEntity]) -> NodePredicate:
+    """Build a filter that fails on nodes in the given list.
 
     :param nodes: A list of nodes
-    :type nodes: list
-    :return: A node filter (graph, node) -> bool
-    :rtype: types.FunctionType
     """
     node_set = set(nodes)
 
@@ -96,12 +93,12 @@ def node_exclusion_filter_builder(nodes):
     return exclusion_filter
 
 
-def _single_function_inclusion_filter_builder(func):
-    def function_inclusion_filter(graph, node):
+def _single_function_inclusion_filter_builder(func: str) -> NodePredicate:
+    def function_inclusion_filter(graph: BELGraph, node: BaseEntity) -> bool:
         """Pass only for a node that has the enclosed function.
 
-        :param BELGraph graph: A BEL Graph
-        :param BaseEntity node:: A BEL node
+        :param graph: A BEL Graph
+        :param node: A BEL node
         :return: If the node doesn't have the enclosed function
         :rtype: bool
         """
@@ -110,14 +107,14 @@ def _single_function_inclusion_filter_builder(func):
     return function_inclusion_filter
 
 
-def _collection_function_inclusion_builder(funcs):
+def _collection_function_inclusion_builder(funcs: Iterable[str]) -> NodePredicate:
     funcs = set(funcs)
 
-    def functions_inclusion_filter(graph, node):
+    def functions_inclusion_filter(graph: BELGraph, node: BaseEntity) -> bool:
         """Pass only for a node that is one of the enclosed functions.
 
-        :param BELGraph graph: A BEL Graph
-        :param BaseEntity node:: A BEL node
+        :param graph: A BEL Graph
+        :param node: A BEL node
         :return: If the node doesn't have the enclosed functions
         :rtype: bool
         """
@@ -126,13 +123,10 @@ def _collection_function_inclusion_builder(funcs):
     return functions_inclusion_filter
 
 
-def function_inclusion_filter_builder(func):
+def function_inclusion_filter_builder(func: Strings) -> NodePredicate:
     """Build a filter that only passes on nodes of the given function(s).
 
     :param func: A BEL Function or list/set/tuple of BEL functions
-    :type func: str or iter[str]
-    :return: A node predicate
-    :rtype: (pybel.BELGraph, tuple) -> bool
     """
     if isinstance(func, str):
         return _single_function_inclusion_filter_builder(func)
@@ -143,16 +137,13 @@ def function_inclusion_filter_builder(func):
     raise ValueError('Invalid type for argument: {}'.format(func))
 
 
-def function_exclusion_filter_builder(func):
+def function_exclusion_filter_builder(func: Strings) -> NodePredicate:
     """Build a filter that fails on nodes of the given function(s).
 
     :param func: A BEL Function or list/set/tuple of BEL functions
-    :type func: str or list[str] or tuple[str] or set[str]
-    :return: A node predicate
-    :rtype: (pybel.BELGraph, tuple) -> bool
     """
     if isinstance(func, str):
-        def function_exclusion_filter(graph, node):
+        def function_exclusion_filter(graph: BELGraph, node: BaseEntity) -> bool:
             """Pass only for a node that doesn't have the enclosed function.
 
             :param pybel.BELGraph graph: A BEL Graph
@@ -167,7 +158,7 @@ def function_exclusion_filter_builder(func):
     elif isinstance(func, Iterable):
         functions = set(func)
 
-        def functions_exclusion_filter(graph, node):
+        def functions_exclusion_filter(graph: BELGraph, node: BaseEntity) -> bool:
             """Pass only for a node that doesn't have the enclosed functions.
 
             :param pybel.BELGraph graph: A BEL Graph
@@ -182,16 +173,14 @@ def function_exclusion_filter_builder(func):
     raise ValueError('Invalid type for argument: {}'.format(func))
 
 
-def function_namespace_inclusion_builder(func, namespace):
+def function_namespace_inclusion_builder(func: str, namespace: Strings) -> NodePredicate:
     """Build a filter function for matching the given BEL function with the given namespace or namespaces.
 
-    :param str func: A BEL function
-    :param str or iter[str] namespace: The namespace to serach by
-    :return: A node predicate
-    :rtype: (pybel.BELGraph, tuple) -> bool
+    :param func: A BEL function
+    :param namespace: The namespace to serach by
     """
     if isinstance(namespace, str):
-        def function_namespace_filter(graph, node):
+        def function_namespace_filter(graph: BELGraph, node: BaseEntity) -> bool:
             """Passes only for nodes that have the enclosed function and enclosed namespace
 
             :param pybel.BELGraph graph: A BEL Graph
@@ -207,7 +196,7 @@ def function_namespace_inclusion_builder(func, namespace):
     elif isinstance(namespace, Iterable):
         namespaces = set(namespace)
 
-        def function_namespaces_filter(graph, node):
+        def function_namespaces_filter(graph: BELGraph, node: BaseEntity) -> bool:
             """Passes only for nodes that have the enclosed function and namespace in the enclose set
 
             :param pybel.BELGraph graph: A BEL Graph
@@ -223,16 +212,13 @@ def function_namespace_inclusion_builder(func, namespace):
     raise ValueError('Invalid type for argument: {}'.format(namespace))
 
 
-def namespace_inclusion_builder(namespace):
+def namespace_inclusion_builder(namespace: Strings) -> NodePredicate:
     """Build a predicate for namespace inclusion.
 
-    :param str or iter[str] namespace: A namespace or iter of namespaces
-    :return: A node predicate
-    :rtype: (pybel.BELGraph, tuple) -> bool
+    :param namespace: A namespace or iter of namespaces
     """
     if isinstance(namespace, str):
-
-        def namespace_filter(graph, node):
+        def namespace_filter(graph: BELGraph, node: BaseEntity) -> bool:
             """Passes only for a node that has the enclosed namespace
 
             :param pybel.BELGraph graph: A BEL Graph
@@ -246,7 +232,7 @@ def namespace_inclusion_builder(namespace):
     elif isinstance(namespace, Iterable):
         namespaces = set(namespace)
 
-        def namespaces_filter(graph, node):
+        def namespaces_filter(graph: BELGraph, node: BaseEntity) -> bool:
             """Pass only for a node that has a namespace in the enclosed set.
 
             :param pybel.BELGraph graph: A BEL Graph
@@ -260,19 +246,17 @@ def namespace_inclusion_builder(namespace):
     raise ValueError('Invalid type for argument: {}'.format(namespace))
 
 
-def data_contains_key_builder(key):
+def data_contains_key_builder(key: str) -> NodePredicate:
     """Build a filter that passes only on nodes that have the given key in their data dictionary.
 
     :param str key: A key for the node's data dictionary
-    :return: A node predicate
-    :rtype: (pybel.BELGraph, tuple) -> bool
     """
 
-    def data_contains_key(graph, node):
+    def data_contains_key(graph: BELGraph, node: BaseEntity) -> bool:
         """Pass only for a node that contains the enclosed key in its data dictionary.
 
-        :param pybel.BELGraph graph: A BEL Graph
-        :param BaseEntity node:: A BEL node
+        :param graph: A BEL Graph
+        :param node: A BEL node
         :return: If the node contains the enclosed key in its data dictionary
         :rtype: bool
         """

@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from typing import Iterable, Union
+
+from pybel import BELGraph
 from pybel.struct.filters.node_predicate_builders import function_inclusion_filter_builder
 from pybel.struct.mutation import remove_filtered_nodes
 from pybel.struct.pipeline import in_place_transformation
@@ -14,19 +17,19 @@ __all__ = [
 
 
 @in_place_transformation
-def remove_nodes_by_function(graph, function):
+def remove_nodes_by_function(graph: BELGraph, func: Union[str, Iterable[str]]):
     """Removes nodes with the given function.
 
     This could be useful directly to remove pathologies.
     
-    :param pybel.BELGraph graph: A BEL graph
-    :param str function: The function to filter
+    :param graph: A BEL graph
+    :param func: A BEL function or iterable of BEL functions
     """
-    remove_filtered_nodes(graph, function_inclusion_filter_builder(function))
+    remove_filtered_nodes(graph, function_inclusion_filter_builder(func))
 
 
 @in_place_transformation
-def remove_nodes_by_namespace(graph, namespace):
+def remove_nodes_by_namespace(graph: BELGraph, namespace):
     """Removes nodes with the given  namespace.
 
     This might be useful to exclude information learned about distant species, such as excluding all information

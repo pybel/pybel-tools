@@ -56,16 +56,19 @@ brain imaging features, whose experiments often measure their correlation with t
        random walk sampling <https://doi.org/10.1186/1756-0500-7-516>`_. BMC Research Notes, 7, 516.
 """
 
-from collections import defaultdict
-
 import logging
-import numpy as np
 import random
+from collections import defaultdict
 from operator import itemgetter
+from typing import Dict, Tuple
+
+import numpy as np
 from scipy import stats
 from tqdm import tqdm
 
+from pybel import BELGraph
 from pybel.constants import BIOPROCESS, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, RELATION
+from pybel.dsl import BaseEntity
 from pybel.struct.filters.node_selection import get_nodes_by_function
 from pybel.struct.grouping import get_subgraphs_by_annotation
 from ..constants import WEIGHT
@@ -140,10 +143,11 @@ def calculate_average_scores_on_graph(graph, key=None, tag=None, default_score=N
     return scores
 
 
-def calculate_average_scores_on_subgraphs(subgraphs, key=None, tag=None, default_score=None, runs=None, use_tqdm=False):
+def calculate_average_scores_on_subgraphs(subgraphs: Dict[BaseEntity, BELGraph], key=None, tag=None, default_score=None,
+                                          runs=None, use_tqdm=False) -> Dict[BaseEntity, Tuple]:
     """Calculate the scores over precomputed candidate mechanisms.
 
-    :param dict[tuple,pybel.BELGraph] subgraphs: A dictionary of {tuple node: pybel.BELGraph candidate mechanism}
+    :param subgraphs: A dictionary of {tuple node: pybel.BELGraph candidate mechanism}
     :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
      :data:`pybel_tools.constants.WEIGHT`.
     :param Optional[str] tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
@@ -151,7 +155,6 @@ def calculate_average_scores_on_subgraphs(subgraphs, key=None, tag=None, default
     :param Optional[int] runs: The number of times to run the heat diffusion workflow. Defaults to 100.
     :param bool use_tqdm: Should there be a progress bar for runners?
     :return: A dictionary of {pybel node tuple: results tuple}
-    :rtype: dict[tuple, tuple]
 
     Example Usage:
 
