@@ -26,7 +26,7 @@ CLASSIFIERS = [
     'Topic :: Scientific/Engineering :: Bio-Informatics'
 ]
 INSTALL_REQUIRES = [
-    'pybel>=0.12.0',
+    'pybel>=0.12.1',
     'pybel-artifactory',
     'pandas',
     'networkx',
