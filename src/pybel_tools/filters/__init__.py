@@ -8,18 +8,13 @@ This module contains functions for filtering node and edge iterables. It relies 
 
 """
 
-from . import edge_filters
-from . import node_deletion
-from . import node_filters
-from . import node_selection
+from . import edge_filters, node_deletion, node_filters
 from .edge_filters import *
 from .node_deletion import *
 from .node_filters import *
-from .node_selection import *
 
 __all__ = (
-    edge_filters.__all__ +
-    node_deletion.__all__ +
-    node_filters.__all__ +
-    node_selection.__all__
+        edge_filters.__all__ +
+        node_deletion.__all__ +
+        node_filters.__all__
 )
