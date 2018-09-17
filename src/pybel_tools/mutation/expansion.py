@@ -1,15 +1,20 @@
 # -*- coding: utf-8 -*-
 
+"""Expansion functions in PyBEL-Tools."""
+
 import itertools as itt
 import logging
 from collections import Counter, defaultdict
+from typing import Iterable, Union
 
+from pybel import BELGraph
 from pybel.constants import *
+from pybel.dsl import BaseEntity
 from pybel.struct.filters import and_edge_predicates, concatenate_node_predicates, get_nodes_by_function
 from pybel.struct.filters.edge_predicates import edge_has_annotation, is_causal_relation
 from pybel.struct.filters.node_predicates import keep_node_permissive
 from pybel.struct.pipeline import uni_in_place_transformation
-
+from ..filters.typing import EdgeIterator, EdgePredicates, NodePredicates
 from ..utils import safe_add_edge
 
 __all__ = [
@@ -34,14 +39,10 @@ __all__ = [
 log = logging.getLogger(__name__)
 
 
-def get_peripheral_successor_edges(graph, subgraph):
-    """Gets the set of possible successor edges peripheral to the subgraph. The source nodes in this iterable are
-    all inside the subgraph, while the targets are outside.
+def get_peripheral_successor_edges(graph: BELGraph, subgraph: BELGraph) -> EdgeIterator:
+    """Get the set of possible successor edges peripheral to the sub-graph.
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param subgraph: An iterator of BEL nodes
-    :return: An iterable of possible successor edges (4-tuples of node, node, key, data)
-    :rtype: iter[tuple]
+    The source nodes in this iterable are all inside the sub-graph, while the targets are outside.
     """
     for u in subgraph:
         for _, v, k, d in graph.out_edges(u, keys=True, data=True):
@@ -49,42 +50,34 @@ def get_peripheral_successor_edges(graph, subgraph):
                 yield u, v, k, d
 
 
-def get_peripheral_predecessor_edges(graph, subgraph):
-    """Gets the set of possible predecessor edges peripheral to the subgraph. The target nodes in this iterable
-    are all inside the subgraph, while the sources are outside.
+def get_peripheral_predecessor_edges(graph: BELGraph, subgraph: BELGraph) -> EdgeIterator:
+    """Get the set of possible predecessor edges peripheral to the sub-graph.
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param subgraph: An iterator of BEL nodes
-    :return: An iterable on possible predecessor edges (4-tuples of node, node, key, data)
-    :rtype: iter[tuple]
+    The target nodes in this iterable are all inside the sub-graph, while the sources are outside.
     """
     for v in subgraph:
-        for u, _, k, d in graph.in_edges_iter(v, keys=True, data=True):
+        for u, _, k, d in graph.in_edges(v, keys=True, data=True):
             if u not in subgraph:
                 yield u, v, k, d
 
 
-def count_sources(edge_iter):
-    """Counts the source nodes in an edge iterator with keys and data
+def count_sources(edge_iter: EdgeIterator) -> Counter:
+    """Count the source nodes in an edge iterator with keys and data.
 
-    :param iter[tuple] edge_iter: An iterable on possible predecessor edges (4-tuples of node, node, key, data)
     :return: A counter of source nodes in the iterable
-    :rtype: collections.Counter
     """
     return Counter(u for u, _, _, _ in edge_iter)
 
 
-def count_targets(edge_iter):
-    """Counts the target nodes in an edge iterator with keys and data
+def count_targets(edge_iter: EdgeIterator) -> Counter:
+    """Count the target nodes in an edge iterator with keys and data.
 
-    :param iter[tuple] edge_iter: An iterable on possible predecessor edges (4-tuples of node, node, key, data)
     :return: A counter of target nodes in the iterable
-    :rtype: collections.Counter
     """
     return Counter(v for _, v, _, _ in edge_iter)
 
 
-def count_possible_successors(graph, subgraph):
+def count_possible_successors(graph: BELGraph, subgraph: BELGraph) -> Counter:
     """
 
     :param pybel.BELGraph graph: A BEL graph
@@ -95,7 +88,7 @@ def count_possible_successors(graph, subgraph):
     return count_targets(get_peripheral_successor_edges(graph, subgraph))
 
 
-def count_possible_predecessors(graph, subgraph):
+def count_possible_predecessors(graph: BELGraph, subgraph: BELGraph) -> Counter:
     """
 
     :param pybel.BELGraph graph: A BEL graph
@@ -124,54 +117,47 @@ def get_subgraph_edges(graph, annotation, value, source_filter=None, target_filt
     if target_filter is None:
         target_filter = keep_node_permissive
 
-    for u, v, k, data in graph.edges_iter(keys=True, data=True):
+    for u, v, k, data in graph.edges(keys=True, data=True):
         if not edge_has_annotation(data, annotation):
             continue
         if data[ANNOTATIONS][annotation] == value and source_filter(graph, u) and target_filter(graph, v):
             yield u, v, k, data
 
 
-def get_subgraph_peripheral_nodes(graph, subgraph, node_filters=None, edge_filters=None):
-    """Gets a summary dictionary of all peripheral nodes to a given subgraph
+def get_subgraph_peripheral_nodes(graph: BELGraph, subgraph: Iterable[BaseEntity],
+                                  node_predicates: NodePredicates = None, edge_predicates: EdgePredicates = None):
+    """Get a summary dictionary of all peripheral nodes to a given sub-graph.
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param iter[tuple] subgraph: A set of nodes
-    :param node_filters: Optional. A list of node filter predicates with the interface (graph, node) -> bool. See
-                         :mod:`pybel_tools.filters.node_filters` for more information
-    :type node_filters: lambda
-    :param edge_filters: Optional. A list of edge filter predicates with the interface (graph, node, node, key, data)
-                          -> bool. See :mod:`pybel_tools.filters.edge_filters` for more information
-    :type edge_filters: lambda
     :return: A dictionary of {external node: {'successor': {internal node: list of (key, dict)},
                                             'predecessor': {internal node: list of (key, dict)}}}
     :rtype: dict
 
-    For example, it might be useful to quantify the number of predecessors and successors
+    For example, it might be useful to quantify the number of predecessors and successors:
 
-    >>> import pybel_tools as pbt
-    >>> sgn = 'Blood vessel dilation subgraph'
-    >>> sg = pbt.selection.get_subgraph_by_annotation_value(graph, annotation='Subgraph', value=sgn)
-    >>> p = pbt.mutation.get_subgraph_peripheral_nodes(graph, sg, node_filters=pbt.filters.exclude_pathology_filter)
+    >>> from pybel.struct.filters import exclude_pathology_filter
+    >>> value = 'Blood vessel dilation subgraph'
+    >>> sg = get_subgraph_by_annotation_value(graph, annotation='Subgraph', value=value)
+    >>> p = get_subgraph_peripheral_nodes(graph, sg, node_predicates=exclude_pathology_filter)
     >>> for node in sorted(p, key=lambda n: len(set(p[n]['successor']) | set(p[n]['predecessor'])), reverse=True):
-    >>>     if 1 == len(p[sgn][node]['successor']) or 1 == len(p[sgn][node]['predecessor']):
+    >>>     if 1 == len(p[value][node]['successor']) or 1 == len(p[value][node]['predecessor']):
     >>>         continue
     >>>     print(node,
     >>>           len(p[node]['successor']),
     >>>           len(p[node]['predecessor']),
     >>>           len(set(p[node]['successor']) | set(p[node]['predecessor'])))
     """
-    node_filter = concatenate_node_predicates(node_predicates=node_filters)
-    edge_filter = and_edge_predicates(edge_predicates=edge_filters)
+    node_filter = concatenate_node_predicates(node_predicates=node_predicates)
+    edge_filter = and_edge_predicates(edge_predicates=edge_predicates)
 
     result = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
 
     for u, v, k, d in get_peripheral_successor_edges(graph, subgraph):
-        if not node_filter(graph, v) or not node_filter(graph, u) or not edge_filter(graph, u, v, k, d):
+        if not node_filter(graph, v) or not node_filter(graph, u) or not edge_filter(graph, u, v, k):
             continue
         result[v]['predecessor'][u].append((k, d))
 
     for u, v, k, d in get_peripheral_predecessor_edges(graph, subgraph):
-        if not node_filter(graph, v) or not node_filter(graph, u) or not edge_filter(graph, u, v, k, d):
+        if not node_filter(graph, v) or not node_filter(graph, u) or not edge_filter(graph, u, v, k):
             continue
         result[u]['successor'][v].append((k, d))
 
@@ -179,25 +165,20 @@ def get_subgraph_peripheral_nodes(graph, subgraph, node_filters=None, edge_filte
 
 
 @uni_in_place_transformation
-def expand_periphery(universe, graph, node_filters=None, edge_filters=None, threshold=2):
+def expand_periphery(universe: BELGraph, graph: BELGraph, node_predicates: NodePredicates = None,
+                     edge_predicates: EdgePredicates = None, threshold: int = 2) -> None:
     """Iterates over all possible edges, peripheral to a given subgraph, that could be added from the given graph.
     Edges could be added if they go to nodes that are involved in relationships that occur with more than the
     threshold (default 2) number of nodes in the subgraph.
 
-    :param pybel.BELGraph universe: The universe of BEL knowledge
-    :param pybel.BELGraph graph: The (sub)graph to expand
-    :param node_filters: Optional. A list of node filter predicates with the interface (graph, node) -> bool. See
-                         :mod:`pybel_tools.filters.node_filters` for more information
-    :type node_filters: lambda
-    :param edge_filters: Optional. A list of edge filter predicates with the interface (graph, node, node, key, data)
-                          -> bool. See :mod:`pybel_tools.filters.edge_filters` for more information
-    :type edge_filters: lambda
+    :param universe: The universe of BEL knowledge
+    :param graph: The (sub)graph to expand
     :param threshold: Minimum frequency of betweenness occurrence to add a gap node
 
     A reasonable edge filter to use is :func:`pybel_tools.filters.keep_causal_edges` because this function can allow
     for huge expansions if there happen to be hub nodes.
     """
-    nd = get_subgraph_peripheral_nodes(universe, graph, node_filters=node_filters, edge_filters=edge_filters)
+    nd = get_subgraph_peripheral_nodes(universe, graph, node_predicates=node_predicates, edge_predicates=edge_predicates)
 
     for node, dd in nd.items():
         pred_d = dd['predecessor']
@@ -220,11 +201,8 @@ def expand_periphery(universe, graph, node_filters=None, edge_filters=None, thre
 
 
 @uni_in_place_transformation
-def enrich_complexes(graph):
-    """Add all of the members of the complex abundances to the graph.
-
-    :param pybel.BELGraph graph: The target BEL graph to enrich
-    """
+def enrich_complexes(graph: BELGraph) -> None:
+    """Add all of the members of the complex abundances to the graph."""
     nodes = list(get_nodes_by_function(graph, COMPLEX))
     for u in nodes:
         for v in u.members:
@@ -232,11 +210,8 @@ def enrich_complexes(graph):
 
 
 @uni_in_place_transformation
-def enrich_composites(graph):
-    """Adds all of the members of the composite abundances to the graph.
-
-    :param pybel.BELGraph graph: The target BEL graph to enrich
-    """
+def enrich_composites(graph: BELGraph):
+    """Adds all of the members of the composite abundances to the graph."""
     nodes = list(get_nodes_by_function(graph, COMPOSITE))
     for u in nodes:
         for v in u.members:
@@ -244,11 +219,8 @@ def enrich_composites(graph):
 
 
 @uni_in_place_transformation
-def enrich_reactions(graph):
-    """Adds all of the reactants and products of reactions to the graph.
-
-    :param pybel.BELGraph graph: The target BEL graph to enrich
-    """
+def enrich_reactions(graph: BELGraph):
+    """Adds all of the reactants and products of reactions to the graph."""
     nodes = list(get_nodes_by_function(graph, REACTION))
     for u in nodes:
         for v in u.reactants:
@@ -259,13 +231,12 @@ def enrich_reactions(graph):
 
 
 @uni_in_place_transformation
-def enrich_variants(graph, func=None):
+def enrich_variants(graph: BELGraph, func:Union[None, str, Iterable[str]]=None):
     """Add the reference nodes for all variants of the given function.
 
-    :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
-    :param pybel.BELGraph graph: The target BEL graph to enrich
-    :param str or iter[str] func: The function by which the subject of each triple is filtered. Defaults to
-                                      the set of protein, rna, mirna, and gene.
+    :param graph: The target BEL graph to enrich
+    :param func: The function by which the subject of each triple is filtered. Defaults to the set of protein, rna,
+     mirna, and gene.
     """
     if func is None:
         func = {PROTEIN, RNA, MIRNA, GENE}
@@ -282,14 +253,12 @@ def enrich_variants(graph, func=None):
 
 
 @uni_in_place_transformation
-def enrich_unqualified(graph):
-    """Enrich the subgraph with the unqualified edges from the graph.
+def enrich_unqualified(graph: BELGraph):
+    """Enrich the sub-graph with the unqualified edges from the graph.
 
-    :param pybel.BELGraph graph: The target BEL graph to enrich
-
-    The reason you might want to do this is you induce a subgraph from the original graph based on an annotation filter,
-    but the unqualified edges that don't have annotations that most likely connect elements within your graph are
-    not included.
+    The reason you might want to do this is you induce a sub-graph from the original graph based on an annotation
+    filter, but the unqualified edges that don't have annotations that most likely connect elements within your graph
+    are not included.
 
     .. seealso::
 
@@ -315,48 +284,47 @@ def enrich_unqualified(graph):
 
 # TODO should this bother checking multiple relationship types?
 @uni_in_place_transformation
-def expand_internal(universe, graph, edge_filters=None):
-    """Edges between entities in the subgraph that pass the given filters
+def expand_internal(universe: BELGraph, graph: BELGraph, edge_predicates: EdgePredicates = None) -> None:
+    """Edges between entities in the sub-graph that pass the given filters.
 
-    :param pybel.BELGraph universe: The full graph
-    :param pybel.BELGraph graph: A subgraph to find the upstream information
-    :param edge_filters: Optional list of edge filter functions (graph, node, node, key, data) -> bool
-    :type edge_filters: list or lambda
+    :param universe: The full graph
+    :param graph: A sub-graph to find the upstream information
+    :param edge_predicates: Optional list of edge filter functions (graph, node, node, key, data) -> bool
     """
-    edge_filter = and_edge_predicates(edge_filters)
+    edge_filter = and_edge_predicates(edge_predicates)
 
     for u, v in itt.product(graph, repeat=2):
         if graph.has_edge(u, v) or not universe.has_edge(u, v):
             continue
 
         rs = defaultdict(list)
-        for k, d in universe[u][v].items():
-            if not edge_filter(universe, u, v, k):
+        for key, data in universe[u][v].items():
+            if not edge_filter(universe, u, v, key):
                 continue
 
-            rs[d[RELATION]].append(d)
+            rs[data[RELATION]].append((key, data))
 
         if 1 == len(rs):
             relation = list(rs)[0]
-            for d in rs[relation]:
-                graph.add_edge(u, v, attr_dict=d)
+            for key, data in rs[relation]:
+                graph.add_edge(u, v, key=key, **data)
         else:
             log.debug('Multiple relationship types found between %s and %s', u, v)
 
 
 @uni_in_place_transformation
-def expand_internal_causal(universe, graph):
-    """Adds causal edges between entities in the subgraph.
+def expand_internal_causal(universe: BELGraph, graph: BELGraph) -> None:
+    """Add causal edges between entities in the sub-graph.
 
     Is an extremely thin wrapper around :func:`expand_internal`.
 
-    :param pybel.BELGraph universe: A BEL graph representing the universe of all knowledge
-    :param pybel.BELGraph graph: The target BEL graph to enrich with causal relations between contained nodes
+    :param universe: A BEL graph representing the universe of all knowledge
+    :param graph: The target BEL graph to enrich with causal relations between contained nodes
 
     Equivalent to:
 
-    >>> import pybel_tools as pbt
+    >>> from pybel_tools.mutation import expand_internal
     >>> from pybel.struct.filters.edge_predicates import is_causal_relation
-    >>> pbt.mutation.expand_internal(universe, graph, edge_filters=is_causal_relation)
+    >>> expand_internal(universe, graph, edge_predicates=is_causal_relation)
     """
-    expand_internal(universe, graph, edge_filters=is_causal_relation)
+    expand_internal(universe, graph, edge_predicates=is_causal_relation)
