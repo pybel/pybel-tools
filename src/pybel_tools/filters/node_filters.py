@@ -18,8 +18,10 @@ from typing import Iterable
 from pybel import BELGraph
 from pybel.constants import FUNCTION, LABEL, NAMESPACE, PATHOLOGY
 from pybel.dsl import BaseEntity
-from pybel.struct.filters import build_node_data_search, build_node_key_search, data_missing_key_builder
-from pybel.struct.filters.node_filters import count_passed_node_filter
+from pybel.struct.filters import (
+    build_node_data_search, build_node_key_search, count_passed_node_filter,
+    data_missing_key_builder, namespace_inclusion_builder,
+)
 from .typing import NodePredicate, NodePredicates, Strings
 
 __all__ = [
@@ -177,30 +179,6 @@ def function_namespace_inclusion_builder(func: str, namespace: Strings) -> NodeP
             return NAMESPACE in node and node[NAMESPACE] in namespaces
 
         return function_namespaces_filter
-
-    raise ValueError('Invalid type for argument: {}'.format(namespace))
-
-
-def namespace_inclusion_builder(namespace: Strings) -> NodePredicate:
-    """Build a predicate for namespace inclusion.
-
-    :param namespace: A namespace or iter of namespaces
-    """
-    if isinstance(namespace, str):
-        def namespace_filter(graph: BELGraph, node: BaseEntity) -> bool:
-            """Pass only for a node that has the enclosed namespace."""
-            return NAMESPACE in node and node[NAMESPACE] == namespace
-
-        return namespace_filter
-
-    elif isinstance(namespace, Iterable):
-        namespaces = set(namespace)
-
-        def namespaces_filter(graph: BELGraph, node: BaseEntity) -> bool:
-            """Pass only for a node that has a namespace in the enclosed set."""
-            return NAMESPACE in node and node[NAMESPACE] in namespaces
-
-        return namespaces_filter
 
     raise ValueError('Invalid type for argument: {}'.format(namespace))
 
