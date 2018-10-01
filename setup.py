@@ -20,7 +20,6 @@ CLASSIFIERS = [
     'License :: OSI Approved :: Apache Software License',
     'Operating System :: OS Independent',
     'Programming Language :: Python',
-    'Programming Language :: Python :: 3.4',
     'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: 3.6',
     'Topic :: Scientific/Engineering :: Bio-Informatics'
@@ -38,7 +37,13 @@ INSTALL_REQUIRES = [
     'tqdm',
 ]
 
-EXTRAS_REQUIRE = {}
+EXTRAS_REQUIRE = {
+    'docs': [
+        'sphinx',
+        'sphinx-rtd-theme',
+        'sphinx-click',
+    ]
+}
 TESTS_REQUIRE = []
 ENTRY_POINTS = {
     'console_scripts': [
@@ -97,5 +102,6 @@ if __name__ == '__main__':
         install_requires=INSTALL_REQUIRES,
         extras_require=EXTRAS_REQUIRE,
         tests_require=TESTS_REQUIRE,
-        entry_points=ENTRY_POINTS
+        entry_points=ENTRY_POINTS,
+        zip_safe=False,
     )
