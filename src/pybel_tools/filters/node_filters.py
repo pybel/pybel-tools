@@ -19,8 +19,7 @@ from pybel import BELGraph
 from pybel.constants import FUNCTION, LABEL, NAMESPACE, PATHOLOGY
 from pybel.dsl import BaseEntity
 from pybel.struct.filters import (
-    build_node_data_search, build_node_key_search, count_passed_node_filter,
-    data_missing_key_builder, namespace_inclusion_builder,
+    build_node_data_search, build_node_key_search, count_passed_node_filter, data_missing_key_builder,
 )
 from .typing import NodePredicate, NodePredicates, Strings
 
@@ -213,4 +212,12 @@ include_pathology_filter = function_inclusion_filter_builder(PATHOLOGY)
 #: A filter that fails for nodes that are :data:`pybel.constants.PATHOLOGY`
 exclude_pathology_filter = function_exclusion_filter_builder(PATHOLOGY)
 
+
 # TODO node filter that is false for abundances with no in-edges
+
+
+def namespace_inclusion_builder(namespace) -> NodePredicate:
+    def has_namespace(graph: BELGraph, node: BaseEntity):
+        return node.get(NAMESPACE) == namespace
+
+    return has_namespace
