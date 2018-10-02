@@ -42,7 +42,7 @@ EXTRAS_REQUIRE = {
         'sphinx',
         'sphinx-rtd-theme',
         'sphinx-click',
-        'sphinx-autodoc-typehints',
+        # 'sphinx-autodoc-typehints',
     ]
 }
 TESTS_REQUIRE = []
