@@ -62,7 +62,7 @@ import logging
 import random
 from collections import defaultdict
 from operator import itemgetter
-from typing import Callable, Iterable, List, Mapping, Optional, Set, Tuple
+from typing import Callable, Hashable, Iterable, List, Mapping, Optional, Set, Tuple, TypeVar
 
 import numpy as np
 from scipy import stats
@@ -116,7 +116,7 @@ def calculate_average_scores_on_graph(
         runs: Optional[int] = None,
         use_tqdm: bool = False,
 ):
-    """Calculates the scores over all biological processes in the sub-graph.
+    """Calculate the scores over all biological processes in the sub-graph.
 
     As an implementation, it simply computes the sub-graphs then calls :func:`calculate_average_scores_on_subgraphs` as
     described in that function's documentation.
@@ -152,24 +152,27 @@ def calculate_average_scores_on_graph(
     return scores
 
 
+H = TypeVar('H', bound=Hashable)
+
+
 def calculate_average_scores_on_subgraphs(
-        subgraphs: Mapping[BaseEntity, BELGraph],
+        subgraphs: Mapping[H, BELGraph],
         key: Optional[str] = None,
         tag: Optional[str] = None,
         default_score: Optional[float] = None,
         runs: Optional[int] = None,
         use_tqdm: bool = False,
-) -> Mapping[BaseEntity, Tuple]:
+) -> Mapping[H, Tuple[float, float, float, float, int, int]]:
     """Calculate the scores over precomputed candidate mechanisms.
 
-    :param subgraphs: A dictionary of {tuple node: pybel.BELGraph candidate mechanism}
+    :param subgraphs: A dictionary of keys to their corresponding subgraphs
     :param key: The key in the node data dictionary representing the experimental data. Defaults to
      :data:`pybel_tools.constants.WEIGHT`.
     :param tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
     :param default_score: The initial score for all nodes. This number can go up or down.
     :param runs: The number of times to run the heat diffusion workflow. Defaults to 100.
     :param use_tqdm: Should there be a progress bar for runners?
-    :return: A dictionary of PyBEL nodes to results tuples
+    :return: A dictionary of keys to results tuples
 
     Example Usage:
 
