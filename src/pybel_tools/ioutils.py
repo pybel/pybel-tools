@@ -41,16 +41,17 @@ def get_paths_recursive(directory, extension='.bel', exclude_directory_pattern=N
                 yield os.path.join(root, file)
 
 
-def convert_paths(paths, manager=None, upload=False, do_enrich_protein_and_rna_origins=True,
-                  do_enrich_pubmed_citations=False, do_to_web=False, **kwargs):
-    """Parse and either uploads/pickles graphs in a given set of files, recursively.
+def convert_paths(paths, connection=None, upload=False, canonicalize=True, infer_central_dogma=True,
+                  enrich_citations=False, send=False, **kwargs):
+    """Recursively parses and either uploads/pickles graphs in a given set of files
 
     :param iter[str] paths: The paths to convert
     :type manager: Optional[pybel.manager.Manager]
     :param bool upload: Should the networks be uploaded to the cache?
-    :param bool do_enrich_protein_and_rna_origins: Should the RNA and gene be inferred for each protein?
-    :param bool do_enrich_pubmed_citations: Should the citations be enriched using Entrez Utils?
-    :param bool do_to_web: Send to BEL Commons?
+    :param bool canonicalize: Calculate canonical nodes?
+    :param bool infer_central_dogma: Should the central dogma be inferred for all proteins, RNAs, and miRNAs
+    :param bool enrich_citations: Should the citations be enriched using Entrez Utils?
+    :param bool send: Send to PyBEL Web?
     :param kwargs: Parameters to pass to :func:`pybel.from_path`
     :return: A pair of a dictionary {path: bel graph} and list of failed paths
     :rtype: tuple[dict[str,pybel.BELGraph],list[str]]
@@ -128,7 +129,7 @@ def convert_directory(directory, manager=None, upload=False, pickle=False, canon
 
 def upload_recursive(directory, manager=None, exclude_directory_pattern=None):
     """Recursively uploads all gpickles in a given directory and sub-directories
-    
+
     :param str directory: the directory to traverse
     :type manager: Optional[pybel.manager.Manager]
     :param Optional[str] exclude_directory_pattern: Any directory names to exclude

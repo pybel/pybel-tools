@@ -190,10 +190,10 @@ def convert(manager, enable_upload, enrich_citations, no_citation_clearing, allo
         paths=paths,
         manager=manager,
         upload=enable_upload,
-        do_enrich_pubmed_citations=enrich_citations,
+        enrich_citations=enrich_citations,
         citation_clearing=(not no_citation_clearing),
         allow_nested=allow_nested,
-        do_to_web=send_pybel_web,
+        send=send_pybel_web,
         use_tqdm=True
     )
 

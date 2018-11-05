@@ -263,7 +263,7 @@ def prepare_c3_time_series(data, y_axis_label='y', x_axis_label='x'):
 
 def build_template_environment(here):
     """Builds a custom templating enviroment so Flask apps can get data from lots of different places
-    
+
     :param str here: Give this the result of :code:`os.path.dirname(os.path.abspath(__file__))`
     :rtype: jinja2.Environment
     """
@@ -284,7 +284,7 @@ def build_template_renderer(file):
     """In your file, give this function the current file
 
     :param str file: The location of the current file. Pass it :code:`__file__` like in the example below.
-    
+
     >>> render_template = build_template_renderer(__file__)
     """
     here = os.path.dirname(os.path.abspath(file))

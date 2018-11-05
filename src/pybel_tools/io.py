@@ -49,9 +49,7 @@ def from_path_ensure_pickle(path, manager=None, **kwargs):
             return from_pickle(file)
 
     graph = from_path(path, manager=manager, **kwargs)
-
-    with open(gpickle_path, 'wb') as file:
-        to_pickle(graph, file=file)
+    to_pickle(graph, gpickle_path)
 
     return graph
 
