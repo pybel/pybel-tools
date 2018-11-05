@@ -6,13 +6,13 @@ It has four parts:
 
 1) Assembling a network, pre-processing, and overlaying data
 2) Generating unbiased candidate mechanisms from the network
-3) Generating random subgraphs from each unbiased candidate mechanism
-4) Applying standard heat diffusion to each subgraph and calculating scores for each unbiased candidate mechanism based
-   on the distribution of scores for its subgraph
+3) Generating random sub-graphs from each unbiased candidate mechanism
+4) Applying standard heat diffusion to each sub-graph and calculating scores for each unbiased candidate mechanism based
+   on the distribution of scores for its sub-graph
 
 In this algorithm, heat is applied to the nodes based on the data set. For the differential gene expression experiment,
 the log-fold-change values are used instead of the corrected p-values to allow for the effects of up- and
-down-regulation to be admitted in the analysis. Finally, heat diffusion inspired by previous algorithms publsihed in
+down-regulation to be admitted in the analysis. Finally, heat diffusion inspired by previous algorithms published in
 systems and networks biology [1]_ [2]_ is run with the constraint that decreases
 edges cause the sign of the heat to be flipped. Because of the construction of unbiased candidate mechanisms, all
 heat will flow towards their seed biological process nodes. The amount of heat on the biological process node after
@@ -33,8 +33,10 @@ Examples
 ~~~~~~~~
 This workflow has been applied in several Jupyter notebooks:
 
-- `Heat Diffusion Workflow <http://nbviewer.jupyter.org/github/pybel/pybel-notebooks/blob/master/algorithms/Heat%20Diffusion%20Workflow.ipynb>`_
-- `Time Series Heat Diffusion <http://nbviewer.jupyter.org/github/pybel/pybel-notebooks/blob/master/algorithms/Time%20Series%20CMPA.ipynb>`_
+- `Heat Diffusion Workflow <http://nbviewer.jupyter.org/github/pybel/pybel-notebooks/blob/master/algorithms/
+  Heat%20Diffusion%20Workflow.ipynb>`_
+- `Time Series Heat Diffusion <http://nbviewer.jupyter.org/github/pybel/pybel-notebooks/blob/master/algorithms/
+  Time%20Series%20CMPA.ipynb>`_
 
 Future Work
 ~~~~~~~~~~~
@@ -60,7 +62,7 @@ import logging
 import random
 from collections import defaultdict
 from operator import itemgetter
-from typing import Dict, Tuple
+from typing import Callable, Hashable, Iterable, List, Mapping, Optional, Set, Tuple, TypeVar
 
 import numpy as np
 from scipy import stats
@@ -106,19 +108,26 @@ RESULT_LABELS = [
 ]
 
 
-def calculate_average_scores_on_graph(graph, key=None, tag=None, default_score=None, runs=None, use_tqdm=False):
-    """Calculates the scores over all biological processes in the sub-graph.
+def calculate_average_scores_on_graph(
+        graph: BELGraph,
+        key: Optional[str] = None,
+        tag: Optional[str] = None,
+        default_score: Optional[float] = None,
+        runs: Optional[int] = None,
+        use_tqdm: bool = False,
+):
+    """Calculate the scores over all biological processes in the sub-graph.
 
     As an implementation, it simply computes the sub-graphs then calls :func:`calculate_average_scores_on_subgraphs` as
     described in that function's documentation.
 
-    :param pybel.BELGraph graph: A BEL graph with heats already on the nodes
-    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
+    :param graph: A BEL graph with heats already on the nodes
+    :param key: The key in the node data dictionary representing the experimental data. Defaults to
      :data:`pybel_tools.constants.WEIGHT`.
-    :param Optional[str] tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
-    :param Optional[float] default_score: The initial score for all nodes. This number can go up or down.
-    :param Optional[int] runs: The number of times to run the heat diffusion workflow. Defaults to 100.
-    :param bool use_tqdm: Should there be a progress bar for runners?
+    :param tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
+    :param default_score: The initial score for all nodes. This number can go up or down.
+    :param runs: The number of times to run the heat diffusion workflow. Defaults to 100.
+    :param use_tqdm: Should there be a progress bar for runners?
     :return: A dictionary of {pybel node tuple: results tuple}
     :rtype: dict[tuple, tuple]
 
@@ -143,18 +152,27 @@ def calculate_average_scores_on_graph(graph, key=None, tag=None, default_score=N
     return scores
 
 
-def calculate_average_scores_on_subgraphs(subgraphs: Dict[BaseEntity, BELGraph], key=None, tag=None, default_score=None,
-                                          runs=None, use_tqdm=False) -> Dict[BaseEntity, Tuple]:
+H = TypeVar('H', bound=Hashable)
+
+
+def calculate_average_scores_on_subgraphs(
+        subgraphs: Mapping[H, BELGraph],
+        key: Optional[str] = None,
+        tag: Optional[str] = None,
+        default_score: Optional[float] = None,
+        runs: Optional[int] = None,
+        use_tqdm: bool = False,
+) -> Mapping[H, Tuple[float, float, float, float, int, int]]:
     """Calculate the scores over precomputed candidate mechanisms.
 
-    :param subgraphs: A dictionary of {tuple node: pybel.BELGraph candidate mechanism}
-    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
+    :param subgraphs: A dictionary of keys to their corresponding subgraphs
+    :param key: The key in the node data dictionary representing the experimental data. Defaults to
      :data:`pybel_tools.constants.WEIGHT`.
-    :param Optional[str] tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
-    :param Optional[float] default_score: The initial score for all nodes. This number can go up or down.
-    :param Optional[int] runs: The number of times to run the heat diffusion workflow. Defaults to 100.
-    :param bool use_tqdm: Should there be a progress bar for runners?
-    :return: A dictionary of {pybel node tuple: results tuple}
+    :param tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
+    :param default_score: The initial score for all nodes. This number can go up or down.
+    :param runs: The number of times to run the heat diffusion workflow. Defaults to 100.
+    :param use_tqdm: Should there be a progress bar for runners?
+    :return: A dictionary of keys to results tuples
 
     Example Usage:
 
@@ -214,19 +232,26 @@ def calculate_average_scores_on_subgraphs(subgraphs: Dict[BaseEntity, BELGraph],
     return results
 
 
-def workflow(graph, node, key=None, tag=None, default_score=None, runs=None, minimum_nodes=1):
+def workflow(
+        graph: BELGraph,
+        node: BaseEntity,
+        key: Optional[str] = None,
+        tag: Optional[str] = None,
+        default_score: Optional[float] = None,
+        runs: Optional[int] = None,
+        minimum_nodes: int = 1,
+) -> List['Runner']:
     """Generate candidate mechanisms and run the heat diffusion workflow.
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param tuple node: The BEL node that is the focus of this analysis
-    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
+    :param graph: A BEL graph
+    :param node: The BEL node that is the focus of this analysis
+    :param key: The key in the node data dictionary representing the experimental data. Defaults to
      :data:`pybel_tools.constants.WEIGHT`.
-    :param Optional[str] tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
-    :param Optional[float] default_score: The initial score for all nodes. This number can go up or down.
-    :param Optional[int] runs: The number of times to run the heat diffusion workflow. Defaults to 100.
-    :param int minimum_nodes: The minimum number of nodes a sub-graph needs to try running heat diffusion
+    :param tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
+    :param default_score: The initial score for all nodes. This number can go up or down.
+    :param runs: The number of times to run the heat diffusion workflow. Defaults to 100.
+    :param minimum_nodes: The minimum number of nodes a sub-graph needs to try running heat diffusion
     :return: A list of runners
-    :rtype: list[Runner]
     """
     subgraph = generate_mechanism(graph, node, key=key)
 
@@ -237,19 +262,26 @@ def workflow(graph, node, key=None, tag=None, default_score=None, runs=None, min
     return list(runners)
 
 
-def multirun(graph, node, key=None, tag=None, default_score=None, runs=None, use_tqdm=False):
+def multirun(
+        graph: BELGraph,
+        node: BaseEntity,
+        key: Optional[str] = None,
+        tag: Optional[str] = None,
+        default_score: Optional[float] = None,
+        runs: Optional[int] = None,
+        use_tqdm: bool = False,
+) -> Iterable['Runner']:
     """Run the heat diffusion workflow multiple times, each time yielding a :class:`Runner` object upon completion.
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param tuple node: The BEL node that is the focus of this analysis
-    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
+    :param graph: A BEL graph
+    :param node: The BEL node that is the focus of this analysis
+    :param key: The key in the node data dictionary representing the experimental data. Defaults to
      :data:`pybel_tools.constants.WEIGHT`.
-    :param str tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
-    :param float default_score: The initial score for all nodes. This number can go up or down.
-    :param int runs: The number of times to run the heat diffusion workflow. Defaults to 100.
-    :param bool use_tqdm: Should there be a progress bar for runners?
+    :param tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
+    :param default_score: The initial score for all nodes. This number can go up or down.
+    :param runs: The number of times to run the heat diffusion workflow. Defaults to 100.
+    :param use_tqdm: Should there be a progress bar for runners?
     :return: An iterable over the runners after each iteration
-    :rtype: iter[Runner]
     """
     if runs is None:
         runs = 100
@@ -271,66 +303,70 @@ def multirun(graph, node, key=None, tag=None, default_score=None, runs=None, use
 class Runner:
     """This class houses the data related to a single run of the heat diffusion workflow."""
 
-    def __init__(self, graph, target_node, key=None, tag=None, default_score=None):
-        """Initializes the heat diffusion runner class
+    def __init__(
+            self,
+            graph: BELGraph,
+            target_node: BaseEntity,
+            key: Optional[str] = None,
+            tag: Optional[str] = None,
+            default_score: Optional[float] = None,
+    ):
+        """Initialize the heat diffusion runner class.
 
-        :param pybel.BELGraph graph: A BEL graph
-        :param tuple target_node: The BEL node that is the focus of this analysis
-        :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
+        :param graph: A BEL graph
+        :param target_node: The BEL node that is the focus of this analysis
+        :param key: The key in the node data dictionary representing the experimental data. Defaults to
          :data:`pybel_tools.constants.WEIGHT`.
-        :param str tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
-        :param float default_score: The initial score for all nodes. This number can go up or down.
+        :param tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
+        :param default_score: The initial score for all nodes. This number can go up or down.
         """
-        self.graph = graph.copy()
+        self.graph: BELGraph = graph.copy()
         self.target_node = target_node
         self.key = key or WEIGHT
         self.default_score = default_score or DEFAULT_SCORE
         self.tag = tag or SCORE
 
-        for node, data in self.graph.iter_node_data_pairs():
+        for node, data in self.graph.nodes(data=True):
             if not self.graph.predecessors(node):
-                self.graph.node[node][self.tag] = data.get(self.key, 0)
-                log.log(5, 'initializing %s with %s', target_node, self.graph.node[node][self.tag])
+                self.graph.nodes[node][self.tag] = data.get(self.key, 0)
+                log.log(5, 'initializing %s with %s', target_node, self.graph.nodes[node][self.tag])
 
-    def iter_leaves(self):
+    def iter_leaves(self) -> Iterable[BaseEntity]:
         """Returns an iterable over all nodes that are leaves. A node is a leaf if either:
 
          - it doesn't have any predecessors, OR
          - all of its predecessors have a score in their data dictionaries
 
         :return: An iterable over all leaf nodes
-        :rtype: iter
         """
         for node in self.graph:
-            if self.tag in self.graph.node[node]:
+            if self.tag in self.graph.nodes[node]:
                 continue
 
-            if not any(self.tag not in self.graph.node[p] for p in self.graph.predecessors_iter(node)):
+            if not any(self.tag not in self.graph.nodes[p] for p in self.graph.predecessors(node)):
                 yield node
 
-    def has_leaves(self):
+    def has_leaves(self) -> List[BaseEntity]:
         """Returns if the current graph has any leaves.
 
         Implementation is not that smart currently, and does a full sweep.
 
         :return: Does the current graph have any leaves?
-        :rtype: bool
         """
         leaves = list(self.iter_leaves())
         return leaves
 
-    def in_out_ratio(self, node):
-        """Calculates the ratio of in-degree / out-degree of a node
+    def in_out_ratio(self, node: BaseEntity) -> float:
+        """Calculate the ratio of in-degree / out-degree of a node.
 
         :param tuple node: A BEL node
         :return: The in-degree / out-degree ratio for the given node
-        :rtype: float
         """
         return self.graph.in_degree(node) / float(self.graph.out_degree(node))
 
-    def unscored_nodes_iter(self):
-        """Iterates over all nodes without a score"""
-        for node, data in self.graph.iter_node_data_pairs():
+    def unscored_nodes_iter(self) -> BaseEntity:
+        """Iterate over all nodes without a score."""
+        for node, data in self.graph.nodes(data=True):
             if self.tag not in data:
                 yield node
 
@@ -341,7 +377,7 @@ class Runner:
         data structure will have to be later developed that doesn't destroy the graph (instead, annotates which edges
         have been disregarded, later)
 
-           1. get all unscored
+           1. get all un-scored
            2. rank by in-degree
            3. weighted probability over all in-edges where lower in-degree means higher probability
            4. pick randomly which edge
@@ -372,7 +408,7 @@ class Runner:
         log.log(5, 'removing %s, %s (%s)', u, v, k)
         self.graph.remove_edge(u, v, k)
 
-    def remove_random_edge_until_has_leaves(self):
+    def remove_random_edge_until_has_leaves(self) -> None:
         """Remove random edges until there is at least one leaf node."""
         while True:
             leaves = set(self.iter_leaves())
@@ -380,11 +416,10 @@ class Runner:
                 return
             self.remove_random_edge()
 
-    def score_leaves(self):
+    def score_leaves(self) -> Set[BaseEntity]:
         """Calculate the score for all leaves.
 
         :return: The set of leaf nodes that were scored
-        :rtype: set
         """
         leaves = set(self.iter_leaves())
 
@@ -393,12 +428,12 @@ class Runner:
             return set()
 
         for leaf in leaves:
-            self.graph.node[leaf][self.tag] = self.calculate_score(leaf)
+            self.graph.nodes[leaf][self.tag] = self.calculate_score(leaf)
             log.log(5, 'chomping %s', leaf)
 
         return leaves
 
-    def run(self):
+    def run(self) -> None:
         """Calculate scores for all leaves until there are none, removes edges until there are, and repeats until
         all nodes have been scored.
         """
@@ -406,13 +441,12 @@ class Runner:
             self.remove_random_edge_until_has_leaves()
             self.score_leaves()
 
-    def run_with_graph_transformation(self):
+    def run_with_graph_transformation(self) -> Iterable[BELGraph]:
         """Calculate  scores for all leaves until there are none, removes edges until there are, and repeats until
         all nodes have been scored. Also, yields the current graph at every step so you can make a cool animation
         of how the graph changes throughout the course of the algorithm
 
         :return: An iterable of BEL graphs
-        :rtype: iter[pybel.BELGraph]
         """
         yield self.get_remaining_graph()
         while not self.done_chomping():
@@ -422,79 +456,85 @@ class Runner:
             self.score_leaves()
             yield self.get_remaining_graph()
 
-    def done_chomping(self):
+    def done_chomping(self) -> bool:
         """Determines if the algorithm is complete by checking if the target node of this analysis has been scored
         yet. Because the algorithm removes edges when it gets stuck until it is un-stuck, it is always guaranteed to
         finish.
 
         :return: Is the algorithm done running?
-        :rtype: bool
         """
-        return self.tag in self.graph.node[self.target_node]
+        return self.tag in self.graph.nodes[self.target_node]
 
-    def get_final_score(self):
+    def get_final_score(self) -> float:
         """Return the final score for the target node.
 
         :return: The final score for the target node
-        :rtype: float
         """
         if not self.done_chomping():
             raise ValueError('algorithm has not yet completed')
 
-        return self.graph.node[self.target_node][self.tag]
+        return self.graph.nodes[self.target_node][self.tag]
 
-    def calculate_score(self, node):
+    def calculate_score(self, node: BaseEntity) -> float:
         """Calculate the score of the given node.
 
-        :param tuple node: A node in the BEL graph
+        :param node: A node in the BEL graph
         :return: The new score of the node
-        :rtype: float
         """
-        score = self.graph.node[node][self.tag] if self.tag in self.graph.node[node] else self.default_score
+        score = (
+            self.graph.nodes[node][self.tag]
+            if self.tag in self.graph.nodes[node] else
+            self.default_score
+        )
 
-        for predecessor, _, d in self.graph.in_edges_iter(node, data=True):
+        for predecessor, _, d in self.graph.in_edges(node, data=True):
             if d[RELATION] in CAUSAL_INCREASE_RELATIONS:
-                score += self.graph.node[predecessor][self.tag]
+                score += self.graph.nodes[predecessor][self.tag]
             elif d[RELATION] in CAUSAL_DECREASE_RELATIONS:
-                score -= self.graph.node[predecessor][self.tag]
+                score -= self.graph.nodes[predecessor][self.tag]
 
         return score
 
-    def get_remaining_graph(self):
+    def get_remaining_graph(self) -> BELGraph:
         """Allows for introspection on the algorithm at a given point by returning the sub-graph induced
         by all unscored nodes
 
-        :return: The remaining unscored BEL graph
-        :rtype: pybel.BELGraph
+        :return: The remaining un-scored BEL graph
         """
         return self.graph.subgraph(self.unscored_nodes_iter())
 
 
-def workflow_aggregate(graph, node, key=None, tag=None, default_score=None, runs=None, aggregator=None):
+def workflow_aggregate(
+        graph: BELGraph,
+        node: BaseEntity,
+        key: Optional[str] = None,
+        tag: Optional[str] = None,
+        default_score: Optional[float] = None,
+        runs: Optional[int] = None,
+        aggregator: Optional[Callable[[Iterable[float]], float]] = None,
+) -> Optional[float]:
     """Get the average score over multiple runs.
 
     This function is very simple, and can be copied to do more interesting statistics over the :class:`Runner`
     instances. To iterate over the runners themselves, see :func:`workflow`
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param tuple node: The BEL node that is the focus of this analysis
-    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
+    :param graph: A BEL graph
+    :param node: The BEL node that is the focus of this analysis
+    :param key: The key in the node data dictionary representing the experimental data. Defaults to
      :data:`pybel_tools.constants.WEIGHT`.
-    :param Optional[str] tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
-    :param Optional[float] default_score: The initial score for all nodes. This number can go up or down.
-    :param Optional[int] runs: The number of times to run the heat diffusion workflow. Defaults to 100.
+    :param tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
+    :param default_score: The initial score for all nodes. This number can go up or down.
+    :param runs: The number of times to run the heat diffusion workflow. Defaults to 100.
     :param aggregator: A function that aggregates a list of scores. Defaults to :func:`numpy.average`.
                        Could also use: :func:`numpy.mean`, :func:`numpy.median`, :func:`numpy.min`, :func:`numpy.max`
-    :type aggregator: Optional[list[float] -> float]
     :return: The average score for the target node
-    :rtype: float
     """
     runners = workflow(graph, node, key=key, tag=tag, default_score=default_score, runs=runs)
     scores = [runner.get_final_score() for runner in runners]
 
     if not scores:
         log.warning('Unable to run the heat diffusion workflow for %s', node)
-        return None
+        return
 
     if aggregator is None:
         return np.average(scores)
@@ -502,7 +542,13 @@ def workflow_aggregate(graph, node, key=None, tag=None, default_score=None, runs
     return aggregator(scores)
 
 
-def workflow_all(graph, key=None, tag=None, default_score=None, runs=None):
+def workflow_all(
+        graph: BELGraph,
+        key: Optional[str] = None,
+        tag: Optional[str] = None,
+        default_score: Optional[float] = None,
+        runs: Optional[int] = None,
+) -> Mapping[BaseEntity, List[Runner]]:
     """Run the heat diffusion workflow and get runners for every possible candidate mechanism
 
     1. Get all biological processes
@@ -510,14 +556,13 @@ def workflow_all(graph, key=None, tag=None, default_score=None, runs=None):
     3. Heat diffusion workflow for each candidate mechanism for multiple runs
     4. Return all runner results
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
+    :param graph: A BEL graph
+    :param key: The key in the node data dictionary representing the experimental data. Defaults to
      :data:`pybel_tools.constants.WEIGHT`.
-    :param str tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
-    :param float default_score: The initial score for all nodes. This number can go up or down.
-    :param int runs: The number of times to run the heat diffusion workflow. Defaults to 100.
+    :param tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
+    :param default_score: The initial score for all nodes. This number can go up or down.
+    :param runs: The number of times to run the heat diffusion workflow. Defaults to 100.
     :return: A dictionary of {node: list of runners}
-    :rtype: dict[tuple,list[Runner]]
     """
     results = {}
 
@@ -527,7 +572,14 @@ def workflow_all(graph, key=None, tag=None, default_score=None, runs=None):
     return results
 
 
-def workflow_all_aggregate(graph, key=None, tag=None, default_score=None, runs=None, aggregator=None):
+def workflow_all_aggregate(
+        graph: BELGraph,
+        key: Optional[str] = None,
+        tag: Optional[str] = None,
+        default_score: Optional[float] = None,
+        runs: Optional[int] = None,
+        aggregator: Optional[Callable[[Iterable[float]], float]] = None,
+):
     """Run the heat diffusion workflow to get average score for every possible candidate mechanism.
 
     1. Get all biological processes
@@ -535,17 +587,15 @@ def workflow_all_aggregate(graph, key=None, tag=None, default_score=None, runs=N
     3. Heat diffusion workflow on each candidate mechanism for multiple runs
     4. Report average scores for each candidate mechanism
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
+    :param graph: A BEL graph
+    :param key: The key in the node data dictionary representing the experimental data. Defaults to
      :data:`pybel_tools.constants.WEIGHT`.
-    :param Optional[str] tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
-    :param Optional[float] default_score: The initial score for all nodes. This number can go up or down.
-    :param Optional[int] runs: The number of times to run the heat diffusion workflow. Defaults to 100.
+    :param tag: The key for the nodes' data dictionaries where the scores will be put. Defaults to 'score'
+    :param default_score: The initial score for all nodes. This number can go up or down.
+    :param runs: The number of times to run the heat diffusion workflow. Defaults to 100.
     :param aggregator: A function that aggregates a list of scores. Defaults to :func:`numpy.average`.
                        Could also use: :func:`numpy.mean`, :func:`numpy.median`, :func:`numpy.min`, :func:`numpy.max`
-    :type aggregator: Optional[list[float] -> float]
     :return: A dictionary of {node: upstream causal subgraph}
-    :rtype: dict
     """
     results = {}
 
@@ -571,25 +621,31 @@ def workflow_all_aggregate(graph, key=None, tag=None, default_score=None, runs=N
 
 
 # TODO reinvestigate statistical bootstrapping/resampling/distribution normalization
-def calculate_average_score_by_annotation(graph, annotation, key=None, runs=None, use_tdqm=False):
+def calculate_average_score_by_annotation(
+        graph: BELGraph,
+        annotation: str,
+        key: Optional[str] = None,
+        runs: Optional[int] = None,
+        use_tqdm: bool = False,
+) -> Mapping[str, float]:
     """For each sub-graph induced over the edges matching the annotation, calculate the average score
     for all of the contained biological processes
 
     Assumes you haven't done anything yet
 
-    1. Generates biological process upstream candidate mechanistic sub-graphs with :func:`generate_bioprocess_mechanisms`
+    1. Generates biological process upstream candidate mechanistic sub-graphs with
+       :func:`generate_bioprocess_mechanisms`
     2. Calculates scores for each sub-graph with :func:`calculate_average_scores_on_sub-graphs`
     3. Overlays data with pbt.integration.overlay_data
     4. Calculates averages with pbt.selection.group_nodes.average_node_annotation
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param str annotation: A BEL annotation
-    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
+    :param graph: A BEL graph
+    :param annotation: A BEL annotation
+    :param key: The key in the node data dictionary representing the experimental data. Defaults to
      :data:`pybel_tools.constants.WEIGHT`.
-    :param Optional[int] runs: The number of times to run the heat diffusion workflow. Defaults to 100.
-    :param bool use_tqdm: Should there be a progress bar for runners?
+    :param runs: The number of times to run the heat diffusion workflow. Defaults to 100.
+    :param use_tqdm: Should there be a progress bar for runners?
     :return: A dictionary from {str annotation value: tuple scores}
-    :rtype: dict[str,tuple]
 
     Example Usage:
 
@@ -602,24 +658,20 @@ def calculate_average_score_by_annotation(graph, annotation, key=None, runs=None
     candidate_mechanisms = generate_bioprocess_mechanisms(graph, key=key)
 
     #: {bp tuple: list of scores}
-    scores = calculate_average_scores_on_subgraphs(
+    scores: Mapping[BaseEntity, Tuple] = calculate_average_scores_on_subgraphs(
         subgraphs=candidate_mechanisms,
         key=key,
         runs=runs,
-        use_tqdm=use_tdqm,
+        use_tqdm=use_tqdm,
     )
 
-    subgraphs = get_subgraphs_by_annotation(graph, annotation)
-
-    subgraph_bp = defaultdict(list)
-
+    subgraph_bp: Mapping[str, List[BaseEntity]] = defaultdict(list)
+    subgraphs: Mapping[str, BELGraph] = get_subgraphs_by_annotation(graph, annotation)
     for annotation_value, subgraph in subgraphs.items():
         subgraph_bp[annotation_value].extend(get_nodes_by_function(subgraph, BIOPROCESS))
 
-    final_scores = {}
-    for annotation_value, bps in subgraph_bp.items():
-        #: Pick the average by slicing with 0. Refer to :func:`calculate_average_score_on_subgraphs`
-        bp_scores = [scores[bp][0] for bp in bps]
-        final_scores[annotation_value] = np.average(bp_scores)
-
-    return scores
+    #: Pick the average by slicing with 0. Refer to :func:`calculate_average_score_on_subgraphs`
+    return {
+        annotation_value: np.average(scores[bp][0] for bp in bps)
+        for annotation_value, bps in subgraph_bp.items()
+    }

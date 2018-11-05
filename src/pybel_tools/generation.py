@@ -2,27 +2,25 @@
 
 """An implementation of the unbiased candidate mechanism (UCM) generation workflow.
 
-This workflow can be used to address the inconsistency in the definitions of the
-boundaries of pathways, mechanisms, subgraphs, etc. in networks and systems biology that are introduced during curation
-due to a variety of reasons.
+This workflow can be used to address the inconsistency in the definitions of the boundaries of pathways, mechanisms,
+sub-graphs, etc. in networks and systems biology that are introduced during curation due to a variety of reasons.
 
-A simple approach for generating unbiased candidate mechanisms is to take the upstream controlles
+A simple approach for generating unbiased candidate mechanisms is to take the upstream controllers.
 
+This module provides functions for generating sub-graphs based around a single node, most likely a biological process.
 
-This module provides functions for generating subgraphs based around a single node, most likely a biological process.
-
-Subgraphs induced around biological processes should prove to be subgraphs of the NeuroMMSig/canonical mechanisms
+Sub-graphs induced around biological processes should prove to be sub-graphs of the NeuroMMSig/canonical mechanisms
 and provide an even more rich mechanism inventory.
-
 
 Examples
 ~~~~~~~~
 This method has been applied in the following Jupyter Notebooks:
 
-- `Generating Unbiased Candidate Mechanisms <http://nbviewer.jupyter.org/github/pybel/pybel-notebooks/blob/master/algorithms/Generating%20Candidate%20Mechanisms.ipynb>`_
+- `Generating Unbiased Candidate Mechanisms <http://nbviewer.jupyter.org/github/pybel/pybel-notebooks/blob/master/
+  algorithms/Generating%20Candidate%20Mechanisms.ipynb>`_
 """
 
-from typing import Dict, Iterable, Optional
+from typing import Iterable, Mapping, Optional
 
 from pybel import BELGraph
 from pybel.constants import BIOPROCESS
@@ -68,7 +66,7 @@ def get_unweighted_upstream_leaves(graph: BELGraph, key: Optional[str] = None) -
     .. seealso :: :func:`data_does_not_contain_key_builder`
 
     :param graph: A BEL graph
-    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
+    :param key: The key in the node data dictionary representing the experimental data. Defaults to
      :data:`pybel_tools.constants.WEIGHT`.
     :return: An iterable over leaves (nodes with an in-degree of 0) that don't have the given annotation
     """
@@ -83,7 +81,7 @@ def remove_unweighted_leaves(graph: BELGraph, key: Optional[str] = None) -> None
     """Remove nodes that are leaves and that don't have a weight (or other key) attribute set.
 
     :param graph: A BEL graph
-    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
+    :param key: The key in the node data dictionary representing the experimental data. Defaults to
      :data:`pybel_tools.constants.WEIGHT`.
     """
     unweighted_leaves = list(get_unweighted_upstream_leaves(graph, key=key))
@@ -97,14 +95,14 @@ def is_unweighted_source(graph: BELGraph, node: BaseEntity, key: str) -> bool:
     :param node: A BEL node
     :param key: The key in the node data dictionary representing the experimental data
     """
-    return graph.in_degree(node) == 0 and key not in graph.node[node]
+    return graph.in_degree(node) == 0 and key not in graph.nodes[node]
 
 
 def get_unweighted_sources(graph: BELGraph, key: Optional[str] = None) -> Iterable[BaseEntity]:
-    """Get nodes on the periphery of the subgraph that do not have a annotation for the given key.
+    """Get nodes on the periphery of the sub-graph that do not have a annotation for the given key.
 
     :param graph: A BEL graph
-    :param str key: The key in the node data dictionary representing the experimental data
+    :param key: The key in the node data dictionary representing the experimental data
     :return: An iterator over BEL nodes that are unannotated and on the periphery of this subgraph
     """
     if key is None:
@@ -116,11 +114,11 @@ def get_unweighted_sources(graph: BELGraph, key: Optional[str] = None) -> Iterab
 
 
 @in_place_transformation
-def remove_unweighted_sources(graph: BELGraph, key: Optional[str] = None):
-    """Prune unannotated nodes on the periphery of the subgraph.
+def remove_unweighted_sources(graph: BELGraph, key: Optional[str] = None) -> None:
+    """Prune unannotated nodes on the periphery of the sub-graph.
 
     :param graph: A BEL graph
-    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
+    :param key: The key in the node data dictionary representing the experimental data. Defaults to
      :data:`pybel_tools.constants.WEIGHT`.
     """
     nodes = list(get_unweighted_sources(graph, key=key))
@@ -128,12 +126,12 @@ def remove_unweighted_sources(graph: BELGraph, key: Optional[str] = None):
 
 
 @in_place_transformation
-def prune_mechanism_by_data(graph, key=None):
+def prune_mechanism_by_data(graph, key: Optional[str] = None) -> None:
     """Removes all leaves and source nodes that don't have weights. Is a thin wrapper around 
     :func:`remove_unweighted_leaves` and :func:`remove_unweighted_sources`
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
+    :param graph: A BEL graph
+    :param key: The key in the node data dictionary representing the experimental data. Defaults to
      :data:`pybel_tools.constants.WEIGHT`.
 
     Equivalent to:
@@ -153,7 +151,7 @@ def generate_mechanism(graph: BELGraph, node: BaseEntity, key: Optional[str] = N
     :param node: A BEL node
     :param key: The key in the node data dictionary representing the experimental data. Defaults to
      :data:`pybel_tools.constants.WEIGHT`.
-    :return: A subgraph grown around the target BEL node
+    :return: A sub-graph grown around the target BEL node
     """
     subgraph = get_upstream_causal_subgraph(graph, node)
     expand_upstream_causal(graph, subgraph)
@@ -166,11 +164,11 @@ def generate_mechanism(graph: BELGraph, node: BaseEntity, key: Optional[str] = N
     return subgraph
 
 
-def generate_bioprocess_mechanisms(graph, key: Optional[str] = None) -> Dict[BaseEntity, BELGraph]:
+def generate_bioprocess_mechanisms(graph, key: Optional[str] = None) -> Mapping[BaseEntity, BELGraph]:
     """Generate a mechanistic sub-graph for each biological process in the graph using :func:`generate_mechanism`.
 
     :param graph: A BEL graph
-    :param Optional[str] key: The key in the node data dictionary representing the experimental data. Defaults to
+    :param key: The key in the node data dictionary representing the experimental data. Defaults to
      :data:`pybel_tools.constants.WEIGHT`
     """
     return {
