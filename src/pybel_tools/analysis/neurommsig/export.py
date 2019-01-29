@@ -11,26 +11,27 @@ import os
 import re
 import time
 from functools import partial
+from typing import Mapping
 
 import pandas as pd
 
-from pybel.resources.definitions import get_bel_resource
-from pybel.resources.document import make_knowledge_header
+from bel_resources import get_bel_resource, make_knowledge_header
+from pybel import BELGraph
+from pybel.dsl import Abundance, Gene
 from pybel.utils import ensure_quotes
-from pybel_artifactory.defaults import DBSNP_PATTERN, HGNC_HUMAN_GENES, MESHD, NEUROMMSIG, NIFT
 
 log = logging.getLogger(__name__)
 
-HGNCsymbolpattern = re.compile("^[A-Z0-9-]+$|^C[0-9XY]+orf[0-9]+$")
+HGNCsymbolpattern = re.compile(r"^[A-Z0-9-]+$|^C[0-9XY]+orf[0-9]+$")
 
-SNPpattern = re.compile("^rs[0-9]+$")
-SNPspatternSpace = re.compile("^(rs[0-9]+)\s((rs[0-9]+)\s)*(rs[0-9]+)$")
-SNPspatternComma = re.compile("^(rs[0-9]+),((rs[0-9]+),)*(rs[0-9]+)$")
-SNPspatternSpaceComma = re.compile("^(rs[0-9]+), ((rs[0-9]+), )*(rs[0-9]+)$")
-Checked_by_Anandhi = re.compile("No")
+SNPpattern = re.compile(r"^rs[0-9]+$")
+SNPspatternSpace = re.compile(r"^(rs[0-9]+)\s((rs[0-9]+)\s)*(rs[0-9]+)$")
+SNPspatternComma = re.compile(r"^(rs[0-9]+),((rs[0-9]+),)*(rs[0-9]+)$")
+SNPspatternSpaceComma = re.compile(r"^(rs[0-9]+), ((rs[0-9]+), )*(rs[0-9]+)$")
+Checked_by_Anandhi = re.compile(r"No")
 
-miRNApattern = re.compile("^MIR.*$")
-miRNAspattern = re.compile("^(MIR.*),((MIR.*$),)*(MIR.*$)$")
+miRNApattern = re.compile(r"^MIR.*$")
+miRNAspattern = re.compile(r"^(MIR.*),((MIR.*$),)*(MIR.*$)$")
 
 
 def preprocessing_excel(path):
@@ -94,25 +95,17 @@ def munge_cell(cell, line=None, validators=None):
     return [x.strip() for x in str(c).strip().split(',')]
 
 
-def preprocessing_br_projection_excel(filepath):
-    """Preprocessing of the excel file.
+def preprocessing_br_projection_excel(path: str) -> pd.DataFrame:
+    """Preprocess the excel file.
 
     Parameters
     ----------
-    filepath : Filepath of the excel sheet
-
-    Returns
-    -------
-    dataframe : Preprocessed pandas dataframe
-
+    path : Filepath of the excel sheet
     """
+    if not os.path.exists(path):
+        raise ValueError("Error: %s file not found" % path)
 
-    if not os.path.exists(filepath):
-        raise ValueError("Error: %s file not found" % filepath)
-
-    df = pd.read_excel(filepath, sheetname=0, header=0)
-
-    return df
+    return pd.read_excel(path, sheetname=0, header=0)
 
 
 munge_snp = partial(munge_cell, validators=[SNPpattern, SNPspatternSpaceComma])
@@ -140,12 +133,7 @@ columns = [
 ]
 
 
-def preprocess(path):
-    """
-
-    :param str path:
-    :rtype: pandas.DataFrame
-    """
+def preprocess(path: str) -> pd.DataFrame:
     df = preprocessing_excel(path)
     df[snp_from_literature_column] = df[snp_from_literature_column].map(munge_snp)
     df[snp_from_gwas_column] = df[snp_from_gwas_column].map(munge_snp)
@@ -157,11 +145,9 @@ def preprocess(path):
     return df
 
 
-def get_nift_values():
-    """Extracts the list of NIFT names from the BEL resource and builds a dictionary mapping from the lowercased version
-    to the uppercase version
-
-    :rtype: dict[str,str]
+def get_nift_values() -> Mapping[str, str]:
+    """Extract the list of NIFT names from the BEL resource and builds a dictionary mapping from the lowercased version
+    to the uppercase version.
     """
     r = get_bel_resource(NIFT)
     return {
@@ -198,14 +184,17 @@ def write_neurommsig_biolerplate(disease, file):
     print('SET MeSHDisease = "{}"\n'.format(disease), file=file)
 
 
-# TODO re-write with DSL
-def write_neurommsig_bel(file, df, disease, nift_values):
+def write_neurommsig_bel(file,
+                         df: pd.DataFrame,
+                         disease: str,
+                         nift_values: Mapping[str, str],
+                         ):
     """Writes the NeuroMMSigDB excel sheet to BEL
 
     :param file: a file or file-like that can be writen to
-    :param pandas.DataFrame df: 
-    :param str disease: 
-    :param dict nift_values: a dictionary of lowercased to normal names in NIFT
+    :param df:
+    :param disease:
+    :param nift_values: a dictionary of lowercased to normal names in NIFT
     """
     write_neurommsig_biolerplate(disease, file)
 
@@ -213,9 +202,15 @@ def write_neurommsig_bel(file, df, disease, nift_values):
     fixed_caps = set()
     nift_value_originals = set(nift_values.values())
 
-    for pathway, pathway_df in df.groupby(pathway_column):
-        print('SET Subgraph = "{}"'.format(pathway), file=file)
+    graph = BELGraph(
+        name=f'NeuroMMSigDB for {disease}',
+        description=f'SNP and Clinical Features for Subgraphs in {disease}',
+        authors='Daniel Domingo-Fernández, Charles Tapley Hoyt, Mufassra Naz, Aybuge Altay, Anandhi Iyappan',
+        contact='daniel.domingo.fernandez@scai.fraunhofer.de',
+        version=time.strftime('%Y%m%d'),
+    )
 
+    for pathway, pathway_df in df.groupby(pathway_column):
         sorted_pathway_df = pathway_df.sort_values(genes_column)
         sliced_df = sorted_pathway_df[columns].itertuples()
 
@@ -225,7 +220,15 @@ def write_neurommsig_bel(file, df, disease, nift_values):
             for snp in itt.chain(lit_snps or [], gwas_snps or [], ld_block_snps or [], clinical_snps or []):
                 if not snp.strip():
                     continue
-                print('g(HGNC:{}) -- g(dbSNP:{})'.format(gene, snp), file=file)
+                graph.add_association(
+                    Gene('HGNC', gene),
+                    Gene('DBSNP', snp),
+                    evidence='Serialized from NeuroMMSigDB',
+                    citation='28651363',
+                    annotations={
+                        'MeSHDisease': disease,
+                    },
+                )
 
             for clinical_feature in clinical_features or []:
                 if not clinical_feature.strip():
@@ -239,25 +242,34 @@ def write_neurommsig_bel(file, df, disease, nift_values):
                     fixed_caps.add((clinical_feature, nift_values[clinical_feature.lower()]))
                     clinical_feature = nift_values[clinical_feature.lower()]  # fix capitalization
 
-                print('g(HGNC:{}) -- a(NIFT:{})'.format(gene, ensure_quotes(clinical_feature)), file=file)
+                graph.add_association(
+                    Gene('HGNC', gene),
+                    Abundance('NIFT', clinical_feature),
+                    evidence='Serialized from NeuroMMSigDB',
+                    citation='28651363',
+                    annotations={
+                        'MeSHDisease': disease,
+                    },
+                )
 
                 if clinical_snps:
                     for clinical_snp in clinical_snps:
-                        print('g(dbSNP:{} -- a(NIFT:{})'.format(clinical_snp, ensure_quotes(clinical_feature)),
-                              file=file)
-
-        print('UNSET Subgraph\n', file=file)
-
-    print('UNSET MeSHDisease', file=file)
-    print('UNSET Evidence', file=file)
-    print('UNSET Citation', file=file)
+                        graph.add_association(
+                            Gene('DBSNP', clinical_snp),
+                            Abundance('NIFT', clinical_feature),
+                            evidence='Serialized from NeuroMMSigDB',
+                            citation='28651363',
+                            annotations={
+                                'MeSHDisease': disease,
+                            },
+                        )
 
     if missing_features:
         log.warning('Missing Features in %s', disease)
-    for feature in missing_features:
-        log.warning(feature)
+        for feature in missing_features:
+            log.warning(feature)
 
     if fixed_caps:
         log.warning('Fixed capitalization')
-    for broken, fixed in fixed_caps:
-        log.warning('%s -> %s', broken, fixed)
+        for broken, fixed in fixed_caps:
+            log.warning('%s -> %s', broken, fixed)

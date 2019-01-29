@@ -3,13 +3,13 @@
 """Utilities to merge multiple BEL documents on the same topic"""
 
 import logging
+from typing import Iterable, Mapping, Optional, Set, TextIO, Union
 from xml.etree import ElementTree
 
 import requests
 
-from pybel.resources.constants import *
-from pybel.resources.document import make_knowledge_header
-from pybel_tools.constants import abstract_url_fmt, title_url_fmt
+from bel_resources import make_knowledge_header
+from ..constants import abstract_url_fmt, title_url_fmt
 
 __all__ = [
     'write_boilerplate',
@@ -18,13 +18,11 @@ __all__ = [
 log = logging.getLogger(__name__)
 
 
-def make_pubmed_abstract_group(pmids):
-    """Builds a skeleton for the citations' statements
+def make_pubmed_abstract_group(pmids: Iterable[Union[str, int]]) -> Iterable[str]:
+    """Build a skeleton for the citations' statements.
     
     :param pmids: A list of PubMed identifiers
-    :type pmids: iter[str] or iter[int]
     :return: An iterator over the lines of the citation section
-    :rtype: iter[str]
     """
     for pmid in set(pmids):
         yield ''
@@ -32,12 +30,12 @@ def make_pubmed_abstract_group(pmids):
         res = requests.get(title_url_fmt.format(pmid))
         title = res.content.decode('utf-8').strip()
 
-        yield citation_format.format(title, pmid)
+        yield 'SET Citation = {{"{}", "{}"}}'.format(title, pmid)
 
         res = requests.get(abstract_url_fmt.format(pmid))
         abstract = res.content.decode('utf-8').strip()
 
-        yield evidence_format.format(abstract)
+        yield 'SET Evidence = "{}"'.format(abstract)
         yield '\nUNSET Evidence\nUNSET Citation'
 
 
@@ -51,8 +49,8 @@ def _sanitize(s):
 PUBMED_GENE_QUERY_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gene&id={}'
 
 
-def get_entrez_gene_data(entrez_ids):
-    """Gets gene info from Entrez"""
+def get_entrez_gene_data(entrez_ids: Iterable[Union[str, int]]):
+    """Get gene info from Entrez."""
     url = PUBMED_GENE_QUERY_URL.format(','.join(str(x).strip() for x in entrez_ids))
     response = requests.get(url)
     tree = ElementTree.fromstring(response.content)
@@ -66,12 +64,11 @@ def get_entrez_gene_data(entrez_ids):
     }
 
 
-def make_pubmed_gene_group(entrez_ids):
+def make_pubmed_gene_group(entrez_ids: Iterable[Union[str, int]]) -> Iterable[str]:
     """Builds a skeleton for gene summaries
 
-    :param list[str] entrez_ids: A list of entrez id's to query the pubmed service 
-    :return: An iterator over statement lines for NCBI entrez gene summaries
-    :rtype: iter[str]
+    :param entrez_ids: A list of Entrez Gene identifiers to query the PubMed service
+    :return: An iterator over statement lines for NCBI Entrez Gene summaries
     """
     url = PUBMED_GENE_QUERY_URL.format(','.join(str(x).strip() for x in entrez_ids))
     response = requests.get(url)
@@ -84,27 +81,41 @@ def make_pubmed_gene_group(entrez_ids):
         yield '\nUNSET Evidence\nUNSET Citation'
 
 
-def write_boilerplate(name, version=None, description=None, authors=None, contact=None, copyright=None, licenses=None,
-                      disclaimer=None, namespace_url=None, namespace_patterns=None, annotation_url=None,
-                      annotation_patterns=None, annotation_list=None, pmids=None, entrez_ids=None, file=None):
-    """Writes a boilerplate BEL document, with standard document metadata, definitions.
+def write_boilerplate(name: str,
+                      version: Optional[str] = None,
+                      description: Optional[str] = None,
+                      authors: Optional[str] = None,
+                      contact: Optional[str] = None,
+                      copyright: Optional[str] = None,
+                      licenses: Optional[str] = None,
+                      disclaimer: Optional[str] = None,
+                      namespace_url: Optional[Mapping[str, str]] = None,
+                      namespace_patterns: Optional[Mapping[str, str]] = None,
+                      annotation_url: Optional[Mapping[str, str]] = None,
+                      annotation_patterns: Optional[Mapping[str, str]] = None,
+                      annotation_list: Optional[Mapping[str, Set[str]]] = None,
+                      pmids: Optional[Iterable[Union[str, int]]] = None,
+                      entrez_ids: Optional[Iterable[Union[str, int]]] = None,
+                      file: Optional[TextIO] = None,
+                      ) -> None:
+    """Write a boilerplate BEL document, with standard document metadata, definitions.
 
-    :param str name: The unique name for this BEL document
-    :param str contact: The email address of the maintainer
-    :param str description: A description of the contents of this document
-    :param str authors: The authors of this document
-    :param str version: The version. Defaults to current date in format ``YYYYMMDD``.
-    :param str copyright: Copyright information about this document
-    :param str licenses: The license applied to this document
-    :param str disclaimer: The disclaimer for this document
-    :param dict[str,str] namespace_url: an optional dictionary of {str name: str URL} of namespaces
-    :param dict[str,str] namespace_patterns: An optional dictionary of {str name: str regex} namespaces
-    :param dict[str,str] annotation_url: An optional dictionary of {str name: str URL} of annotations
-    :param dict[str,str] annotation_patterns: An optional dictionary of {str name: str regex} of regex annotations
-    :param dict[str,set[str]] annotation_list: An optional dictionary of {str name: set of names} of list annotations
-    :param iter[str] or iter[int] pmids: A list of PubMed identifiers to auto-populate with citation and abstract
-    :param iter[str] or iter[int] entrez_ids: A list of Entrez identifiers to autopopulate the gene summary as evidence
-    :param file file: A writable file or file-like. If None, defaults to :data:`sys.stdout`
+    :param name: The unique name for this BEL document
+    :param contact: The email address of the maintainer
+    :param description: A description of the contents of this document
+    :param authors: The authors of this document
+    :param version: The version. Defaults to current date in format ``YYYYMMDD``.
+    :param copyright: Copyright information about this document
+    :param licenses: The license applied to this document
+    :param disclaimer: The disclaimer for this document
+    :param namespace_url: an optional dictionary of {str name: str URL} of namespaces
+    :param namespace_patterns: An optional dictionary of {str name: str regex} namespaces
+    :param annotation_url: An optional dictionary of {str name: str URL} of annotations
+    :param annotation_patterns: An optional dictionary of {str name: str regex} of regex annotations
+    :param annotation_list: An optional dictionary of {str name: set of names} of list annotations
+    :param pmids: A list of PubMed identifiers to auto-populate with citation and abstract
+    :param entrez_ids: A list of Entrez identifiers to autopopulate the gene summary as evidence
+    :param file: A writable file or file-like. If None, defaults to :data:`sys.stdout`
     """
     lines = make_knowledge_header(
         name=name,

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import itertools as itt
 from operator import itemgetter
 
-import itertools as itt
 import networkx as nx
 
 from pybel.constants import (

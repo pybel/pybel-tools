@@ -13,20 +13,21 @@ Citation
 --------
 If you use PyBEL in your work, please cite:
 
-.. [1] Hoyt, C. T., *et al.* (2017). `PyBEL: a Computational Framework for Biological Expression Language <https://doi.org/10.1093/bioinformatics/btx660>`_. Bioinformatics, 34(December), 1–2.
+.. [1] Hoyt, C. T., *et al.* (2017). `PyBEL: a Computational Framework for Biological Expression Language
+       <https://doi.org/10.1093/bioinformatics/btx660>`_. Bioinformatics, 34(December), 1–2.
 
 Installation |pypi_version| |python_versions| |pypi_license|
 ------------------------------------------------------------
 PyBEL Tools can be installed easily from PyPI_ with the following code in
 your favorite terminal:
 
-.. code-block:: sh
+.. code-block:: bash
 
     $ python3 -m pip install pybel_tools
 
 or from the latest code on `GitHub <https://github.com/pybel/pybel-tools>`_ with:
 
-.. code-block:: sh
+.. code-block:: bash
 
     $ python3 -m pip install git+https://github.com/pybel/pybel-tools.git@develop
 

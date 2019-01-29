@@ -1,115 +1,86 @@
 # -*- coding: utf-8 -*-
 
-"""This module investigates the properties of paths of length two (A - B - C)"""
+"""This module investigates the properties of paths of length two (A - B - C)."""
 
+from typing import Dict, Iterable, List, Tuple, Mapping
+
+from pybel import BELGraph
 from pybel.constants import (
-    ACTIVITY, CAUSAL_RELATIONS, COMPLEX, DEGRADATION, FUNCTION, HAS_COMPONENT, LINE, MODIFIER, OBJECT, RELATION,
-    SUBJECT, TRANSLOCATION,
+    ACTIVITY, CAUSAL_RELATIONS, DEGRADATION, HAS_COMPONENT, LINE, MODIFIER, OBJECT, RELATION, SUBJECT, TRANSLOCATION,
 )
+from pybel.dsl import BaseEntity, ComplexAbundance, NamedComplexAbundance
 from pybel.struct.filters import edge_predicate, has_protein_modification, part_has_modifier
 
 
-def self_edge_filter(graph, source, target, key):
-    """Checks if the source and target nodes are the same
-
-    :param pybel.BELGraph graph:
-    :param tuple source:
-    :param tuple target:
-    :param int key:
-    :rtype: bool
-    """
+def self_edge_filter(_: BELGraph, source: BaseEntity, target: BaseEntity, __: str) -> bool:
+    """Check if the source and target nodes are the same."""
     return source == target
 
 
-def has_protein_modification_increases_activity(graph, source, target, key):
-    """Check if pmod of source causes activity of target
-
-    :param graph:
-    :param source:
-    :param target:
-    :param key:
-    :rtype:
-    """
-    edge_data = graph.edge[source][target][key]
-
+def has_protein_modification_increases_activity(graph: BELGraph,
+                                                source: BaseEntity,
+                                                target: BaseEntity,
+                                                key: str,
+                                                ) -> bool:
+    """Check if pmod of source causes activity of target."""
+    edge_data = graph[source][target][key]
     return has_protein_modification(graph, source) and part_has_modifier(edge_data, OBJECT, ACTIVITY)
 
 
 @edge_predicate
-def has_degradation_increases_activity(data):
-    """Check if the degradation of source causes activity of target
-
-    :param dict data:
-    """
+def has_degradation_increases_activity(data: Dict) -> bool:
+    """Check if the degradation of source causes activity of target."""
     return part_has_modifier(data, SUBJECT, DEGRADATION) and part_has_modifier(data, OBJECT, ACTIVITY)
 
 
 @edge_predicate
-def has_translocation_increases_activity(data):
-    """Check if the tranclocation of source causes activity of target
-
-    :param dict data:
-    """
+def has_translocation_increases_activity(data: Dict) -> bool:
+    """Check if the translocation of source causes activity of target."""
     return part_has_modifier(data, SUBJECT, TRANSLOCATION) and part_has_modifier(data, OBJECT, ACTIVITY)
 
 
-def complex_has_member(graph, complex_node, member_node):
-    """Does the given complex contain the member?
-
-    :param pybel.BELGraph graph:
-    :param tuple complex_node:
-    :param tuple member_node:
-    :rtype: bool
-    """
-    for _, v, data in graph.out_edges(complex_node, data=True):
-        if data[RELATION] != HAS_COMPONENT:
-            continue
-        if v == member_node:
-            return True
+def complex_has_member(graph: BELGraph, complex_node: ComplexAbundance, member_node: BaseEntity) -> bool:
+    """Does the given complex contain the member?"""
+    return any(  # TODO can't you look in the members of the complex object (if it's enumerated)
+        v == member_node
+        for _, v, data in graph.out_edges(complex_node, data=True)
+        if data[RELATION] == HAS_COMPONENT
+    )
 
 
-def complex_increases_activity(graph, u, v, key):
-    """If the complexing of v increases its activity"""
-    if graph.node[u][FUNCTION] != COMPLEX:
-        return False
-
-    if not complex_has_member(graph, u, v):
-        return False
-
-    return part_has_modifier(graph.edge[u][v][key], OBJECT, ACTIVITY)
+def complex_increases_activity(graph: BELGraph, u: BaseEntity, v: BaseEntity, key: str) -> bool:
+    """Return if the formation of a complex with u increases the activity of v."""
+    return (
+        isinstance(u, (ComplexAbundance, NamedComplexAbundance)) and
+        complex_has_member(graph, u, v) and
+        part_has_modifier(graph[u][v][key], OBJECT, ACTIVITY)
+    )
 
 
-def has_same_subject_object(graph, u, v, key):
-    data = graph.edge[u][v][key]
+def has_same_subject_object(graph: BELGraph, u: BaseEntity, v: BaseEntity, key: str) -> bool:
+    data = graph[u][v][key]
     return u == v and data.get(SUBJECT) == data.get(OBJECT)
 
 
-def get_related_causal_out_edges(graph, u, edge_data):
+def get_related_causal_out_edges(graph: BELGraph,
+                                 u: BaseEntity,
+                                 edge_data: Dict,
+                                 ) -> Iterable[Tuple[BaseEntity, Dict, str]]:
     for _, v, data in graph.out_edges(u, data=True):
         if data[RELATION] in CAUSAL_RELATIONS and data.get(SUBJECT) == edge_data:
             yield v, data, graph.edge_to_bel(u, v, data)
 
 
-def get_related_ish_causal_out_edges(graph, u, modifier):
+def get_related_ish_causal_out_edges(graph: BELGraph,
+                                     u: BaseEntity,
+                                     modifier: str,
+                                     ) -> Iterable[Tuple[BaseEntity, Dict, str]]:
     for _, v, data in graph.out_edges(u, data=True):
         if data[RELATION] in CAUSAL_RELATIONS and data.get(SUBJECT, {}).get(MODIFIER) == modifier:
             yield v, data, graph.edge_to_bel(u, v, data)
 
 
-def find_related(graph, v, data):
-    for bel in sorted({bel for _, _, bel in get_related_causal_out_edges(graph, v, data)}):
-        print('* chained - ', bel)
-
-    for bel in sorted({bel for _, _, bel in get_related_ish_causal_out_edges(graph, v, data.get(MODIFIER))}):
-        print('^ related - ', bel)
-
-
-def summarize_competeness(graph):
-    """
-
-    :param pybel.BELGraph graph:
-    :rtype: list[dict]
-    """
+def summarize_completeness(graph: BELGraph) -> Mapping[str, List]:
     pmod_activity = []
     deg_activity = []
     tloc_activity = []
@@ -209,15 +180,12 @@ def summarize_competeness(graph):
         tloc_activity=tloc_activity,
         comp_activity=comp_activity,
         same_sub_obj=same_sub_obj,
-        same_undefined=same_undefined
+        same_undefined=same_undefined,
     )
 
 
-def find_activations(graph):
-    """Find edges that are A - A, meaning that some conditions in the edge best describe the interaction
-
-    :param pybel.BELGraph graph: A BEL graph
-    """
+def find_activations(graph: BELGraph):
+    """Find edges that are A - A, meaning that some conditions in the edge best describe the interaction."""
     for u, v, key, data in graph.edges(keys=True, data=True):
         if u != v:
             continue
@@ -252,9 +220,9 @@ def find_activations(graph):
             print(line, '- *** - ', bel)
 
 
-if __name__ == '__main__':
-    import pybel
+def find_related(graph: BELGraph, v: BaseEntity, data):
+    for bel in sorted({bel for _, _, bel in get_related_causal_out_edges(graph, v, data)}):
+        print('* chained - ', bel)
 
-    # g = pybel.from_pickle('/Users/cthoyt/dev/bms/aetionomy/alzheimers/alzheimers.gpickle')
-    g = pybel.from_pickle('/Users/cthoyt/dev/bms/selventa/large_corpus.gpickle')
-    find_activations(g)
+    for bel in sorted({bel for _, _, bel in get_related_ish_causal_out_edges(graph, v, data.get(MODIFIER))}):
+        print('^ related - ', bel)

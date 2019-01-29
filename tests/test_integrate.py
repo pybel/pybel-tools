@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
+"""Tests for data integration tools."""
+
 import unittest
 
 from pybel import BELGraph
-from pybel.constants import *
+from pybel.constants import GENE
 from pybel.dsl import gene, protein, rna
 from pybel_tools.integration import overlay_type_data
 
@@ -11,7 +13,10 @@ HGNC = 'HGNC'
 
 
 class TestIntegrate(unittest.TestCase):
+    """Tests for data integration tools."""
+
     def test_overlay(self):
+        """Test overlaying data in a BEL graph."""
         g = BELGraph()
 
         g1 = gene(HGNC, 'a')

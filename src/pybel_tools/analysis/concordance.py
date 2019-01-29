@@ -2,19 +2,19 @@
 
 """Performs concordance analysis"""
 
-from collections import defaultdict
-
 import enum
 import logging
+from collections import defaultdict
 from functools import partial
+from typing import List, Optional, Tuple
 
+from pybel import BELGraph
 from pybel.constants import (
     CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, CAUSES_NO_CHANGE, NEGATIVE_CORRELATION, POSITIVE_CORRELATION,
-    RELATION,
+    RELATION
 )
 from pybel.struct import get_subgraphs_by_annotation
-from pybel.struct.mutation import collapse_to_genes
-from ..mutation import collapse_all_variants
+from pybel.struct.mutation import collapse_all_variants, collapse_to_genes
 from ..mutation.random import random_by_edges, shuffle_node_data, shuffle_relations
 
 __all__ = [
@@ -33,13 +33,8 @@ UP = CAUSAL_INCREASE_RELATIONS | {POSITIVE_CORRELATION}
 DOWN = CAUSAL_DECREASE_RELATIONS | {NEGATIVE_CORRELATION}
 
 
-def get_cutoff(value, cutoff=None):
-    """Assigns if a value is greater than or less than a cutoff
-
-    :param float value:
-    :param float cutoff:
-    :rtype: int
-    """
+def get_cutoff(value: float, cutoff: Optional[float] = None) -> int:
+    """Assign if a value is greater than or less than a cutoff."""
     cutoff = cutoff if cutoff is not None else 0
 
     if value > cutoff:
@@ -52,14 +47,15 @@ def get_cutoff(value, cutoff=None):
 
 
 class Concordance(enum.Enum):
-    """Represents the possible results from differential gene expression edge concordance analysis"""
+    """Represents the possible results from differential gene expression edge concordance analysis."""
+
     correct = 0
     incorrect = 1
     ambiguous = 2
     unassigned = 3
 
 
-def edge_concords(graph, u, v, k, d, key, cutoff=None):
+def edge_concords(graph, u, v, k, d, key, cutoff: Optional[float] = None) -> Concordance:
     """
 
     :param pybel.BELGraph graph: A BEL graph
@@ -71,7 +67,7 @@ def edge_concords(graph, u, v, k, d, key, cutoff=None):
     :param float cutoff: The optional logFC cutoff for significance
     :rtype: Concordance
     """
-    if key not in graph.node[u] or key not in graph.node[v]:
+    if key not in graph.nodes[u] or key not in graph.nodes[v]:
         return Concordance.unassigned
 
     relation = d[RELATION]
@@ -79,11 +75,10 @@ def edge_concords(graph, u, v, k, d, key, cutoff=None):
     if relation not in (UP | DOWN | {CAUSES_NO_CHANGE}):
         return Concordance.unassigned
 
-    source_regulation = get_cutoff(graph.node[u][key], cutoff=cutoff)
-    target_regulation = get_cutoff(graph.node[v][key], cutoff=cutoff)
+    source_regulation = get_cutoff(graph.nodes[u][key], cutoff=cutoff)
+    target_regulation = get_cutoff(graph.nodes[v][key], cutoff=cutoff)
 
     if source_regulation == 1:
-
         if target_regulation == 1 and relation in UP:
             return Concordance.correct
 
@@ -110,7 +105,6 @@ def edge_concords(graph, u, v, k, d, key, cutoff=None):
             return Concordance.ambiguous
 
     elif source_regulation == -1:
-
         if target_regulation == 1 and relation in UP:
             return Concordance.incorrect
 
@@ -137,26 +131,27 @@ def edge_concords(graph, u, v, k, d, key, cutoff=None):
             return Concordance.ambiguous
 
     else:  # source_regulation == 0
-
         if target_regulation == 0 and relation == CAUSES_NO_CHANGE:
             return Concordance.correct
 
         return Concordance.ambiguous
 
 
-def calculate_concordance_helper(graph, key, cutoff=None):
-    """Helps calculate network-wide concordance
+def calculate_concordance_helper(graph: BELGraph,
+                                 key: str,
+                                 cutoff: Optional[float] = None,
+                                 ) -> Tuple[int, int, int, int]:
+    """Help calculate network-wide concordance
 
     Assumes data already annotated with given key
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param str key: The node data dictionary key storing the logFC
-    :param float cutoff: The optional logFC cutoff for significance
-    :rtype: tuple[int]
+    :param graph: A BEL graph
+    :param key: The node data dictionary key storing the logFC
+    :param cutoff: The optional logFC cutoff for significance
     """
     scores = defaultdict(int)
 
-    for u, v, k, d in graph.edges_iter(keys=True, data=True):
+    for u, v, k, d in graph.edges(keys=True, data=True):
         c = edge_concords(graph, u, v, k, d, key, cutoff=cutoff)
         scores[c] += 1
 
@@ -168,16 +163,16 @@ def calculate_concordance_helper(graph, key, cutoff=None):
     )
 
 
-def calculate_concordance(graph, key, cutoff=None, use_ambiguous=False):
+def calculate_concordance(graph: BELGraph, key: str, cutoff: Optional[float] = None,
+                          use_ambiguous: bool = False) -> float:
     """Calculates network-wide concordance.
 
     Assumes data already annotated with given key
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param str key: The node data dictionary key storing the logFC
-    :param float cutoff: The optional logFC cutoff for significance
-    :param bool use_ambiguous: Compare to ambiguous edges as well
-    :rtype: float
+    :param graph: A BEL graph
+    :param key: The node data dictionary key storing the logFC
+    :param cutoff: The optional logFC cutoff for significance
+    :param use_ambiguous: Compare to ambiguous edges as well
     """
     correct, incorrect, ambiguous, _ = calculate_concordance_helper(graph, key, cutoff=cutoff)
 
@@ -187,28 +182,31 @@ def calculate_concordance(graph, key, cutoff=None, use_ambiguous=False):
         return -1.0
 
 
-def one_sided(value, distribution):
-    """Calculates the one-sided probability of getting a value more extreme than the distribution
-
-    :param float value:
-    :param list[float] distribution:
-    :rtype: float
-    """
+def one_sided(value: float, distribution: List[float]) -> float:
+    """Calculate the one-sided probability of getting a value more extreme than the distribution."""
     assert distribution
     return sum(value < element for element in distribution) / len(distribution)
 
 
-def calculate_concordance_probability(graph, key, cutoff=None, permutations=None, percentage=None, use_ambiguous=False,
-                                      permute_type='shuffle_node_data'):
-    """Calculates a graph's concordance as well as its statistical probability
+def calculate_concordance_probability(graph: BELGraph,
+                                      key: str,
+                                      cutoff: Optional[float] = None,
+                                      permutations: Optional[int] = None,
+                                      percentage: Optional[float] = None,
+                                      use_ambiguous: bool = False,
+                                      permute_type: str = 'shuffle_node_data',
+                                      ) -> Tuple[float, List[float], float]:
+    """Calculates a graph's concordance as well as its statistical probability.
 
-    :param pybel.BELGraph graph: A BEL graph
+
+
+    :param graph: A BEL graph
     :param str key: The node data dictionary key storing the logFC
     :param float cutoff: The optional logFC cutoff for significance
     :param int permutations: The number of random permutations to test. Defaults to 500
     :param float percentage: The percentage of the graph's edges to maintain. Defaults to 0.9
     :param bool use_ambiguous: Compare to ambiguous edges as well
-    :rtype: tuple
+    :returns: A triple of the concordance score, the null distribution, and the p-value.
     """
     if permute_type == 'random_by_edges':
         permute_func = partial(random_by_edges, percentage=percentage)
@@ -217,9 +215,9 @@ def calculate_concordance_probability(graph, key, cutoff=None, permutations=None
     elif permute_type == 'shuffle_relations':
         permute_func = partial(shuffle_relations, percentage=percentage)
     else:
-        raise ValueError
+        raise ValueError('Invalid permute_type: {}'.format(permute_type))
 
-    graph = graph.copy()
+    graph: BELGraph = graph.copy()
     collapse_to_genes(graph)
     collapse_all_variants(graph)
 

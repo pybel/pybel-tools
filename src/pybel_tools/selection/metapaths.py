@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""
+"""Metapath search utilities.
 
 A metapath can be defined with two levels of granularity:
 
@@ -10,12 +10,9 @@ A metapath can be defined with two levels of granularity:
 
 """
 
-from pybel.constants import FUNCTION
+from functools import lru_cache
 
-try:
-    from functools import lru_cache
-except:
-    from functools32 import lru_cache
+from pybel.constants import FUNCTION
 
 __all__ = [
     'convert_path_to_metapath',
@@ -71,8 +68,8 @@ def match_simple_metapath(graph, node, simple_metapath):
         yield node,
 
     else:
-        for neighbor in graph.edge[node]:
-            if graph.node[neighbor][FUNCTION] == simple_metapath[0]:
+        for neighbor in graph.edges[node]:
+            if graph.nodes[neighbor][FUNCTION] == simple_metapath[0]:
                 for path in match_simple_metapath(graph, neighbor, simple_metapath[1:]):
                     if node not in path:
                         yield (node,) + path
@@ -87,7 +84,7 @@ def convert_simple_walk(graph, simple_walk):
     :rtype: list[str]
     """
     return [
-        graph.node[node][FUNCTION]
+        graph.nodes[node][FUNCTION]
         for node in simple_walk
     ]
 
@@ -101,7 +98,7 @@ def match_complex_metapath(graph, node, complex_metapath):
     :return: An iterable over paths from the node matching the metapath
     :rtype: iter[tuple]
     """
-    raise NotImplemented
+    raise NotImplementedError
 
 
 def convert_complex_walk(graph, complex_walk):
@@ -113,4 +110,4 @@ def convert_complex_walk(graph, complex_walk):
     :return: An alternating list of BEL functions and relations of the walk
     :rtype: list[str]
     """
-    raise NotImplemented
+    raise NotImplementedError

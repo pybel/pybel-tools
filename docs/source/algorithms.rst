@@ -7,7 +7,7 @@ NeuroMMSig
 
 EpiCom
 ------
-.. automodule:: pybel_tools.analysis.epicom.algorithm
+.. automodule:: pybel_tools.analysis.epicom
     :members:
 
 Reverse Causal Reasoning
@@ -15,7 +15,12 @@ Reverse Causal Reasoning
 .. automodule:: pybel_tools.analysis.rcr
     :members:
 
-Sample of Spanning Trees
-------------------------
-.. automodule:: pybel_tools.analysis.sst
+CausalR
+-------
+.. automodule:: pybel_tools.analysis.causalr
+    :members:
+
+SPIA
+----
+.. automodule:: pybel_tools.analysis.spia
     :members:

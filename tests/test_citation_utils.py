@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 
-import unittest
-
 from pybel import BELGraph
 from pybel.constants import *
-from pybel_tools.mutation import enrich_pubmed_citations
-from tests.constants import ManagerMixin
 from pybel.dsl import protein
 from pybel.testing.utils import n
+from pybel_tools.mutation import enrich_pubmed_citations
+from tests.constants import ManagerMixin
+
 
 class TestCitations(ManagerMixin):
     def setUp(self):
-        super(TestCitations, self).setUp()
+        super().setUp()
         self.pmid = '9611787'
         a, b = (protein(n(), n()) for _ in range(2))
         self.graph = BELGraph()
@@ -55,7 +54,3 @@ class TestCitations(ManagerMixin):
             {'Lewell XQ', 'Judd DB', 'Watson SP', 'Hann MM'},
             set(citation_dict[CITATION_AUTHORS])
         )
-
-
-if __name__ == '__main__':
-    unittest.main()

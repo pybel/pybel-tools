@@ -1,6 +1,6 @@
 Authors
 =======
-The following have contributed to the development, maintenance, and testing of PyBEL Tools
+The following have contributed to the development, maintenance, and testing of PyBEL Tools:
 
 Maintainer
 ----------
@@ -10,4 +10,4 @@ Code Contributors
 -----------------
 - `Daniel Domingo <https://github.com/ddomingof>`_
 - `Andrej Konotopez <https://github.com/lekono>`_
-- Reagon Kharki
+- Reagon Karki

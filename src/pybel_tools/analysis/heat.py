@@ -44,7 +44,7 @@ This algorithm can be tuned to allow the use of correlative relationships. Becau
 data are often measured with correlations to molecular features, this enables experiments to be run using SNP or
 brain imaging features, whose experiments often measure their correlation with the activity of gene products.
 
-.. [0] ﻿Hoyt, C. T., Konotopez, A., Ebeling, C., & Wren, J. (2018). `PyBEL: a computational framework for Biological
+.. [0] ﻿Hoyt, C. T., *et al.* (2017). `PyBEL: a computational framework for Biological
        Expression Language <https://doi.org/10.1093/bioinformatics/btx660>`_. Bioinformatics (Oxford, England), 34(4),
        703–704.
 .. [1] Bernabò N., *et al.* (2014). `The biological networks in studying cell signal transduction complexity: The
@@ -262,15 +262,14 @@ def workflow(
     return list(runners)
 
 
-def multirun(
-        graph: BELGraph,
-        node: BaseEntity,
-        key: Optional[str] = None,
-        tag: Optional[str] = None,
-        default_score: Optional[float] = None,
-        runs: Optional[int] = None,
-        use_tqdm: bool = False,
-) -> Iterable['Runner']:
+def multirun(graph: BELGraph,
+             node: BaseEntity,
+             key: Optional[str] = None,
+             tag: Optional[str] = None,
+             default_score: Optional[float] = None,
+             runs: Optional[int] = None,
+             use_tqdm: bool = False,
+             ) -> Iterable['Runner']:
     """Run the heat diffusion workflow multiple times, each time yielding a :class:`Runner` object upon completion.
 
     :param graph: A BEL graph
@@ -303,14 +302,13 @@ def multirun(
 class Runner:
     """This class houses the data related to a single run of the heat diffusion workflow."""
 
-    def __init__(
-            self,
-            graph: BELGraph,
-            target_node: BaseEntity,
-            key: Optional[str] = None,
-            tag: Optional[str] = None,
-            default_score: Optional[float] = None,
-    ):
+    def __init__(self,
+                 graph: BELGraph,
+                 target_node: BaseEntity,
+                 key: Optional[str] = None,
+                 tag: Optional[str] = None,
+                 default_score: Optional[float] = None,
+                 ) -> None:
         """Initialize the heat diffusion runner class.
 
         :param graph: A BEL graph
@@ -332,12 +330,12 @@ class Runner:
                 log.log(5, 'initializing %s with %s', target_node, self.graph.nodes[node][self.tag])
 
     def iter_leaves(self) -> Iterable[BaseEntity]:
-        """Returns an iterable over all nodes that are leaves. A node is a leaf if either:
+        """Return an iterable over all nodes that are leaves.
+
+        A node is a leaf if either:
 
          - it doesn't have any predecessors, OR
          - all of its predecessors have a score in their data dictionaries
-
-        :return: An iterable over all leaf nodes
         """
         for node in self.graph:
             if self.tag in self.graph.nodes[node]:
@@ -347,21 +345,15 @@ class Runner:
                 yield node
 
     def has_leaves(self) -> List[BaseEntity]:
-        """Returns if the current graph has any leaves.
+        """Return if the current graph has any leaves.
 
         Implementation is not that smart currently, and does a full sweep.
-
-        :return: Does the current graph have any leaves?
         """
         leaves = list(self.iter_leaves())
         return leaves
 
     def in_out_ratio(self, node: BaseEntity) -> float:
-        """Calculate the ratio of in-degree / out-degree of a node.
-
-        :param tuple node: A BEL node
-        :return: The in-degree / out-degree ratio for the given node
-        """
+        """Calculate the ratio of in-degree / out-degree of a node."""
         return self.graph.in_degree(node) / float(self.graph.out_degree(node))
 
     def unscored_nodes_iter(self) -> BaseEntity:
@@ -442,7 +434,7 @@ class Runner:
             self.score_leaves()
 
     def run_with_graph_transformation(self) -> Iterable[BELGraph]:
-        """Calculate  scores for all leaves until there are none, removes edges until there are, and repeats until
+        """Calculate scores for all leaves until there are none, removes edges until there are, and repeats until
         all nodes have been scored. Also, yields the current graph at every step so you can make a cool animation
         of how the graph changes throughout the course of the algorithm
 
@@ -476,11 +468,7 @@ class Runner:
         return self.graph.nodes[self.target_node][self.tag]
 
     def calculate_score(self, node: BaseEntity) -> float:
-        """Calculate the score of the given node.
-
-        :param node: A node in the BEL graph
-        :return: The new score of the node
-        """
+        """Calculate the new score of the given node."""
         score = (
             self.graph.nodes[node][self.tag]
             if self.tag in self.graph.nodes[node] else
@@ -504,15 +492,14 @@ class Runner:
         return self.graph.subgraph(self.unscored_nodes_iter())
 
 
-def workflow_aggregate(
-        graph: BELGraph,
-        node: BaseEntity,
-        key: Optional[str] = None,
-        tag: Optional[str] = None,
-        default_score: Optional[float] = None,
-        runs: Optional[int] = None,
-        aggregator: Optional[Callable[[Iterable[float]], float]] = None,
-) -> Optional[float]:
+def workflow_aggregate(graph: BELGraph,
+                       node: BaseEntity,
+                       key: Optional[str] = None,
+                       tag: Optional[str] = None,
+                       default_score: Optional[float] = None,
+                       runs: Optional[int] = None,
+                       aggregator: Optional[Callable[[Iterable[float]], float]] = None,
+                       ) -> Optional[float]:
     """Get the average score over multiple runs.
 
     This function is very simple, and can be copied to do more interesting statistics over the :class:`Runner`
@@ -542,13 +529,12 @@ def workflow_aggregate(
     return aggregator(scores)
 
 
-def workflow_all(
-        graph: BELGraph,
-        key: Optional[str] = None,
-        tag: Optional[str] = None,
-        default_score: Optional[float] = None,
-        runs: Optional[int] = None,
-) -> Mapping[BaseEntity, List[Runner]]:
+def workflow_all(graph: BELGraph,
+                 key: Optional[str] = None,
+                 tag: Optional[str] = None,
+                 default_score: Optional[float] = None,
+                 runs: Optional[int] = None,
+                 ) -> Mapping[BaseEntity, List[Runner]]:
     """Run the heat diffusion workflow and get runners for every possible candidate mechanism
 
     1. Get all biological processes
@@ -572,14 +558,13 @@ def workflow_all(
     return results
 
 
-def workflow_all_aggregate(
-        graph: BELGraph,
-        key: Optional[str] = None,
-        tag: Optional[str] = None,
-        default_score: Optional[float] = None,
-        runs: Optional[int] = None,
-        aggregator: Optional[Callable[[Iterable[float]], float]] = None,
-):
+def workflow_all_aggregate(graph: BELGraph,
+                           key: Optional[str] = None,
+                           tag: Optional[str] = None,
+                           default_score: Optional[float] = None,
+                           runs: Optional[int] = None,
+                           aggregator: Optional[Callable[[Iterable[float]], float]] = None,
+                           ):
     """Run the heat diffusion workflow to get average score for every possible candidate mechanism.
 
     1. Get all biological processes
@@ -601,7 +586,7 @@ def workflow_all_aggregate(
 
     bioprocess_nodes = list(get_nodes_by_function(graph, BIOPROCESS))
 
-    for bioprocess_node in tqdm(bioprocess_nodes, total=len(bioprocess_nodes)):
+    for bioprocess_node in tqdm(bioprocess_nodes):
         subgraph = generate_mechanism(graph, bioprocess_node, key=key)
 
         try:

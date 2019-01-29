@@ -6,29 +6,22 @@ This module contains functions that provide aggregate summaries of graphs includ
 printing summary information, and exporting summarized graphs
 """
 
-from __future__ import print_function
-
 import logging
-import warnings
 
 import pandas as pd
 
-from pybel.struct.summary.node_summary import count_functions
-from .edge_summary import count_relations
+from pybel import BELGraph
+from pybel.struct.summary import count_functions, count_relations
 
 __all__ = [
     'plot_summary_axes',
     'plot_summary',
-    'info_list',
-    'info_str',
-    'info_json',
-    'print_summary',
 ]
 
 log = logging.getLogger(__name__)
 
 
-def plot_summary_axes(graph, lax, rax, logx=True):
+def plot_summary_axes(graph: BELGraph, lax, rax, logx=True):
     """Plots your graph summary statistics on the given axes.
 
     After, you should run :func:`plt.tight_layout` and you must run :func:`plt.show` to view.
@@ -65,7 +58,7 @@ def plot_summary_axes(graph, lax, rax, logx=True):
     rax.set_title('Number of edges: {}'.format(graph.number_of_edges()))
 
 
-def plot_summary(graph, plt, logx=True, **kwargs):
+def plot_summary(graph: BELGraph, plt, logx=True, **kwargs):
     """Plots your graph summary statistics. This function is a thin wrapper around :func:`plot_summary_axis`. It
     automatically takes care of building figures given matplotlib's pyplot module as an argument. After, you need
     to run :func:`plt.show`.
@@ -77,7 +70,6 @@ def plot_summary(graph, plt, logx=True, **kwargs):
     1. Count of nodes, grouped by function type
     2. Count of edges, grouped by relation type
 
-    :param pybel.BELGraph graph: A BEL graph
     :param plt: Give :code:`matplotlib.pyplot` to this parameter
     :param kwargs: keyword arguments to give to :func:`plt.subplots`
 
@@ -98,43 +90,3 @@ def plot_summary(graph, plt, logx=True, **kwargs):
     plt.tight_layout()
 
     return fig, axes
-
-
-def info_list(graph):
-    """Returns useful information about the graph as a list of tuples
-
-    :param pybel.BELGraph graph: A BEL graph
-    :rtype: list
-    """
-    warnings.warn('info_list is deprecated.', DeprecationWarning)
-    return graph._describe_list()
-
-
-def info_json(graph):
-    """Returns useful information about the graph as a dictionary
-
-    :param pybel.BELGraph graph: A BEL graph
-    :rtype: dict
-    """
-    warnings.warn('info_json is deprecated. Use BELGraph.summary_dict()', DeprecationWarning)
-    return graph.summary_dict()
-
-
-def info_str(graph):
-    """Puts useful information about the graph in a string
-
-    :param pybel.BELGraph graph: A BEL graph
-    :rtype: str
-    """
-    warnings.warn('info_str is deprecaged. Use BELGraph.summary_str()', DeprecationWarning)
-    return graph.summary_str()
-
-
-def print_summary(graph, file=None):
-    """Prints useful information about the graph
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param file: A writeable file or file-like object. If None, defaults to :data:`sys.stdout`
-    """
-    warnings.warn('print_summary is deprecated. use BELGraph.summarize()', DeprecationWarning)
-    graph.summarize(file=file)

@@ -4,21 +4,46 @@
 
 import os
 
-import pybel
-from ...io import from_path_ensure_pickle
+from bel_repository import BELRepository
+from pybel import BELGraph
 
 __all__ = [
-    'get_bms_base',
-    'get_neurommsig_base',
     'get_ad_graph',
     'get_pd_graph',
     'get_ep_graph',
+    'get_bms_base',
+    'get_neurommsig_base',
 ]
 
 
-def get_bms_base():
-    """
-    :rtype: str
+def get_ad_graph(*args, **kwargs) -> BELGraph:
+    repo = BELRepository(os.path.join(get_aetionomy_directory(), 'alzheimers'))
+    return repo.get_graph(*args, **kwargs)
+
+
+def get_pd_graph(*args, **kwargs) -> BELGraph:
+    repo = BELRepository(os.path.join(get_aetionomy_directory(), 'parkinsons'))
+    return repo.get_graph(*args, **kwargs)
+
+
+def get_ep_graph(*args, **kwargs) -> BELGraph:
+    repo = BELRepository(os.path.join(get_aetionomy_directory(), 'epilepsy'))
+    return repo.get_graph(*args, **kwargs)
+
+
+def get_aetionomy_directory() -> str:
+    aetionomy_bel_directory = os.environ.get('AETIONOMY_BEL_DIRECTORY')
+    if not aetionomy_bel_directory:
+        aetionomy_bel_directory = get_bms_base()
+
+    path = os.path.join(aetionomy_bel_directory, 'aetionomy')
+    assert os.path.exists(path)
+    return path
+
+
+def get_bms_base() -> str:
+    """Get the path to the BMS git repository from the environment or thrown an exception.
+
     :raises: RuntimeError
     """
     bms_base = os.environ.get('BMS_BASE')
@@ -39,9 +64,9 @@ def get_bms_base():
     return bms_base
 
 
-def get_neurommsig_base():
-    """
-    :rtype: str
+def get_neurommsig_base() -> str:
+    """Get the path to the NeuroMMSig git repository from the environment or thrown an exception.
+
     :raises: RuntimeError
     """
     neurommsig_base = os.environ.get('NEUROMMSIG_BASE')
@@ -60,96 +85,3 @@ def get_neurommsig_base():
         """)
 
     return neurommsig_base
-
-
-def get_aetionomy_path():
-    """
-    :rtype: str
-    """
-    path = os.path.join(get_bms_base(), 'aetionomy')
-    assert os.path.exists(path)
-    return path
-
-
-def get_ad_path():
-    """
-    :rtype: str
-    """
-    path = os.path.join(get_aetionomy_path(), 'alzheimers', 'alzheimers.bel')
-    assert os.path.exists(path)
-    return path
-
-
-def get_ad_pickle_path():
-    """
-    :rtype: str
-    """
-    return os.path.join(get_aetionomy_path(), 'alzheimers', 'alzheimers.gpickle')
-
-
-def get_ad_graph():
-    """
-    :rtype: pybel.BELGraph
-    """
-    pickle_path = get_ad_pickle_path()
-
-    if os.path.exists(pickle_path):
-        return pybel.from_pickle(pickle_path)
-
-    return from_path_ensure_pickle(get_ad_path())
-
-
-def get_pd_path():
-    """
-    :rtype: str
-    """
-    path = os.path.join(get_aetionomy_path(), 'parkinsons', 'parkinsons.bel')
-    assert os.path.exists(path)
-    return path
-
-
-def get_pd_pickle_path():
-    """
-    :rtype: str
-    """
-    return os.path.join(get_aetionomy_path(), 'parkinsons', 'parkinsons.gpickle')
-
-
-def get_pd_graph():
-    """
-    :rtype: pybel.BELGraph
-    """
-    pickle_path = get_pd_pickle_path()
-
-    if os.path.exists(pickle_path):
-        return pybel.from_pickle(pickle_path)
-
-    return from_path_ensure_pickle(get_pd_path())
-
-
-def get_ep_path():
-    """
-    :rtype: str
-    """
-    path = os.path.join(get_aetionomy_path(), 'epilepsy', 'epilepsy.bel')
-    assert os.path.exists(path)
-    return path
-
-
-def get_ep_pickle_path():
-    """
-    :rtype: str
-    """
-    return os.path.join(get_aetionomy_path(), 'epilepsy', 'epilepsy.gpickle')
-
-
-def get_ep_graph():
-    """
-    :rtype: pybel.BELGraph
-    """
-    pickle_path = get_ep_pickle_path()
-
-    if os.path.exists(pickle_path):
-        return pybel.from_pickle(pickle_path)
-
-    return from_path_ensure_pickle(get_ep_path())

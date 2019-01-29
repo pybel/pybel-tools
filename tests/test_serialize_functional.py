@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""This module tests the serialization for BELIEF"""
+"""This module tests the serialization for BELIEF."""
 
 import unittest
 
@@ -8,6 +8,7 @@ from pybel import BELGraph
 from pybel.constants import *
 from pybel.parser import BELParser
 from pybel_tools.serialization.functional import convert_for_belief
+
 
 @unittest.skip
 class TestFunctionalize(unittest.TestCase):

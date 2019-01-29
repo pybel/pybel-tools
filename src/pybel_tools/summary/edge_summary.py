@@ -1,22 +1,23 @@
 # -*- coding: utf-8 -*-
 
-"""This module contains functions that provide summaries of the edges in a graph"""
+"""This module contains functions that provide summaries of the edges in a graph."""
+
+from collections import Counter, defaultdict
+from typing import Iterable, List, Mapping, Optional, Set, Tuple, TypeVar
 
 import itertools as itt
-from collections import Counter, defaultdict
-from typing import Iterable, List, Mapping, Optional, Set, Tuple
 
 from pybel import BELGraph
 from pybel.constants import ANNOTATIONS, RELATION
 from pybel.dsl import BaseEntity
 from pybel.struct.filters.edge_predicates import edge_has_annotation
 from pybel.struct.filters.node_predicates import keep_node_permissive
+from pybel.struct.filters.typing import NodePredicate
 from pybel.struct.summary import (
-    count_annotations, count_pathologies, count_relations, get_annotation_values, get_annotations,
-    get_unused_annotations, iter_annotation_value_pairs, iter_annotation_values,
+    count_annotations, count_pathologies, count_relations, get_annotations, get_unused_annotations,
+    get_unused_list_annotation_values, iter_annotation_value_pairs, iter_annotation_values,
 )
 from .contradictions import pair_has_contradiction
-from ..filters.typing import NodePredicate
 
 __all__ = [
     'count_relations',
@@ -35,13 +36,12 @@ __all__ = [
     'get_unused_list_annotation_values',
 ]
 
+A = TypeVar('A')
+B = TypeVar('B')
 
-def group_dict_set(iterator: Iterable) -> Mapping:
-    """Makes a dict that accumulates the values for each key in an iterator of doubles
 
-    :param iter[tuple[A,B]] iterator: An iterator
-    :rtype: dict[A,set[B]]
-    """
+def group_dict_set(iterator: Iterable[Tuple[A, B]]) -> Mapping[A, Set[B]]:
+    """Make a dict that accumulates the values for each key in an iterator of doubles."""
     d = defaultdict(set)
     for key, value in iterator:
         d[key].add(value)
@@ -49,11 +49,7 @@ def group_dict_set(iterator: Iterable) -> Mapping:
 
 
 def get_edge_relations(graph: BELGraph) -> Mapping[Tuple[BaseEntity, BaseEntity], Set[str]]:
-    """Build a dictionary of {node pair: set of edge types}
-
-    :param graph: A BEL graph
-    :return: A dictionary of {(node, node): set of edge types}
-    """
+    """Build a dictionary of {node pair: set of edge types}."""
     return group_dict_set(
         ((u, v), d[RELATION])
         for u, v, d in graph.edges(data=True)
@@ -64,26 +60,8 @@ def count_unique_relations(graph: BELGraph) -> Counter:
     """Return a histogram of the different types of relations present in a graph.
 
     Note: this operation only counts each type of edge once for each pair of nodes
-
-    :param graph: A BEL graph
-    :return: Counter from {relation type: frequency}
     """
     return Counter(itt.chain.from_iterable(get_edge_relations(graph).values()))
-
-
-def get_unused_list_annotation_values(graph: BELGraph) -> Mapping[str, Set[str]]:
-    """Get all of the unused values for list annotations
-    
-    :param graph: A BEL graph
-    :return: A dictionary of {str annotation: set of str values that aren't used}
-    """
-    result = {}
-    for annotation, values in graph.annotation_list.items():
-        used_values = get_annotation_values(graph, annotation)
-        if len(used_values) == len(values):  # all values have been used
-            continue
-        result[annotation] = set(values) - used_values
-    return result
 
 
 def get_annotations_containing_keyword(graph: BELGraph, keyword: str) -> List[Mapping[str, str]]:
@@ -91,7 +69,6 @@ def get_annotations_containing_keyword(graph: BELGraph, keyword: str) -> List[Ma
 
     :param graph: A BEL graph
     :param keyword: Search for annotations whose values have this as a substring
-    :rtype: list[dict[str,str]
     """
     return [
         {
@@ -113,8 +90,11 @@ def count_annotation_values(graph: BELGraph, annotation: str) -> Counter:
     return Counter(iter_annotation_values(graph, annotation))
 
 
-def count_annotation_values_filtered(graph: BELGraph, annotation: str, source_filter: Optional[NodePredicate] = None,
-                                     target_filter: Optional[NodePredicate] = None) -> Counter:
+def count_annotation_values_filtered(graph: BELGraph,
+                                     annotation: str,
+                                     source_filter: Optional[NodePredicate] = None,
+                                     target_filter: Optional[NodePredicate] = None,
+                                     ) -> Counter:
     """Count in how many edges each annotation appears in a graph, but filter out source nodes and target nodes.
 
     See :func:`pybel_tools.utils.keep_node` for a basic filter.
@@ -138,9 +118,6 @@ def count_annotation_values_filtered(graph: BELGraph, annotation: str, source_fi
 def pair_is_consistent(graph: BELGraph, u: BaseEntity, v: BaseEntity) -> Optional[str]:
     """Return if the edges between the given nodes are consistent, meaning they all have the same relation.
 
-    :param graph: A BEL graph
-    :param u: The source BEL node
-    :param v: The target BEL node
     :return: If the edges aren't consistent, return false, otherwise return the relation type
     """
     relations = {data[RELATION] for data in graph[u][v].values()}
@@ -154,7 +131,6 @@ def pair_is_consistent(graph: BELGraph, u: BaseEntity, v: BaseEntity) -> Optiona
 def get_contradictory_pairs(graph: BELGraph) -> Iterable[Tuple[BaseEntity, BaseEntity]]:
     """Iterates over contradictory node pairs in the graph based on their causal relationships
     
-    :param graph: A BEL graph
     :return: An iterator over (source, target) node pairs that have contradictory causal edges
     """
     for u, v in graph.edges():
@@ -165,7 +141,6 @@ def get_contradictory_pairs(graph: BELGraph) -> Iterable[Tuple[BaseEntity, BaseE
 def get_consistent_edges(graph: BELGraph) -> Iterable[Tuple[BaseEntity, BaseEntity]]:
     """Yield pairs of (source node, target node) for which all of their edges have the same type of relation.
 
-    :param graph: A BEL graph
     :return: An iterator over (source, target) node pairs corresponding to edges with many inconsistent relations
     """
     for u, v in graph.edges():

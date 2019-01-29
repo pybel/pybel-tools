@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 
-import itertools as itt
 import logging
+from typing import Iterable, Mapping, Set, Tuple
 
+import itertools as itt
 from networkx import DiGraph, Graph
 
+from pybel import BELGraph
 from pybel.constants import (
     CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, CORRELATIVE_RELATIONS,
     NEGATIVE_CORRELATION, POSITIVE_CORRELATION, RELATION,
 )
+from pybel.dsl import BaseEntity
 from pybel.struct.utils import update_node_helper
 from ..selection import get_causal_subgraph
 from ..summary.contradictions import relation_set_has_contradictions
@@ -35,13 +38,16 @@ __all__ = [
 
 log = logging.getLogger(__name__)
 
+NodePair = Tuple[BaseEntity, BaseEntity]
+NodeTriple = Tuple[BaseEntity, BaseEntity, BaseEntity]
 
-def get_contradiction_summary(graph):
+SetOfNodePairs = Set[NodePair]
+SetOfNodeTriples = Set[NodeTriple]
+
+
+def get_contradiction_summary(graph: BELGraph) -> Iterable[Tuple[BaseEntity, BaseEntity, str]]:
     """Yield triplets of (source node, target node, set of relations) for (source node, target node) pairs
     that have multiple, contradictory relations.
-
-    :param pybel.BELGraph graph: A BEL graph
-    :rtype: iter[tuple]
     """
     for u, v in set(graph.edges()):
         relations = {data[RELATION] for data in graph[u][v].values()}
@@ -49,13 +55,11 @@ def get_contradiction_summary(graph):
             yield u, v, relations
 
 
-def get_regulatory_pairs(graph):
-    """Finds pairs of nodes that have mutual causal edges that are regulating each other such that ``A -> B`` and
+def get_regulatory_pairs(graph: BELGraph) -> Set[NodePair]:
+    """Find pairs of nodes that have mutual causal edges that are regulating each other such that ``A -> B`` and
     ``B -| A``.
 
-    :param pybel.BELGraph graph: A BEL graph
     :return: A set of pairs of nodes with mutual causal edges
-    :rtype: set
     """
     cg = get_causal_subgraph(graph)
 
@@ -71,13 +75,11 @@ def get_regulatory_pairs(graph):
     return results
 
 
-def get_chaotic_pairs(graph):
-    """Finds pairs of nodes that have mutual causal edges that are increasing each other such that ``A -> B`` and
+def get_chaotic_pairs(graph: BELGraph) -> SetOfNodePairs:
+    """Find pairs of nodes that have mutual causal edges that are increasing each other such that ``A -> B`` and
     ``B -> A``.
 
-    :param pybel.BELGraph graph: A BEL graph
     :return: A set of pairs of nodes with mutual causal edges
-    :rtype: set
     """
     cg = get_causal_subgraph(graph)
 
@@ -93,13 +95,11 @@ def get_chaotic_pairs(graph):
     return results
 
 
-def get_dampened_pairs(graph):
-    """Finds pairs of nodes that have mutual causal edges that are decreasing each other such that ``A -| B`` and
+def get_dampened_pairs(graph: BELGraph) -> SetOfNodePairs:
+    """Find pairs of nodes that have mutual causal edges that are decreasing each other such that ``A -| B`` and
     ``B -| A``.
 
-    :param pybel.BELGraph graph: A BEL graph
     :return: A set of pairs of nodes with mutual causal edges
-    :rtype: set
     """
     cg = get_causal_subgraph(graph)
 
@@ -115,12 +115,8 @@ def get_dampened_pairs(graph):
     return results
 
 
-def get_correlation_graph(graph):
-    """Extracts a graph of only correlative relationships
-    
-    :param pybel.BELGraph graph: A BEL Graph
-    :rtype: networkx.Graph
-    """
+def get_correlation_graph(graph: BELGraph) -> Graph:
+    """Extract an undirected graph of only correlative relationships."""
     result = Graph()
 
     for u, v, d in graph.edges(data=True):
@@ -138,12 +134,8 @@ def get_correlation_graph(graph):
     return result
 
 
-def get_correlation_triangles(graph):
-    """Returns a set of all triangles pointed by the given node
-
-    :param networkx.Graph graph: A non-directional graph
-    :rtype: set[tuple]
-    """
+def get_correlation_triangles(graph: BELGraph) -> SetOfNodeTriples:
+    """Return a set of all triangles pointed by the given node."""
     return {
         tuple(sorted([n, u, v], key=str))
         for n in graph
@@ -152,31 +144,23 @@ def get_correlation_triangles(graph):
     }
 
 
-def get_triangles(graph):
-    """Gets a set of triples representing the 3-cycles from a directional graph. Each 3-cycle is returned once,
-    with nodes in sorted order.
+def get_triangles(graph: DiGraph) -> SetOfNodeTriples:
+    """Get a set of triples representing the 3-cycles from a directional graph.
 
-    :param networkx.DiGraph graph: A directional graph
-    :rtype: set[tuple]
+    Each 3-cycle is returned once, with nodes in sorted order.
     """
-    results = set()
-
-    for a, b in graph.edges():
-        for c in graph.successors(b):
-            if graph.has_edge(c, a):
-                canonical_ordering = tuple(sorted([a, b, c], key=str))
-                results.add(canonical_ordering)
-
-    return results
+    return {
+        tuple(sorted([a, b, c], key=str))
+        for a, b in graph.edges()
+        for c in graph.successors(b)
+        if graph.has_edge(c, a)
+    }
 
 
-def get_separate_unstable_correlation_triples(graph):
-    """Yields all triples of nodes A, B, C such that ``A positiveCorrelation B``, ``A positiveCorrelation C``, and
-    ``B negativeCorrelation C``
+def get_separate_unstable_correlation_triples(graph: BELGraph) -> Iterable[NodeTriple]:
+    """Yield all triples of nodes A, B, C such that ``A pos B``, ``A pos C``, and ``B neg C``.
 
-    :param pybel.BELGraph graph: A BEL graph
     :return: An iterator over triples of unstable graphs, where the second two are negative
-    :rtype: iter[tuple]
     """
     cg = get_correlation_graph(graph)
 
@@ -192,13 +176,8 @@ def get_separate_unstable_correlation_triples(graph):
             yield c, a, b
 
 
-def get_mutually_unstable_correlation_triples(graph):
-    """Yields all triples of nodes A, B, C such that ``A negativeCorrelation B``, ``B negativeCorrelation C``, and
-    ``C negativeCorrelation A``.
-
-    :param pybel.BELGraph graph: A BEL graph
-    :rtype: iter[tuple]
-    """
+def get_mutually_unstable_correlation_triples(graph: BELGraph) -> Iterable[NodeTriple]:
+    """Yield triples of nodes (A, B, C) such that ``A neg B``, ``B neg C``, and ``C neg A``."""
     cg = get_correlation_graph(graph)
 
     for a, b, c in get_correlation_triangles(cg):
@@ -206,10 +185,10 @@ def get_mutually_unstable_correlation_triples(graph):
             yield a, b, c
 
 
-def jens_transformation_alpha(graph):
-    """Applies Jens' transformation (Type 1) to the graph
+def jens_transformation_alpha(graph: BELGraph) -> DiGraph:
+    """Apply Jens' transformation (Type 1) to the graph.
 
-    1. Induce a subgraph over causal + correlative edges
+    1. Induce a sub-graph over causal + correlative edges
     2. Transform edges by the following rules:
         - increases => increases
         - decreases => backwards increases
@@ -218,13 +197,10 @@ def jens_transformation_alpha(graph):
 
     The resulting graph can be used to search for 3-cycles, which now symbolize unstable triplets where ``A -> B``,
     ``A -| C`` and ``B positiveCorrelation C``.
-
-    :param pybel.BELGraph graph: A BEL graph
-    :rtype: networkx.DiGraph
     """
     result = DiGraph()
 
-    for u, v, k, d in graph.edges(keys=True, data=True):
+    for u, v, d in graph.edges(data=True):
         relation = d[RELATION]
 
         if relation == POSITIVE_CORRELATION:
@@ -237,16 +213,13 @@ def jens_transformation_alpha(graph):
         elif relation in CAUSAL_DECREASE_RELATIONS:
             result.add_edge(v, u)
 
-    for node in result:
-        result.node[node].update(graph.node[node])
-
     return result
 
 
-def jens_transformation_beta(graph):
-    """Applies Jens' Transformation (Type 2) to the graph
+def jens_transformation_beta(graph: BELGraph) -> DiGraph:
+    """Apply Jens' Transformation (Type 2) to the graph.
 
-    1. Induce a subgraph over causal and correlative relations
+    1. Induce a sub-graph over causal and correlative relations
     2. Transform edges with the following rules:
         - increases => backwards decreases
         - decreases => decreases
@@ -255,13 +228,10 @@ def jens_transformation_beta(graph):
 
     The resulting graph can be used to search for 3-cycles, which now symbolize stable triples where ``A -> B``,
     ``A -| C`` and ``B negativeCorrelation C``.
-
-    :param pybel.BELGraph graph: A BEL graph
-    :rtype: networkx.DiGraph
     """
     result = DiGraph()
 
-    for u, v, k, d in graph.edges(keys=True, data=True):
+    for u, v, d in graph.edges(data=True):
         relation = d[RELATION]
 
         if relation == NEGATIVE_CORRELATION:
@@ -274,30 +244,19 @@ def jens_transformation_beta(graph):
         elif relation in CAUSAL_DECREASE_RELATIONS:
             result.add_edge(u, v)
 
-    for node in result:
-        result.node[node].update(graph.node[node])
-
     return result
 
 
-def get_jens_unstable(graph):
-    """Yields triples of nodes where ``A -> B``, ``A -| C``, and ``C positiveCorrelation A``. Calculated
-    efficiently using the Jens Transformation.
+def get_jens_unstable(graph: BELGraph) -> Iterable[NodeTriple]:
+    """Yield triples of nodes (A, B, C) where ``A -> B``, ``A -| C``, and ``C positiveCorrelation A``.
 
-    :param pybel.BELGraph graph: A BEL graph
-    :return: An iterable of triplets of nodes
-    :rtype: iter[tuple]
+    Calculated efficiently using the Jens Transformation.
     """
     r = jens_transformation_alpha(graph)
     return get_triangles(r)
 
 
-def _get_mismatch_triplets_helper(graph, relation_set):
-    """
-    :param pybel.BELGraph graph: A BEL graph
-    :return: An iterable of mismatch triples
-    :rtype iter[tuple]
-    """
+def _get_mismatch_triplets_helper(graph: BELGraph, relation_set: Set[str]) -> Iterable[NodeTriple]:
     for node in graph:
         children = {
             target
@@ -313,32 +272,17 @@ def _get_mismatch_triplets_helper(graph, relation_set):
                 yield node, a, b
 
 
-def get_increase_mismatch_triplets(graph):
-    """Iterates over triples of nodes where ``A -> B``, ``A -> C``, and ``C negativeCorrelation A``.
-    
-    :param pybel.BELGraph graph: A BEL graph
-    :return: An iterable of triplets of nodes
-    :rtype: iter[tuple]
-    """
+def get_increase_mismatch_triplets(graph: BELGraph) -> Iterable[NodeTriple]:
+    """Yield triples of nodes (A, B, C) where ``A -> B``, ``A -> C``, and ``C negativeCorrelation A``."""
     return _get_mismatch_triplets_helper(graph, CAUSAL_INCREASE_RELATIONS)
 
 
-def get_decrease_mismatch_triplets(graph):
-    """Iterates over triplets of nodes where ``A -| B``, ``A -| C``, and ``C negativeCorrelation A``.
-
-    :param pybel.BELGraph graph: A BEL graph
-    :return: An iterable of triplets of nodes
-    :rtype: iter[tuple]
-    """
+def get_decrease_mismatch_triplets(graph: BELGraph) -> Iterable[NodeTriple]:
+    """Yield triples of nodes (A, B, C) where ``A -| B``, ``A -| C``, and ``C negativeCorrelation A``."""
     return _get_mismatch_triplets_helper(graph, CAUSAL_DECREASE_RELATIONS)
 
 
-def _get_disregulated_triplets_helper(graph, relation_set):
-    """
-    :param pybel.BELGraph graph: A BEL graph
-    :param set[str] relation_set: A set of relations to keep 
-    :rtype: iter[tuple]
-    """
+def _get_disregulated_triplets_helper(graph: BELGraph, relation_set: Set[str]) -> Iterable[NodeTriple]:
     result = DiGraph()
 
     for u, v, d in graph.edges(data=True):
@@ -353,34 +297,22 @@ def _get_disregulated_triplets_helper(graph, relation_set):
         yield a, b, c
 
 
-def get_chaotic_triplets(graph):
-    """Iterates over triples of nodes that mutually increase each other, such as when ``A -> B``, ``B -> C``, and
+def get_chaotic_triplets(graph: BELGraph) -> Iterable[NodeTriple]:
+    """Yield triples of nodes (A, B, C) that mutually increase each other, such as when ``A -> B``, ``B -> C``, and
     ``C -> A``.
-
-    :param pybel.BELGraph graph: A BEL graph
-    :return: An iterable of triplets of nodes
-    :rtype: iter[tuple]
     """
     return _get_disregulated_triplets_helper(graph, CAUSAL_INCREASE_RELATIONS)
 
 
-def get_dampened_triplets(graph):
-    """Iterates over triples of nodes that mutually decreases each other, such as when ``A -| B``,
+def get_dampened_triplets(graph: BELGraph) -> Iterable[NodeTriple]:
+    """Yield triples of nodes (A, B, C) that mutually decreases each other, such as when ``A -| B``,
     ``B -| C``, and ``C -| A``.
-
-    :param pybel.BELGraph graph: A BEL graph
-    :return: An iterable of triplets of nodes
-    :rtype: iter[tuple]
     """
     return _get_disregulated_triplets_helper(graph, CAUSAL_DECREASE_RELATIONS)
 
 
-def summarize_stability(graph):
-    """Summarize the stability of the graph
-
-    :param pybel.BELGraph graph: A BEL graph
-    :rtype: dict
-    """
+def summarize_stability(graph: BELGraph) -> Mapping[str, int]:
+    """Summarize the stability of the graph."""
     regulatory_pairs = get_regulatory_pairs(graph)
     chaotic_pairs = get_chaotic_pairs(graph)
     dampened_pairs = get_dampened_pairs(graph)
@@ -393,19 +325,20 @@ def summarize_stability(graph):
     chaotic_triples = get_chaotic_triplets(graph)
     dampened_triples = get_dampened_triplets(graph)
 
-    def count_or_len(it):
-        return sum(1 for _ in it)
-
     return {
-        'Regulatory Pairs': count_or_len(regulatory_pairs),
-        'Chaotic Pairs': count_or_len(chaotic_pairs),
-        'Dampened Pairs': count_or_len(dampened_pairs),
-        'Contradictory Pairs': count_or_len(contraditory_pairs),
-        'Separately Unstable Triples': count_or_len(separately_unstable_triples),
-        'Mutually Unstable Triples': count_or_len(mutually_unstable_triples),
-        'Jens Unstable Triples': count_or_len(jens_unstable_triples),
-        'Increase Mismatch Triples': count_or_len(increase_mismatch_triples),
-        'Decrease Mismatch Triples': count_or_len(decrease_mismatch_triples),
-        'Chaotic Triples': count_or_len(chaotic_triples),
-        'Dampened Triples': count_or_len(dampened_triples)
+        'Regulatory Pairs': _count_or_len(regulatory_pairs),
+        'Chaotic Pairs': _count_or_len(chaotic_pairs),
+        'Dampened Pairs': _count_or_len(dampened_pairs),
+        'Contradictory Pairs': _count_or_len(contraditory_pairs),
+        'Separately Unstable Triples': _count_or_len(separately_unstable_triples),
+        'Mutually Unstable Triples': _count_or_len(mutually_unstable_triples),
+        'Jens Unstable Triples': _count_or_len(jens_unstable_triples),
+        'Increase Mismatch Triples': _count_or_len(increase_mismatch_triples),
+        'Decrease Mismatch Triples': _count_or_len(decrease_mismatch_triples),
+        'Chaotic Triples': _count_or_len(chaotic_triples),
+        'Dampened Triples': _count_or_len(dampened_triples)
     }
+
+
+def _count_or_len(it):
+    return sum(1 for _ in it)

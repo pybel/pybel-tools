@@ -2,11 +2,9 @@
 
 """Utilities for serializing to BEL namespace and BEL annotation files"""
 
-from __future__ import print_function
-
 import logging
 
-from pybel.resources.definitions import get_bel_resource, write_namespace
+from bel_resources import get_bel_resource, write_namespace
 
 __all__ = [
     'get_merged_namespace_names',
@@ -31,7 +29,7 @@ def get_merged_namespace_names(locations, check_keywords=True):
 
     Example Usage
 
-    >>> from pybel.resources.definitions import write_namespace
+    >>> from pybel.resources import write_namespace
     >>> from pybel_tools.definition_utils import export_namespace, get_merged_namespace_names
     >>> graph = ...
     >>> original_ns_url = ...

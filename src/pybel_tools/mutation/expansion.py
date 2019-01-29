@@ -2,10 +2,11 @@
 
 """Expansion functions in PyBEL-Tools."""
 
-import itertools as itt
 import logging
 from collections import Counter, defaultdict
 from typing import Iterable, Union
+
+import itertools as itt
 
 from pybel import BELGraph
 from pybel.constants import *
@@ -13,8 +14,8 @@ from pybel.dsl import BaseEntity
 from pybel.struct.filters import and_edge_predicates, concatenate_node_predicates, get_nodes_by_function
 from pybel.struct.filters.edge_predicates import edge_has_annotation, is_causal_relation
 from pybel.struct.filters.node_predicates import keep_node_permissive
+from pybel.struct.filters.typing import EdgeIterator, EdgePredicates, NodePredicates
 from pybel.struct.pipeline import uni_in_place_transformation
-from ..filters.typing import EdgeIterator, EdgePredicates, NodePredicates
 from ..utils import safe_add_edge
 
 __all__ = [
@@ -45,9 +46,9 @@ def get_peripheral_successor_edges(graph: BELGraph, subgraph: BELGraph) -> EdgeI
     The source nodes in this iterable are all inside the sub-graph, while the targets are outside.
     """
     for u in subgraph:
-        for _, v, k, d in graph.out_edges(u, keys=True, data=True):
+        for _, v, k in graph.out_edges(u, keys=True):
             if v not in subgraph:
-                yield u, v, k, d
+                yield u, v, k
 
 
 def get_peripheral_predecessor_edges(graph: BELGraph, subgraph: BELGraph) -> EdgeIterator:
@@ -56,9 +57,9 @@ def get_peripheral_predecessor_edges(graph: BELGraph, subgraph: BELGraph) -> Edg
     The target nodes in this iterable are all inside the sub-graph, while the sources are outside.
     """
     for v in subgraph:
-        for u, _, k, d in graph.in_edges(v, keys=True, data=True):
+        for u, _, k in graph.in_edges(v, keys=True):
             if u not in subgraph:
-                yield u, v, k, d
+                yield u, v, k
 
 
 def count_sources(edge_iter: EdgeIterator) -> Counter:
@@ -66,7 +67,7 @@ def count_sources(edge_iter: EdgeIterator) -> Counter:
 
     :return: A counter of source nodes in the iterable
     """
-    return Counter(u for u, _, _, _ in edge_iter)
+    return Counter(u for u, _, _ in edge_iter)
 
 
 def count_targets(edge_iter: EdgeIterator) -> Counter:
@@ -74,16 +75,15 @@ def count_targets(edge_iter: EdgeIterator) -> Counter:
 
     :return: A counter of target nodes in the iterable
     """
-    return Counter(v for _, v, _, _ in edge_iter)
+    return Counter(v for _, v, _ in edge_iter)
 
 
 def count_possible_successors(graph: BELGraph, subgraph: BELGraph) -> Counter:
     """
 
-    :param pybel.BELGraph graph: A BEL graph
+    :param graph: A BEL graph
     :param subgraph: An iterator of BEL nodes
     :return: A counter of possible successor nodes
-    :rtype: collections.Counter
     """
     return count_targets(get_peripheral_successor_edges(graph, subgraph))
 
@@ -91,15 +91,19 @@ def count_possible_successors(graph: BELGraph, subgraph: BELGraph) -> Counter:
 def count_possible_predecessors(graph: BELGraph, subgraph: BELGraph) -> Counter:
     """
 
-    :param pybel.BELGraph graph: A BEL graph
+    :param graph: A BEL graph
     :param subgraph: An iterator of BEL nodes
     :return: A counter of possible predecessor nodes
-    :rtype: collections.Counter
     """
     return count_sources(get_peripheral_predecessor_edges(graph, subgraph))
 
 
-def get_subgraph_edges(graph, annotation, value, source_filter=None, target_filter=None):
+def get_subgraph_edges(graph: BELGraph,
+                       annotation: str,
+                       value: str,
+                       source_filter=None,
+                       target_filter=None,
+                       ):
     """Gets all edges from a given subgraph whose source and target nodes pass all of the given filters
 
     :param pybel.BELGraph graph: A BEL graph
@@ -124,8 +128,11 @@ def get_subgraph_edges(graph, annotation, value, source_filter=None, target_filt
             yield u, v, k, data
 
 
-def get_subgraph_peripheral_nodes(graph: BELGraph, subgraph: Iterable[BaseEntity],
-                                  node_predicates: NodePredicates = None, edge_predicates: EdgePredicates = None):
+def get_subgraph_peripheral_nodes(graph: BELGraph,
+                                  subgraph: Iterable[BaseEntity],
+                                  node_predicates: NodePredicates = None,
+                                  edge_predicates: EdgePredicates = None,
+                                  ):
     """Get a summary dictionary of all peripheral nodes to a given sub-graph.
 
     :return: A dictionary of {external node: {'successor': {internal node: list of (key, dict)},
@@ -165,8 +172,12 @@ def get_subgraph_peripheral_nodes(graph: BELGraph, subgraph: Iterable[BaseEntity
 
 
 @uni_in_place_transformation
-def expand_periphery(universe: BELGraph, graph: BELGraph, node_predicates: NodePredicates = None,
-                     edge_predicates: EdgePredicates = None, threshold: int = 2) -> None:
+def expand_periphery(universe: BELGraph,
+                     graph: BELGraph,
+                     node_predicates: NodePredicates = None,
+                     edge_predicates: EdgePredicates = None,
+                     threshold: int = 2,
+                     ) -> None:
     """Iterates over all possible edges, peripheral to a given subgraph, that could be added from the given graph.
     Edges could be added if they go to nodes that are involved in relationships that occur with more than the
     threshold (default 2) number of nodes in the subgraph.
@@ -178,7 +189,8 @@ def expand_periphery(universe: BELGraph, graph: BELGraph, node_predicates: NodeP
     A reasonable edge filter to use is :func:`pybel_tools.filters.keep_causal_edges` because this function can allow
     for huge expansions if there happen to be hub nodes.
     """
-    nd = get_subgraph_peripheral_nodes(universe, graph, node_predicates=node_predicates, edge_predicates=edge_predicates)
+    nd = get_subgraph_peripheral_nodes(universe, graph, node_predicates=node_predicates,
+                                       edge_predicates=edge_predicates)
 
     for node, dd in nd.items():
         pred_d = dd['predecessor']
@@ -231,7 +243,7 @@ def enrich_reactions(graph: BELGraph):
 
 
 @uni_in_place_transformation
-def enrich_variants(graph: BELGraph, func:Union[None, str, Iterable[str]]=None):
+def enrich_variants(graph: BELGraph, func: Union[None, str, Iterable[str]] = None):
     """Add the reference nodes for all variants of the given function.
 
     :param graph: The target BEL graph to enrich

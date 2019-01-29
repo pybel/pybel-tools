@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+"""Tests for collapse functions."""
+
 import unittest
 
 from pybel import BELGraph

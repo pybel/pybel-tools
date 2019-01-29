@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 
 from collections import defaultdict
+from typing import Callable, Iterable, Mapping, Optional, Set, TypeVar
 
+from pybel import BELGraph
 from pybel.constants import *
+from pybel.dsl import BaseEntity
 from pybel.struct.filters.edge_predicates import edge_has_annotation
 from pybel.struct.filters.node_filters import concatenate_node_predicates
+from pybel.struct.filters.typing import NodePredicates
 
 __all__ = [
     'group_nodes_by_annotation',
@@ -12,19 +16,14 @@ __all__ = [
     'group_nodes_by_annotation_filtered'
 ]
 
+X = TypeVar('X')
 
-def group_nodes_by_annotation(graph, annotation='Subgraph'):
-    """Groups the nodes occurring in edges by the given annotation
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param annotation: An annotation to use to group edges
-    :type annotation: str
-    :return: dict of sets of BELGraph nodes
-    :rtype: dict
-    """
+def group_nodes_by_annotation(graph: BELGraph, annotation: str = 'Subgraph') -> Mapping[str, Set[BaseEntity]]:
+    """Group the nodes occurring in edges by the given annotation."""
     result = defaultdict(set)
 
-    for u, v, d in graph.edges_iter(data=True):
+    for u, v, d in graph.edges(data=True):
         if not edge_has_annotation(d, annotation):
             continue
 
@@ -34,15 +33,17 @@ def group_nodes_by_annotation(graph, annotation='Subgraph'):
     return dict(result)
 
 
-def average_node_annotation(graph, key, annotation='Subgraph', aggregator=None):
+def average_node_annotation(graph: BELGraph,
+                            key: str,
+                            annotation: str = 'Subgraph',
+                            aggregator: Optional[Callable[[Iterable[X]], X]] = None,
+                            ) -> Mapping[str, X]:
     """Groups graph into subgraphs and assigns each subgraph a score based on the average of all nodes values
     for the given node key
 
     :param pybel.BELGraph graph: A BEL graph
     :param key: The key in the node data dictionary representing the experimental data
-    :type key: str
     :param annotation: A BEL annotation to use to group nodes
-    :type annotation: str
     :param aggregator: A function from list of values -> aggregate value. Defaults to taking the average of a list of
                        floats.
     :type aggregator: lambda
@@ -54,24 +55,27 @@ def average_node_annotation(graph, key, annotation='Subgraph', aggregator=None):
             return sum(x) / len(x)
 
     result = {}
-    grouping = group_nodes_by_annotation(graph, annotation)
-    for subgraph, nodes in grouping.items():
+
+    for subgraph, nodes in group_nodes_by_annotation(graph, annotation).items():
         values = [graph.nodes[node][key] for node in nodes if key in graph.nodes[node]]
         result[subgraph] = aggregator(values)
+
     return result
 
 
-def group_nodes_by_annotation_filtered(graph, node_filters=None, annotation='Subgraph'):
-    """Groups the nodes occurring in edges by the given annotation, with a node filter applied
+def group_nodes_by_annotation_filtered(graph: BELGraph,
+                                       node_predicates: NodePredicates = None,
+                                       annotation: str = 'Subgraph',
+                                       ) -> Mapping[str, Set[BaseEntity]]:
+    """Group the nodes occurring in edges by the given annotation, with a node filter applied.
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param node_filters: A predicate or list of predicates (graph, node) -> bool
-    :type node_filters: types.FunctionType or iter[types.FunctionType]
+    :param graph: A BEL graph
+    :param node_predicates: A predicate or list of predicates (graph, node) -> bool
     :param annotation: The annotation to use for grouping
     :return: A dictionary of {annotation value: set of nodes}
-    :rtype: dict[str,set[tuple]]
     """
-    node_filter = concatenate_node_predicates(node_filters)
+    node_filter = concatenate_node_predicates(node_predicates)
+
     return {
         key: {
             node
@@ -82,17 +86,15 @@ def group_nodes_by_annotation_filtered(graph, node_filters=None, annotation='Sub
     }
 
 
-def get_mapped_nodes(graph, namespace, names):
-    """Returns a dict with keys: nodes that match the namespace and in names and values other nodes (complexes, variants, orthologous...) or this node.
+def get_mapped_nodes(graph: BELGraph, namespace: str, names: Iterable[str]) -> Mapping[BaseEntity, Set[BaseEntity]]:
+    """Return a dict with keys: nodes that match the namespace and in names and values other nodes (complexes, variants, orthologous...) or this node.
     
-    :param pybel.BELGraph graph: A BEL graph
-    :param str namespace: The namespace to search
-    :param iter[str] names: List or set of values from which we want to map nodes from
-    :rtype: dict[BaseEntity, set[BaseEntity]]
+    :param graph: A BEL graph
+    :param namespace: The namespace to search
+    :param names: List or set of values from which we want to map nodes from
     :return: Main node to variants/groups.
     """
     parent_to_variants = defaultdict(set)
-
     names = set(names)
 
     for u, v, d in graph.edges(data=True):

@@ -3,15 +3,16 @@
 """This module contains functions that calculate properties of nodes"""
 
 from collections import Counter
+from typing import Iterable, Mapping, Optional, Set, Tuple, Union
 
 import networkx as nx
 
-from pybel.constants import *
+from pybel import BELGraph
+from pybel.dsl import BaseEntity
 from pybel.struct.filters import get_nodes
 from pybel.struct.filters.edge_predicates import is_causal_relation
 from pybel.struct.filters.node_predicates import (
-    has_activity, is_causal_central, is_causal_sink,
-    is_causal_source, is_degraded, is_translocated,
+    has_activity, is_causal_central, is_causal_sink, is_causal_source, is_degraded, is_translocated,
 )
 
 __all__ = [
@@ -33,140 +34,101 @@ __all__ = [
 ]
 
 
-def get_causal_out_edges(graph, nbunch):
-    """Gets the out-edges to the given node that are causal
+def get_causal_out_edges(graph: BELGraph,
+                         nbunch: Union[BaseEntity, Iterable[BaseEntity]],
+                         ) -> Set[Tuple[BaseEntity, BaseEntity]]:
+    """Get the out-edges to the given node that are causal.
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param tuple nbunch: A BEL node or iterable of BEL nodes
     :return: A set of (source, target) pairs where the source is the given node
-    :rtype: set[tuple]
     """
     return {
         (u, v)
-        for u, v, k, d in graph.out_edges_iter(nbunch, keys=True, data=True)
+        for u, v, k, d in graph.out_edges(nbunch, keys=True, data=True)
         if is_causal_relation(graph, u, v, k, d)
     }
 
 
-def get_causal_in_edges(graph, node):
-    """Gets the in-edges to the given node that are causal
+def get_causal_in_edges(graph: BELGraph,
+                        nbunch: Union[BaseEntity, Iterable[BaseEntity]],
+                        ) -> Set[Tuple[BaseEntity, BaseEntity]]:
+    """Get the in-edges to the given node that are causal.
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param tuple node: A BEL node
     :return: A set of (source, target) pairs where the target is the given node
-    :rtype: set
     """
     return {
         (u, v)
-        for u, v, k, d in graph.in_edges_iter(node, keys=True, data=True)
+        for u, v, k, d in graph.in_edges(nbunch, keys=True, data=True)
         if is_causal_relation(graph, u, v, k, d)
     }
 
 
-def get_causal_source_nodes(graph, function):
-    """Returns a set of all nodes that have an in-degree of 0, which likely means that it is an external
-    perturbagen and is not known to have any causal origin from within the biological system.
+def get_causal_source_nodes(graph: BELGraph, func: str) -> Set[BaseEntity]:
+    """Return a set of all nodes that have an in-degree of 0.
 
-    These nodes are useful to identify because they generally don't provide any mechanistic insight.
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param str function: The BEL function to filter by
-    :return: A set of source nodes
-    :rtype: set[tuple]
+    This likely means that it is an external perturbagen and is not known to have any causal origin from within the
+    biological system. These nodes are useful to identify because they generally don't provide any mechanistic insight.
     """
     return {
         node
-        for node, data in graph.iter_node_data_pairs()
-        if data[FUNCTION] == function and is_causal_source(graph, node)
+        for node in graph
+        if node.function == func and is_causal_source(graph, node)
     }
 
 
-def get_causal_central_nodes(graph, function):
-    """Returns a set of all nodes that have both an in-degree > 0 and out-degree > 0. This means
-    that they are an integral part of a pathway, since they are both produced and consumed.
+def get_causal_central_nodes(graph: BELGraph, func: str) -> Set[BaseEntity]:
+    """Return a set of all nodes that have both an in-degree > 0 and out-degree > 0.
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param str function: The BEL function to filter by
-    :return: A set of central ABUNDANCE nodes
-    :rtype: set
+    This means that they are an integral part of a pathway, since they are both produced and consumed.
     """
     return {
         node
-        for node, data in graph.iter_node_data_pairs()
-        if data[FUNCTION] == function and is_causal_central(graph, node)
+        for node in graph
+        if node.function == func and is_causal_central(graph, node)
     }
 
 
-def get_causal_sink_nodes(graph, function):
-    """Returns a set of all ABUNDANCE nodes that have an causal out-degree of 0, which likely means that the knowledge
-    assembly is incomplete, or there is a curation error.
+def get_causal_sink_nodes(graph: BELGraph, func) -> Set[BaseEntity]:
+    """Returns a set of all ABUNDANCE nodes that have an causal out-degree of 0.
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param str function: The BEL function to filter by
-    :return: A set of sink ABUNDANCE nodes
-    :rtype: set[tuple]
+    This likely means that the knowledge assembly is incomplete, or there is a curation error.
     """
     return {
         node
-        for node, data in graph.iter_node_data_pairs()
-        if data[FUNCTION] == function and is_causal_sink(graph, node)
+        for node in graph
+        if node.function == func and is_causal_sink(graph, node)
     }
 
 
-def get_degradations(graph):
-    """Gets all nodes that are degraded
-
-    :param pybel.BELGraph graph: A BEL graph
-    :return: A set of nodes that are degraded
-    :rtype: set[tuple]
-    """
+def get_degradations(graph: BELGraph) -> Set[BaseEntity]:
+    """Get all nodes that are degraded."""
     return get_nodes(graph, is_degraded)
 
 
-def get_activities(graph):
-    """Gets all nodes that have molecular activities
-
-    :param pybel.BELGraph graph: A BEL graph
-    :return: A set of nodes that have molecular activities
-    :rtype: set[tuple]
-    """
+def get_activities(graph: BELGraph) -> Set[BaseEntity]:
+    """Get all nodes that have molecular activities."""
     return get_nodes(graph, has_activity)
 
 
-def get_translocated(graph):
-    """Gets all nodes that are translocated
-
-    :param pybel.BELGraph graph: A BEL graph
-    :return: A set of nodes that are translocated
-    :rtype: set[tuple]
-    """
+def get_translocated(graph: BELGraph) -> Set[BaseEntity]:
+    """Get all nodes that are translocated."""
     return get_nodes(graph, is_translocated)
 
 
-def count_top_degrees(graph, number=30):
+def count_top_degrees(graph: BELGraph, number: Optional[int] = 30):
     dd = graph.degree()
     dc = Counter(dd)
     return dict(dc.most_common(number))
 
 
-def count_top_centrality(graph, number=30):
-    """Gets top centrality dictionary
-
-    :param graph:
-    :param int number:
-    :rtype: dict[tuple,int]
-    """
+def count_top_centrality(graph: BELGraph, number: Optional[int] = 30) -> Mapping[BaseEntity, int]:
+    """Get top centrality dictionary."""
     dd = nx.betweenness_centrality(graph)
     dc = Counter(dd)
     return dict(dc.most_common(number))
 
 
-def get_modifications_count(graph):
-    """Gets a modifications count dictionary
-
-    :param pybel.BELGraph graph:
-    :rtype: dict[str,int]
-    """
+def get_modifications_count(graph: BELGraph) -> Mapping[str, int]:
+    """Get a modifications count dictionary."""
     translocation_count = len(get_translocated(graph))
     degradation_count = len(get_degradations(graph))
     molecular_count = len(get_activities(graph))

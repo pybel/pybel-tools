@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+"""Tests for inference functions."""
+
 import unittest
 
 from pybel import BELGraph

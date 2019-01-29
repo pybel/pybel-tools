@@ -18,6 +18,7 @@ log = logging.getLogger(__name__)
 
 @click.command()
 def main():
+    """Convert the Alzheimer's and Parkinson's disease NeuroMMSig excel sheets to BEL."""
     logging.basicConfig(level=logging.INFO)
     log.setLevel(logging.INFO)
 

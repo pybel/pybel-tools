@@ -24,7 +24,7 @@ from typing import Iterable, Mapping, Optional
 
 from pybel import BELGraph
 from pybel.constants import BIOPROCESS
-from pybel.dsl import BaseEntity
+from pybel.dsl import BaseEntity, BiologicalProcess
 from pybel.struct import data_missing_key_builder, get_nodes_by_function
 from pybel.struct.filters import filter_nodes
 from pybel.struct.mutation import expand_upstream_causal, get_upstream_causal_subgraph
@@ -149,8 +149,7 @@ def generate_mechanism(graph: BELGraph, node: BaseEntity, key: Optional[str] = N
 
     :param graph: A BEL graph
     :param node: A BEL node
-    :param key: The key in the node data dictionary representing the experimental data. Defaults to
-     :data:`pybel_tools.constants.WEIGHT`.
+    :param key: The key in the node data dictionary representing the experimental data.
     :return: A sub-graph grown around the target BEL node
     """
     subgraph = get_upstream_causal_subgraph(graph, node)
@@ -164,14 +163,17 @@ def generate_mechanism(graph: BELGraph, node: BaseEntity, key: Optional[str] = N
     return subgraph
 
 
-def generate_bioprocess_mechanisms(graph, key: Optional[str] = None) -> Mapping[BaseEntity, BELGraph]:
+def generate_bioprocess_mechanisms(graph, key: Optional[str] = None) -> Mapping[BiologicalProcess, BELGraph]:
     """Generate a mechanistic sub-graph for each biological process in the graph using :func:`generate_mechanism`.
 
     :param graph: A BEL graph
-    :param key: The key in the node data dictionary representing the experimental data. Defaults to
-     :data:`pybel_tools.constants.WEIGHT`
+    :param key: The key in the node data dictionary representing the experimental data.
     """
     return {
-        bp: generate_mechanism(graph, bp, key=key)
-        for bp in get_nodes_by_function(graph, BIOPROCESS)
+        biological_process: generate_mechanism(graph, biological_process, key=key)
+        for biological_process in _get_biological_processes(graph)
     }
+
+
+def _get_biological_processes(graph: BELGraph) -> Iterable[BiologicalProcess]:
+    return get_nodes_by_function(graph, BIOPROCESS)

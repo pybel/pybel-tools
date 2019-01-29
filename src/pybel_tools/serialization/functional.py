@@ -19,7 +19,6 @@ rev_labels = {
     PATHOLOGY: 'pathology',
     COMPLEX: 'complexAbundance',
     COMPOSITE: 'compositeAbundance',
-
     'pep': 'peptidaseActivity',
     'cat': 'catalyticActivity',
     ACTIVITY: 'activity'
@@ -192,7 +191,6 @@ def _ensure_fusion(tokens):
     arguments = []
 
     # TODO implement
-
 
     if LOCATION in tokens:
         arguments.append(term(LOCATION, identifier_parameter(tokens[LOCATION])))

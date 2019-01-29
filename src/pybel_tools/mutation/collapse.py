@@ -8,8 +8,10 @@ from pybel import BELGraph
 from pybel.constants import EQUIVALENT_TO, GENE, HAS_VARIANT, ORTHOLOGOUS, PROTEIN, RELATION
 from pybel.dsl import BaseEntity, Gene, Protein
 from pybel.struct.filters import build_relation_predicate, filter_edges, has_polarity
+from pybel.struct.filters.typing import EdgePredicates
 from pybel.struct.mutation import collapse_nodes, collapse_pair, collapse_to_genes, get_subgraph_by_edge_filter
 from pybel.struct.pipeline import in_place_transformation, transformation
+from pybel.typing import Strings
 from ..filters.edge_filters import build_source_namespace_filter, build_target_namespace_filter
 from ..summary.edge_summary import pair_is_consistent
 
@@ -28,42 +30,31 @@ log = logging.getLogger(__name__)
 
 
 @in_place_transformation
-def collapse_protein_variants(graph):
-    """Collapses all protein's variants' edges to their parents, in-place
-
-    :param pybel.BELGraph graph: A BEL graph
-    """
+def collapse_protein_variants(graph: BELGraph) -> None:
+    """Collapse all protein's variants' edges to their parents, in-place."""
     _collapse_variants_by_function(graph, PROTEIN)
 
 
 @in_place_transformation
-def collapse_gene_variants(graph):
-    """Collapses all gene's variants' edges to their parents, in-place
-
-    :param pybel.BELGraph graph: A BEL graph
-    """
+def collapse_gene_variants(graph: BELGraph) -> None:
+    """Collapse all gene's variants' edges to their parents, in-place."""
     _collapse_variants_by_function(graph, GENE)
 
 
-def _collapse_variants_by_function(graph, func):
-    """Collapses all of the given functions' variants' edges to their parents, in-place
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param str func: A BEL function
-    """
+def _collapse_variants_by_function(graph: BELGraph, func: str) -> None:
+    """Collapse all of the given functions' variants' edges to their parents, in-place."""
     for parent_node, variant_node, data in graph.edges(data=True):
         if data[RELATION] == HAS_VARIANT and parent_node.function == func:
             collapse_pair(graph, from_node=variant_node, to_node=parent_node)
 
 
 @in_place_transformation
-def rewire_variants_to_genes(graph: BELGraph):
+def rewire_variants_to_genes(graph: BELGraph) -> None:
     """Find all protein variants that are pointing to a gene and not a protein and fixes them by changing their
     function to be :data:`pybel.constants.GENE`, in place
 
     A use case is after running :func:`collapse_to_genes`.
     """
-
     mapping = {}
 
     for node in graph:
@@ -80,25 +71,22 @@ def rewire_variants_to_genes(graph: BELGraph):
     nx.relabel_nodes(graph, mapping, copy=False)
 
 
-def _collapse_edge_passing_predicates(graph, edge_predicates=None):
-    """Collapse all edges passing the given edge predicates.
-
-    :param pybel.BELGraph graph: A BEL Graph
-    :param edge_predicates: A predicate or list of predicates
-    :type edge_predicates: None or ((pybel.BELGraph, tuple, tuple, int)) -> bool or iter[(pybel.BELGraph, tuple, tuple, int) -> bool]
-    """
+def _collapse_edge_passing_predicates(graph:BELGraph, edge_predicates:EdgePredicates=None) -> None:
+    """Collapse all edges passing the given edge predicates."""
     for u, v, _ in filter_edges(graph, edge_predicates=edge_predicates):
         collapse_pair(graph, survivor=u, victim=v)
 
 
-def _collapse_edge_by_namespace(graph, victim_namespaces, survivor_namespaces, relations):
-    """Collapses pairs of nodes with the given namespaces that have the given relationship
+def _collapse_edge_by_namespace(graph: BELGraph,
+                                victim_namespaces: Strings,
+                                survivor_namespaces: str,
+                                relations: Strings) -> None:
+    """Collapse pairs of nodes with the given namespaces that have the given relationship.
 
-    :param pybel.BELGraph graph: A BEL Graph
-    :param str or iter[str] victim_namespaces: The namespace(s) of the node to collapse
-    :param str or survivor_namespaces: The namespace of the node to keep
-    :param relations: The relation to search
-    :type relations: str or iter[str]
+    :param graph: A BEL Graph
+    :param victim_namespaces: The namespace(s) of the node to collapse
+    :param survivor_namespaces: The namespace of the node to keep
+    :param relations: The relation(s) to search
     """
     relation_filter = build_relation_predicate(relations)
     source_namespace_filter = build_source_namespace_filter(victim_namespaces)
@@ -114,12 +102,12 @@ def _collapse_edge_by_namespace(graph, victim_namespaces, survivor_namespaces, r
 
 
 @in_place_transformation
-def collapse_equivalencies_by_namespace(graph, victim_namespace, survivor_namespace):
+def collapse_equivalencies_by_namespace(graph: BELGraph, victim_namespace: Strings, survivor_namespace: str) -> None:
     """Collapse pairs of nodes with the given namespaces that have equivalence relationships.
     
-    :param pybel.BELGraph graph: A BEL graph
-    :param str or iter[str] victim_namespace: The namespace(s) of the node to collapse
-    :param str survivor_namespace: The namespace of the node to keep
+    :param graph: A BEL graph
+    :param victim_namespace: The namespace(s) of the node to collapse
+    :param survivor_namespace: The namespace of the node to keep
 
     To convert all ChEBI names to InChI keys, assuming there are appropriate equivalence relations between nodes with
     those namespaces:
@@ -131,12 +119,12 @@ def collapse_equivalencies_by_namespace(graph, victim_namespace, survivor_namesp
 
 
 @in_place_transformation
-def collapse_orthologies_by_namespace(graph, victim_namespace, survivor_namespace):
+def collapse_orthologies_by_namespace(graph: BELGraph, victim_namespace: Strings, survivor_namespace: str) -> None:
     """Collapse pairs of nodes with the given namespaces that have orthology relationships.
 
-    :param pybel.BELGraph graph: A BEL Graph
-    :param str or iter[str] victim_namespace: The namespace(s) of the node to collapse
-    :param str survivor_namespace: The namespace of the node to keep
+    :param graph: A BEL Graph
+    :param victim_namespace: The namespace(s) of the node to collapse
+    :param survivor_namespace: The namespace of the node to keep
 
     To collapse all MGI nodes to their HGNC orthologs, use:
     >>> collapse_orthologies_by_namespace('MGI', 'HGNC')
@@ -149,47 +137,32 @@ def collapse_orthologies_by_namespace(graph, victim_namespace, survivor_namespac
 
 
 @in_place_transformation
-def collapse_entrez_to_hgnc(graph):
-    """Collapse Entrez equivalences to HGNC.
-
-    :param pybel.BELGraph graph: A BEL graph
-    """
+def collapse_entrez_to_hgnc(graph: BELGraph):
+    """Collapse Entrez equivalences to HGNC."""
     collapse_equivalencies_by_namespace(graph, ['EGID', 'EG', 'ENTREZ'], 'HGNC')
 
 
 @in_place_transformation
-def collapse_mgi_to_hgnc(graph):
-    """Collapse MGI orthologies to HGNC.
-
-    :param pybel.BELGraph graph: A BEL graph
-    """
+def collapse_mgi_to_hgnc(graph: BELGraph):
+    """Collapse MGI orthologies to HGNC."""
     collapse_orthologies_by_namespace(graph, ['MGI', 'MGIID'], 'HGNC')
 
 
 @in_place_transformation
-def collapse_rgd_to_hgnc(graph):
-    """Collapse RGD orthologies to HGNC.
-
-    :param pybel.BELGraph graph: A BEL graph
-    """
+def collapse_rgd_to_hgnc(graph: BELGraph):
+    """Collapse RGD orthologies to HGNC."""
     collapse_orthologies_by_namespace(graph, ['RGD', 'RGDID'], 'HGNC')
 
 
 @in_place_transformation
-def collapse_flybase_to_hgnc(graph):
-    """Collapse FlyBase orthologies to HGNC.
-
-    :param pybel.BELGraph graph: A BEL graph
-    """
+def collapse_flybase_to_hgnc(graph: BELGraph):
+    """Collapse FlyBase orthologies to HGNC."""
     collapse_orthologies_by_namespace(graph, 'FLYBASE', 'HGNC')
 
 
 @in_place_transformation
-def collapse_entrez_equivalencies(graph):
-    """Collapses all equivalence edges away from Entrez. Assumes well formed, 2-way equivalencies
-
-    :param pybel.BELGraph graph: A BEL graph
-    """
+def collapse_entrez_equivalencies(graph: BELGraph):
+    """Collapse all equivalence edges away from Entrez. Assumes well formed, 2-way equivalencies."""
     relation_filter = build_relation_predicate(EQUIVALENT_TO)
     source_namespace_filter = build_source_namespace_filter(['EGID', 'EG', 'ENTREZ'])
 
@@ -202,12 +175,10 @@ def collapse_entrez_equivalencies(graph):
 
 
 @in_place_transformation
-def collapse_consistent_edges(graph):
+def collapse_consistent_edges(graph: BELGraph):
     """Collapse consistent edges together.
 
     .. warning:: This operation doesn't preserve evidences or other annotations
-
-    :param pybel.BELGraph graph: A BEL Graph
     """
     for u, v in graph.edges():
         relation = pair_is_consistent(graph, u, v)
@@ -221,17 +192,13 @@ def collapse_consistent_edges(graph):
 
 
 @transformation
-def collapse_to_protein_interactions(graph):
-    """Collapse to a graph made of only causal gene/protein edges.
-
-    :param pybel.BELGraph graph: A BEL Graph
-    :rtype: pybel.BELGraph
-    """
-    rv = graph.copy()
+def collapse_to_protein_interactions(graph: BELGraph) -> BELGraph:
+    """Collapse to a graph made of only causal gene/protein edges."""
+    rv: BELGraph = graph.copy()
 
     collapse_to_genes(rv)
 
-    def is_edge_ppi(g: BELGraph, u: BaseEntity, v: BaseEntity, k: str) -> bool:
+    def is_edge_ppi(_: BELGraph, u: BaseEntity, v: BaseEntity, __: str) -> bool:
         """Check if an edge is a PPI."""
         return isinstance(u, Gene) and isinstance(v, Gene)
 

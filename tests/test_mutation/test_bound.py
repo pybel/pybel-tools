@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import logging
+"""Tests for bound mutation functions."""
+
 import unittest
 
 from pybel import Pipeline
@@ -8,9 +9,6 @@ from pybel.examples.egf_example import egf_graph, nfkb_complex, rela
 from pybel.struct.pipeline import mapped
 from pybel.testing.mock_manager import MockQueryManager
 from pybel_tools.mutation import build_delete_node_by_hash, build_expand_node_neighborhood_by_hash
-
-log = logging.getLogger(__name__)
-log.setLevel(10)
 
 
 class TestBoundMutation(unittest.TestCase):

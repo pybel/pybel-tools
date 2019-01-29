@@ -3,18 +3,19 @@
 """Builds the relational database on all graphs with subgraph annotations"""
 
 import logging
-
 import time
+from typing import Optional
 
+import pybel
 from .algorithm import epicom_on_graph
 from .models import Score
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 NEUROMMSIG_DEFAULT_URL = 'https://arty.scai.fraunhofer.de/artifactory/bel/annotation/neurommsig/neurommsig-1.0.3.belanno'
 
 
-def get_networks_using_annotation(manager, annotation):
+def get_networks_using_annotation(manager: pybel.Manager, annotation: str):
     """
 
     :param pybel.manager.Manager manager:
@@ -24,7 +25,7 @@ def get_networks_using_annotation(manager, annotation):
     raise NotImplementedError
 
 
-def get_drug_model(manager, name):
+def get_drug_model(manager: pybel.Manager, name: str):
     """
 
     :param pybel.manager.Manager manager:
@@ -34,19 +35,15 @@ def get_drug_model(manager, name):
     raise NotImplementedError
 
 
-def build_database(manager, annotation_url=None):
-    """Builds a database of scores for NeuroMMSig annotated graphs
+def build_database(manager: pybel.Manager, annotation_url: Optional[str] = None) -> None:
+    """Build a database of scores for NeuroMMSig annotated graphs.
 
     1. Get all networks that use the Subgraph annotation
     2. run on each
-
-    :param pybel.manager.Manager
-    :param Optional[str] annotation_url:
     """
-
     annotation_url = annotation_url or NEUROMMSIG_DEFAULT_URL
 
-    annotation = manager.get_namespace_by(annotation_url)
+    annotation = manager.get_namespace_by_url(annotation_url)
 
     if annotation is None:
         raise RuntimeError('no graphs in database with given annotation')
@@ -74,6 +71,6 @@ def build_database(manager, annotation_url=None):
             manager.session.add(score_model)
 
     t = time.time()
-    log.info('committing scores')
+    logger.info('committing scores')
     manager.session.commit()
-    log.info('committed scores in %.2f seconds', time.time() - t)
+    logger.info('committed scores in %.2f seconds', time.time() - t)

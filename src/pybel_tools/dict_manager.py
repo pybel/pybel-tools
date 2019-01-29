@@ -4,20 +4,20 @@
 in memory
 """
 
-from pybel.manager import Manager
+from typing import Iterable, List, Optional
+
+from pybel import BELGraph, Manager
+from pybel.manager.models import Network
 
 
-class _Namespace(object):
+class _Namespace:
     pass
 
 
 class DictManager(Manager):
     """A dictionary-based implementation of the PyBEL Manager"""
 
-    def __init__(self, connection=None):
-        """
-        :param Optional[str] connection:
-        """
+    def __init__(self, connection: Optional[str] = None):
         super(DictManager, self).__init__(connection=connection)
 
         self.universe = None
@@ -25,12 +25,8 @@ class DictManager(Manager):
         self.disease_to_id = {}
         self.hash_to_node = {}
 
-    def insert_graph(self, graph, **kwargs):
-        """
-        :param pybel.BELGraph graph:
-        :param kwargs: Swallowed. Just used to match signature of pybel.Manager
-        :rtype: Network
-        """
+    def insert_graph(self, graph: BELGraph, **_kwargs) -> Network:
+        """Insert a graph and return the resulting ORM object (mocked)."""
         result = _Namespace()
         result.id = len(self.networks)
 
@@ -38,19 +34,12 @@ class DictManager(Manager):
 
         return result
 
-    def get_graph_by_id(self, network_id):
-        """Returns a graph by its id
-
-        :param int network_id:
-        :rtype: pybel.BELGraph
-        """
+    def get_graph_by_id(self, network_id: int) -> BELGraph:
+        """Get a graph by its identifier."""
         return self.networks[network_id]
 
-    def get_graphs_by_ids(self, network_ids):
-        """
-        :param list[int] network_ids:
-        :rtype: list[pybel.BELGraph]
-        """
+    def get_graphs_by_ids(self, network_ids: Iterable[int]) -> List[BELGraph]:
+        """Get several graphs by their identifiers."""
         return [
             self.networks[network_id]
             for network_id in network_ids

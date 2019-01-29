@@ -5,35 +5,46 @@ import sys
 
 import click
 
+from pybel.cli import graph_pickle_argument
 from .algorithm import multi_run_epicom, run_epicom
 from ..neurommsig import get_ad_graph, get_ep_graph, get_pd_graph
 
 
+directory_option = click.option('-d', '--directory', default=os.getcwd())
+
 @click.group()
 def main():
-    """Run EpiCom-Reloaded"""
+    """Run EpiCom Reloaded."""
 
 
 @main.command()
-@click.option('-d', '--directory', default=os.getcwd())
+@graph_pickle_argument
+@directory_option
+def run(graph, directory):
+    """Run on an arbitrary graph."""
+    run_epicom(graph, directory)
+
+
+@main.command()
+@directory_option
 def ad(directory):
-    """Run EpiCom on AD"""
+    """Run on the AD graph."""
     graph = get_ad_graph()
     run_epicom(graph, directory)
 
 
 @main.command()
-@click.option('-d', '--directory', default=os.getcwd())
+@directory_option
 def pd(directory):
-    """Run EpiCom on PD"""
+    """Run on the PD graph."""
     graph = get_pd_graph()
     run_epicom(graph, directory)
 
 
 @main.command()
-@click.option('-d', '--directory', default=os.getcwd())
+@directory_option
 def ep(directory):
-    """Run EpiCom on Epilepsy"""
+    """Run on the Epilepsy graph."""
     graph = get_ep_graph()
     run_epicom(graph, directory)
 
@@ -41,7 +52,7 @@ def ep(directory):
 @main.command()
 @click.option('-o', '--output', type=click.File('w'), default=sys.stdout)
 def multi(output):
-    """Run EpiCom on all of NeuroMMSig"""
+    """Run on all graphs."""
     graphs = [
         get_ad_graph(),
         get_ep_graph(),

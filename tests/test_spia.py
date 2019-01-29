@@ -2,26 +2,15 @@
 
 """This module contains tests for the SPIA exporter."""
 
-import logging
 import unittest
 
 from pandas import DataFrame
-from pybel.dsl import activity, composite_abundance, protein, pmod, rna
+
+from pybel.dsl import activity, composite_abundance, pmod, protein, rna
 from pybel.examples.sialic_acid_example import (
-    cd33,
-    citation,
-    evidence_1,
-    trem2,
-    shp1,
-    shp2,
-    sialic_acid_graph,
-    sialic_acid_cd33_complex,
+    cd33, citation, evidence_1, shp1, shp2, sialic_acid_cd33_complex, sialic_acid_graph, trem2,
 )
-
-from pybel_tools.analysis.spia import build_matrices, update_matrix, get_matrix_index, bel_to_spia
-
-log = logging.getLogger(__name__)
-log.setLevel(10)
+from pybel_tools.analysis.spia import bel_to_spia_matrices, build_spia_matrices, get_matrix_index, update_spia_matrices
 
 
 class TestSpia(unittest.TestCase):
@@ -35,7 +24,7 @@ class TestSpia(unittest.TestCase):
 
         node_names = get_matrix_index(self.sialic_acid_graph)
 
-        matrix_dict = build_matrices(node_names)
+        matrix_dict = build_spia_matrices(node_names)
 
         nodes = {'PTPN11', 'TREM2', 'PTPN6', 'TYROBP', 'CD33', 'SYK'}
 
@@ -58,7 +47,7 @@ class TestSpia(unittest.TestCase):
 
         test_dict["inhibition_ubiquination"] = test_matrix
 
-        update_matrix(test_dict, sub, obj, {'relation': 'decreases'})
+        update_spia_matrices(test_dict, sub, obj, {'relation': 'decreases'})
 
         self.assertEqual(test_dict["inhibition_ubiquination"]['A']['B'], 1)
         self.assertEqual(test_dict["inhibition_ubiquination"]['A']['A'], 0)
@@ -78,7 +67,7 @@ class TestSpia(unittest.TestCase):
 
         test_dict["activation_ubiquination"] = test_matrix
 
-        update_matrix(test_dict, sub, obj, {'relation': 'increases'})
+        update_spia_matrices(test_dict, sub, obj, {'relation': 'increases'})
 
         self.assertEqual(test_dict["activation_ubiquination"]['A']['B'], 1)
         self.assertEqual(test_dict["activation_ubiquination"]['A']['A'], 0)
@@ -98,7 +87,7 @@ class TestSpia(unittest.TestCase):
 
         test_dict["inhibition_phosphorylation"] = test_matrix
 
-        update_matrix(test_dict, sub, obj, {'relation': 'decreases'})
+        update_spia_matrices(test_dict, sub, obj, {'relation': 'decreases'})
 
         self.assertEqual(test_dict["inhibition_phosphorylation"]['A']['B'], 1)
         self.assertEqual(test_dict["inhibition_phosphorylation"]['A']['A'], 0)
@@ -119,7 +108,7 @@ class TestSpia(unittest.TestCase):
 
         test_dict["activation_phosphorylation"] = test_matrix
 
-        update_matrix(test_dict, sub, obj, {'relation': 'increases'})
+        update_spia_matrices(test_dict, sub, obj, {'relation': 'increases'})
 
         self.assertEqual(test_dict["activation_phosphorylation"]['A']['B'], 1)
         self.assertEqual(test_dict["activation_phosphorylation"]['A']['A'], 0)
@@ -139,7 +128,7 @@ class TestSpia(unittest.TestCase):
 
         test_dict["expression"] = test_matrix
 
-        update_matrix(test_dict, sub, obj, {'relation': 'increases'})
+        update_spia_matrices(test_dict, sub, obj, {'relation': 'increases'})
 
         self.assertEqual(test_dict["expression"]['A']['B'], 1)
         self.assertEqual(test_dict["expression"]['A']['A'], 0)
@@ -159,7 +148,7 @@ class TestSpia(unittest.TestCase):
 
         test_dict["repression"] = test_matrix
 
-        update_matrix(test_dict, sub, obj, {'relation': 'decreases'})
+        update_spia_matrices(test_dict, sub, obj, {'relation': 'decreases'})
 
         self.assertEqual(test_dict["repression"]['A']['B'], 1)
         self.assertEqual(test_dict["repression"]['A']['A'], 0)
@@ -179,7 +168,7 @@ class TestSpia(unittest.TestCase):
 
         test_dict["activation"] = test_matrix
 
-        update_matrix(test_dict, sub, obj, {'relation': 'increases'})
+        update_spia_matrices(test_dict, sub, obj, {'relation': 'increases'})
 
         self.assertEqual(test_dict["activation"]['A']['B'], 1)
         self.assertEqual(test_dict["activation"]['A']['A'], 0)
@@ -199,7 +188,7 @@ class TestSpia(unittest.TestCase):
 
         test_dict["inhibition"] = test_matrix
 
-        update_matrix(test_dict, sub, obj, {'relation': 'decreases'})
+        update_spia_matrices(test_dict, sub, obj, {'relation': 'decreases'})
 
         self.assertEqual(test_dict["inhibition"]['A']['B'], 1)
         self.assertEqual(test_dict["inhibition"]['A']['A'], 0)
@@ -219,7 +208,7 @@ class TestSpia(unittest.TestCase):
 
         test_dict["binding_association"] = test_matrix
 
-        update_matrix(test_dict, sub, obj, {'relation': 'association'})
+        update_spia_matrices(test_dict, sub, obj, {'relation': 'association'})
 
         self.assertEqual(test_dict["binding_association"]['A']['B'], 1)
         self.assertEqual(test_dict["binding_association"]['A']['A'], 0)
@@ -240,7 +229,7 @@ class TestSpia(unittest.TestCase):
         test_dict["activation_ubiquination"] = test_matrix
         test_dict["activation_phosphorylation"] = test_matrix
 
-        update_matrix(test_dict, sub, obj, {'relation': 'increases'})
+        update_spia_matrices(test_dict, sub, obj, {'relation': 'increases'})
 
         self.assertEqual(test_dict["activation_ubiquination"]['A']['B'], 1)
         self.assertEqual(test_dict["activation_ubiquination"]['A']['A'], 0)
@@ -263,7 +252,7 @@ class TestSpia(unittest.TestCase):
             object_modifier=activity()
         )
 
-        spia_matrix = bel_to_spia(self.sialic_acid_graph)
+        spia_matrix = bel_to_spia_matrices(self.sialic_acid_graph)
 
         self.assertEqual(spia_matrix["activation"][cd33.name][trem2.name], 1)
 
@@ -280,7 +269,7 @@ class TestSpia(unittest.TestCase):
             object_modifier=activity()
         )
 
-        spia_matrix = bel_to_spia(self.sialic_acid_graph)
+        spia_matrix = bel_to_spia_matrices(self.sialic_acid_graph)
 
         self.assertEqual(spia_matrix["activation"][shp1.name][trem2.name], 1)
         self.assertEqual(spia_matrix["activation"][shp2.name][trem2.name], 1)

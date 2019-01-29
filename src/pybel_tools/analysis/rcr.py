@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-"""An implementation of Reverse Causal Reasoning (RCR) [Catlett2013]_.
+"""An implementation of Reverse Causal Reasoning (RCR) described by [Catlett2013]_.
 
 .. [Catlett2013] ﻿Catlett, N. L., *et al* (2013). `Reverse causal reasoning: applying qualitative causal knowledge to
-    the interpretation of high-throughput data <https://doi.org/10.1186/1471-2105-14-340>`_. BMC Bioinformatics, 14(1),
-    340.
+                 the interpretation of high-throughput data <https://doi.org/10.1186/1471-2105-14-340>`_.
+                 BMC Bioinformatics, 14(1), 340.
 """
 
 import pandas
@@ -28,14 +28,12 @@ def concordance(k, n, m, l, p=0.5):
 
 
 def run_rcr(graph, tag='dgxp'):
-    """Runs the reverse causal reasoning algorithm on a graph.
-
+    """Run the reverse causal reasoning algorithm on a graph.
 
     Steps:
 
     1. Get all downstream controlled things into map (that have at least 4 downstream things)
     2. calculate population of all things that are downstream controlled
-
 
     .. note:: Assumes all nodes have been pre-tagged with data
 
@@ -45,13 +43,11 @@ def run_rcr(graph, tag='dgxp'):
     """
 
     # Step 1: Calculate the hypothesis subnetworks (just simple star graphs)
-
     hypotheses = defaultdict(set)
     increases = defaultdict(set)
     decreases = defaultdict(set)
 
-    for u, v, d in graph.edges_iter(data=True):
-
+    for u, v, d in graph.edges(data=True):
         hypotheses[u].add(v)
 
         if d[RELATION] in CAUSAL_INCREASE_RELATIONS:
@@ -72,7 +68,6 @@ def run_rcr(graph, tag='dgxp'):
     missing = defaultdict(int)
 
     for controller, downstream_nodes in hypotheses.items():
-
         if len(downstream_nodes) < 4:
             continue  # need enough data to make reasonable calculations!
 

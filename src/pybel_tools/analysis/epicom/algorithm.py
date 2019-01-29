@@ -1,79 +1,59 @@
 # -*- coding: utf-8 -*-
 
-"""An implementation of chemical-based mechanism enrichment with NeuroMMSig [HoytDomingoFernandez2018]_.
-
-This algorithm has multiple steps:
-
-1. Select NeuroMMSig networks for AD, PD, and epilepsy
-2. Select drugs from DrugBank, and their targets
-3. Run NeuroMMSig algorithm on target list for each network and each mechanism
-4. Store in database
-
-.. [HoytDomingoFernandez2018] Charles Tapley Hoyt, Daniel Domingo-Fernández, Nora Balzer, Anka Güldenpfennig,
-    Martin Hofmann-Apitius; `A systematic approach for identifying shared mechanisms in epilepsy and its comorbidities
-    <https://doi.org/10.1093/database/bay050>`_, Database, Volume 2018, 1 January 2018, bay050
-"""
-
-import logging
-import os
+"""An implementation of a drug-target-based mechanism enrichment strategy."""
 
 import itertools as itt
+import logging
+import os
+from typing import Iterable, List, Mapping, Optional, TextIO, Tuple, Union
+
 from tqdm import tqdm
 
-from pybel.dsl import gene as gene_dsl
+from pybel.dsl import Gene
+from pybel import BELGraph
 from pybel.struct.grouping import get_subgraphs_by_annotation
 from pybel.struct.summary import get_annotation_values
-from pybel_tools.analysis.neurommsig import get_neurommsig_score, neurommsig_graph_preprocessor
+from ..neurommsig import get_neurommsig_score, neurommsig_graph_preprocessor
 
-log = logging.getLogger(__name__)
-
-
-def _get_drug_target_interactions():
-    """Get a mapping from drugs to their list of gene.
-
-    :rtype: dict[str,list[str]]
-    """
-    import bio2bel_drugbank
-
-    drugbank_manager = bio2bel_drugbank.Manager()
-    if not drugbank_manager.is_populated():
-        drugbank_manager.populate()
-
-    return drugbank_manager.get_drug_to_hgnc_symbols()
+logger = logging.getLogger(__name__)
 
 
-def _preprocess_dtis(dtis):
+def _get_drug_target_interactions(manager: Optional['bio2bel_drugbank.manager'] = None) -> Mapping[str, List[str]]:
+    """Get a mapping from drugs to their list of gene."""
+    if manager is None:
+        import bio2bel_drugbank
+        manager = bio2bel_drugbank.Manager()
+
+    if not manager.is_populated():
+        manager.populate()
+
+    return manager.get_drug_to_hgnc_symbols()
+
+
+def _preprocess_dtis(dtis: Mapping[str, List[str]]) -> Mapping[str, List[Gene]]:
     return {
-        drug: [gene_dsl(namespace='HGNC', name=target).as_tuple() for target in targets]
+        drug: [Gene(namespace='HGNC', name=target) for target in targets]
         for drug, targets in dtis.items()
     }
 
 
-def epicom_on_graph(graph, dtis, preprocess=True):
-    """
-    :param pybel.BELGraph graph:
-    :param dict[str,list[tuple]] dtis:
-    :param bool preprocess: If true, preprocess the graph with :func:`neurommsig_graph_preprocessor`.
-    :rtype: iter[tuple[str,str,float]]
-    """
-    if preprocess:
-        log.info('preprocessing %s', graph)
+def epicom_on_graph(graph: BELGraph,
+                    dtis: Mapping[str, List[Gene]],
+                    preprocess_graph: bool = True,
+                    ) -> Iterable[Tuple[str, str, float]]:
+    if preprocess_graph:
+        logger.info('preprocessing %s', graph)
         graph = neurommsig_graph_preprocessor(graph)
 
-    log.info('stratifying %s', graph)
+    logger.info('stratifying %s', graph)
     subgraphs = get_subgraphs_by_annotation(graph, annotation='Subgraph', sentinel='UNDEFINED')
 
-    log.info('running subgraphs x drugs for %s', graph)
+    logger.info('running subgraphs x drugs for %s', graph)
     it = itt.product(sorted(subgraphs), sorted(dtis))
     it = tqdm(it, total=len(subgraphs) * len(dtis), desc='Calculating scores')
 
-    def get_score(s, d):
-        """Gets the score
-
-        :param str s: name of the subgraph
-        :param str d: name of the drug
-        :rtype: Optional[float]
-        """
+    def get_score(s: str, d: str) -> Optional[float]:
+        """Get the score for the given subgraph and drug."""
         return get_neurommsig_score(subgraphs[s], dtis[d])
 
     for subgraph_name, drug in it:
@@ -85,12 +65,7 @@ def epicom_on_graph(graph, dtis, preprocess=True):
         yield drug, subgraph_name, score
 
 
-def _multi_run_helper(graphs):
-    """
-    :param iter[pybel.BELGraph] graphs: A BEL Graph
-    :param dict[str,list[str]] dtis: A dictionary of drugs mapping to their targets
-    :rtype: iter[tuple[str,str,str,float]]
-    """
+def _multi_run_helper(graphs: Iterable[BELGraph]) -> Iterable[Tuple[str, str, str, float]]:
     dtis = _preprocess_dtis(_get_drug_target_interactions())
 
     for graph in graphs:
@@ -98,17 +73,13 @@ def _multi_run_helper(graphs):
             yield graph.name, subgraph_name, drug, score
 
 
-def _multi_run_helper_file_wrapper(graphs, file):
+def _multi_run_helper_file_wrapper(graphs: Iterable[BELGraph], file: Optional[TextIO] = None) -> None:
     for row in _multi_run_helper(graphs):
         print(*row, sep='\t', file=file)
 
 
-def multi_run_epicom(graphs, path):
-    """Run EpiCom analysis  on many graphs
-
-    :param iter[pybel.BELGraph] graphs:
-    :param str or file path: output file path
-    """
+def multi_run_epicom(graphs: Iterable[BELGraph], path: Union[None, str, TextIO]) -> None:
+    """Run EpiCom analysis on many graphs."""
     if isinstance(path, str):
         with open(path, 'w') as file:
             _multi_run_helper_file_wrapper(graphs, file)
@@ -117,18 +88,13 @@ def multi_run_epicom(graphs, path):
         _multi_run_helper_file_wrapper(graphs, path)
 
 
-def run_epicom(graph, directory):
-    """
-    :param pybel.BELGraph graph: A BEL Graph
-    :param str directory: The directory in which the algorithm is run
-    :rtype: iter[tuple[str,str,str,float]]
-    """
+def run_epicom(graph: BELGraph, directory: str, annotation: str = 'Subgraph') -> None:
     os.makedirs(directory, exist_ok=True)
 
     dtis = _preprocess_dtis(_get_drug_target_interactions())
 
     drugs = list(dtis)
-    subgraphs = get_annotation_values(graph, annotation='Subgraph')
+    subgraphs = get_annotation_values(graph, annotation=annotation)
 
     subgraph_name_to_id = {name: i for i, name in enumerate(sorted(subgraphs))}
     drug_name_to_id = {name: i for i, name in enumerate(sorted(drugs))}

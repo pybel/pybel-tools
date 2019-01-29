@@ -2,15 +2,14 @@ PyBEL-Tools Documentation
 =========================
 `PyBEL-Tools <http://pybel-tools.readthedocs.io/>`_ is a suite of tools built on top of
 `PyBEL <http://pybel.readthedocs.io>`_ to facilitate data management, integration, and analysis. For further examples,
-see the `PyBEL-Notebooks <https://github.com/pybel/pybel-notebooks>`_ repository. Installation is as easy as getting
-the code from PyPI_ with :code:`python3 -m pip install pybel-tools`.
+see the `PyBEL-Notebooks <https://github.com/pybel/pybel-notebooks>`_ repository.
 
 Citation
 --------
-If you use PyBEL and PyBEL Tools in your work, please cite [1]_:
+If you use PyBEL and PyBEL Tools in your work, please cite [Hoyt2017]_:
 
-.. [1] Hoyt, C. T., *et al.* (2017). `PyBEL: a Computational Framework for Biological Expression Language
-       <https://doi.org/10.1093/bioinformatics/btx660>`_. Bioinformatics, 34(December), 1–2.
+.. [Hoyt2017] Hoyt, C. T., *et al.* (2017). `PyBEL: a Computational Framework for Biological Expression Language
+              <https://doi.org/10.1093/bioinformatics/btx660>`_. Bioinformatics, 34(December), 1–2.
 
 Links
 -----
@@ -38,8 +37,6 @@ Links
    selection
    integration
    mutation
-   visualization
-   query
 
 .. toctree::
    :caption: Workflows
@@ -55,14 +52,12 @@ Links
    :caption: Other Utilities
    :name: utilities
 
-   ioutils
    documentutils
    utilities
 
 
 Indices and tables
 ==================
-
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
