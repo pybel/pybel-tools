@@ -29,8 +29,7 @@ from pybel.utils import get_version as pybel_version
 from .utils import get_version
 
 
-@click.group(help="PyBEL-Tools v{} Command Line Interface on {}\n with PyBEL v{}".format(get_version(), sys.executable,
-                                                                                         pybel_version()))
+@click.group(help=f"PyBEL-Tools v{get_version()} Command Line Interface on {sys.executable}\n with PyBEL v{pybel_version()}")
 @click.version_option()
 def main():
     """PyBEL Tools Command Line Interface."""
