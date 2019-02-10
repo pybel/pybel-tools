@@ -4,7 +4,7 @@ import os
 
 import click
 
-from .assembler import HERE, render
+from .assembler import HERE, to_html
 
 
 @click.command()
@@ -13,7 +13,7 @@ def main(output):
     """Output the HBP knowledge graph to the desktop"""
     from hbp_knowledge import get_graph
     graph = get_graph()
-    text = render(graph)
+    text = to_html(graph)
     print(text, file=output)
 
 
