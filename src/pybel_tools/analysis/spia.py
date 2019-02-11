@@ -10,16 +10,22 @@ To run this module on an arbitrary BEL graph, use the command ``python -m pybel_
 .. seealso:: https://bioconductor.org/packages/release/bioc/html/SPIA.html
 """
 
-from typing import Dict, Set, Mapping
+import os
+import sys
+from itertools import product
+from typing import Dict, Mapping, Set
 
 import click
 import pandas as pd
-from itertools import product
+from tqdm import tqdm
 
 from pybel import BELGraph
 from pybel.cli import graph_pickle_argument
-from pybel.constants import ASSOCIATION, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, IDENTIFIER, NAME
+from pybel.constants import (
+    ASSOCIATION, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, IDENTIFIER, NAME, RELATION,
+)
 from pybel.dsl import CentralDogma, Gene, ListAbundance, ProteinModification, Rna
+from pybel.typing import EdgeData
 
 __all__ = [
     'run',
@@ -56,12 +62,6 @@ KEGG_RELATIONS = {
 }
 
 
-def run(graph: BELGraph, path: str) -> None:
-    """Run the SPIA pipeline and export to an excel at the given location."""
-    spia_matrices = bel_to_spia_matrices(graph)
-    spia_matrices_to_excel(spia_matrices, path)
-
-
 def bel_to_spia_matrices(graph: BELGraph) -> Mapping[str, pd.DataFrame]:
     """Create an excel sheet ready to be used in SPIA software.
 
@@ -71,40 +71,41 @@ def bel_to_spia_matrices(graph: BELGraph) -> Mapping[str, pd.DataFrame]:
     index_nodes = get_matrix_index(graph)
     spia_matrices = build_spia_matrices(index_nodes)
 
-    for sub, obj, data in graph.edges(data=True):
+    for u, v, edge_data in tqdm(graph.edges(data=True), total=graph.number_of_edges()):
         # Both nodes are CentralDogma abundances
-        if isinstance(sub, CentralDogma) and isinstance(obj, CentralDogma):
+        if isinstance(u, CentralDogma) and isinstance(v, CentralDogma):
             # Update matrix dict
-            update_spia_matrices(spia_matrices, sub, obj, data)
+            update_spia_matrices(spia_matrices, u, v, edge_data)
 
         # Subject is CentralDogmaAbundance and node is ListAbundance
-        elif isinstance(sub, CentralDogma) and isinstance(obj, ListAbundance):
+        elif isinstance(u, CentralDogma) and isinstance(v, ListAbundance):
             # Add a relationship from subject to each of the members in the object
-            for node in obj.members:
+            for node in v.members:
                 # Skip if the member is not in CentralDogma
                 if not isinstance(node, CentralDogma):
                     continue
 
-                update_spia_matrices(spia_matrices, sub, node, data)
+                update_spia_matrices(spia_matrices, u, node, edge_data)
 
         # Subject is ListAbundance and node is CentralDogmaAbundance
-        elif isinstance(sub, ListAbundance) and isinstance(obj, CentralDogma):
+        elif isinstance(u, ListAbundance) and isinstance(v, CentralDogma):
             # Add a relationship from each of the members of the subject to the object
-            for node in sub.members:
+            for node in u.members:
                 # Skip if the member is not in CentralDogma
                 if not isinstance(node, CentralDogma):
                     continue
 
-                update_spia_matrices(spia_matrices, node, obj, data)
+                update_spia_matrices(spia_matrices, node, v, edge_data)
 
         # Both nodes are ListAbundance
-        elif isinstance(sub, ListAbundance) and isinstance(obj, ListAbundance):
-            for sub_member, obj_member in product(sub.members, obj.members):
+        elif isinstance(u, ListAbundance) and isinstance(v, ListAbundance):
+            for sub_member, obj_member in product(u.members, v.members):
                 # Update matrix if both are CentralDogma
                 if isinstance(sub_member, CentralDogma) and isinstance(obj_member, CentralDogma):
-                    update_spia_matrices(spia_matrices, sub_member, obj_member, data)
+                    update_spia_matrices(spia_matrices, sub_member, obj_member, edge_data)
 
         # else Not valid edge
+
     return spia_matrices
 
 
@@ -131,57 +132,51 @@ def build_spia_matrices(nodes: Set[str]) -> Dict[str, pd.DataFrame]:
     }
 
 
-def update_spia_matrices(spia_matrices: Dict[str, pd.DataFrame], sub: CentralDogma, obj: CentralDogma, data: Dict):
-    """Populate the adjacency matrix.
-
-    :param spia_matrices:
-    :param sub: bel subject
-    :param obj: bel object
-    :param data: edge data
-    """
-    if sub.namespace.upper() != 'HGNC' and obj.namespace.upper() != 'HGNC':
+def update_spia_matrices(spia_matrices: Dict[str, pd.DataFrame],
+                         u: CentralDogma,
+                         v: CentralDogma,
+                         edge_data: EdgeData,
+                         ) -> None:
+    """Populate the adjacency matrix."""
+    if u.namespace.upper() != 'HGNC' or v.namespace.upper() != 'HGNC':
         return
 
-    subject_name = sub.name
-    object_name = obj.name
-    relation = data['relation']
+    u_name = u.name
+    v_name = v.name
+    relation = edge_data[RELATION]
 
     if relation in CAUSAL_INCREASE_RELATIONS:
         # If it has pmod check which one and add it to the corresponding matrix
-        if obj.variants and any(isinstance(variant, ProteinModification) for variant in obj.variants):
-            for variant in obj.variants:
+        if v.variants and any(isinstance(variant, ProteinModification) for variant in v.variants):
+            for variant in v.variants:
+                if not isinstance(variant, ProteinModification):
+                    continue
                 if variant[IDENTIFIER][NAME] == "Ub":
-                    spia_matrices["activation_ubiquination"][subject_name][object_name] = 1
-
+                    spia_matrices["activation_ubiquination"][u_name][v_name] = 1
                 elif variant[IDENTIFIER][NAME] == "Ph":
-                    spia_matrices["activation_phosphorylation"][subject_name][object_name] = 1
-
-        # Normal increase, add activation
-        elif isinstance(obj, (Gene, Rna)):
-            spia_matrices['expression'][subject_name][object_name] = 1
-
+                    spia_matrices["activation_phosphorylation"][u_name][v_name] = 1
+        elif isinstance(v, (Gene, Rna)):  # Normal increase, add activation
+            spia_matrices['expression'][u_name][v_name] = 1
         else:
-            spia_matrices['activation'][subject_name][object_name] = 1
+            spia_matrices['activation'][u_name][v_name] = 1
 
     elif relation in CAUSAL_DECREASE_RELATIONS:
         # If it has pmod check which one and add it to the corresponding matrix
-        if obj.variants and any(isinstance(variant, ProteinModification) for variant in obj.variants):
-            for variant in obj.variants:
+        if v.variants and any(isinstance(variant, ProteinModification) for variant in v.variants):
+            for variant in v.variants:
+                if not isinstance(variant, ProteinModification):
+                    continue
                 if variant[IDENTIFIER][NAME] == "Ub":
-                    spia_matrices['inhibition_ubiquination'][subject_name][object_name] = 1
-
+                    spia_matrices['inhibition_ubiquination'][u_name][v_name] = 1
                 elif variant[IDENTIFIER][NAME] == "Ph":
-                    spia_matrices["inhibition_phosphorylation"][subject_name][object_name] = 1
-
-        # Normal decrease, check which matrix
-        elif isinstance(obj, (Gene, Rna)):
-            spia_matrices["repression"][subject_name][object_name] = 1
-
+                    spia_matrices["inhibition_phosphorylation"][u_name][v_name] = 1
+        elif isinstance(v, (Gene, Rna)):  # Normal decrease, check which matrix
+            spia_matrices["repression"][u_name][v_name] = 1
         else:
-            spia_matrices["inhibition"][subject_name][object_name] = 1
+            spia_matrices["inhibition"][u_name][v_name] = 1
 
     elif relation == ASSOCIATION:
-        spia_matrices["binding_association"][subject_name][object_name] = 1
+        spia_matrices["binding_association"][u_name][v_name] = 1
 
 
 def spia_matrices_to_excel(spia_matrices: Mapping[str, pd.DataFrame], path: str) -> None:
@@ -194,7 +189,7 @@ def spia_matrices_to_excel(spia_matrices: Mapping[str, pd.DataFrame], path: str)
         # ["title"] from the name of the file
         # ["NumberOfReactions"] set to "0"
     """
-    writer = pd.ExcelWriter('{}.xlsx'.format(path), engine='xlsxwriter')
+    writer = pd.ExcelWriter(path, engine='xlsxwriter')
 
     for relation, df in spia_matrices.items():
         df.to_excel(writer, sheet_name=relation)
@@ -203,12 +198,30 @@ def spia_matrices_to_excel(spia_matrices: Mapping[str, pd.DataFrame], path: str)
     writer.save()
 
 
+def spia_matrices_to_tsvs(spia_matrices: Mapping[str, pd.DataFrame], directory: str) -> None:
+    """Export a SPIA data dictionary into a directory as several TSV documents."""
+    os.makedirs(directory, exist_ok=True)
+    for relation, df in spia_matrices.items():
+        df.to_csv(os.path.join(directory, f'{relation}.tsv'), index=True)
+
+
 @click.command()
 @graph_pickle_argument
-@click.argument('output')
-def main(graph: BELGraph, output: str):
+@click.option('--xlsx', type=click.Path(file_okay=True, dir_okay=False))
+@click.option('--tsvs', type=click.Path(file_okay=False, dir_okay=True))
+def main(graph: BELGraph, xlsx: str, tsvs: str):
     """Export the graph to a SPIA Excel sheet."""
-    run(graph, output)
+    if not xlsx and not tsvs:
+        click.secho('Specify at least one option --xlsx or --tsvs', fg='red')
+        sys.exit(1)
+
+    spia_matrices = bel_to_spia_matrices(graph)
+
+    if xlsx:
+        spia_matrices_to_excel(spia_matrices, xlsx)
+
+    if tsvs:
+        spia_matrices_to_tsvs(spia_matrices, tsvs)
 
 
 if __name__ == '__main__':
