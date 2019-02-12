@@ -28,9 +28,9 @@ from pybel.dsl import CentralDogma, Gene, ListAbundance, ProteinModification, Rn
 from pybel.typing import EdgeData
 
 __all__ = [
-    'run',
     'bel_to_spia_matrices',
     'spia_matrices_to_excel',
+    'spia_matrices_to_tsvs',
 ]
 
 KEGG_RELATIONS = {
