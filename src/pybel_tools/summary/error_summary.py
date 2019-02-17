@@ -2,8 +2,8 @@
 
 """This module contains functions that provide summaries of the errors encountered while parsing a BEL script."""
 
-from collections import Counter, Iterable, defaultdict
-from typing import List, Mapping, Set, Optional
+from collections import Iterable, defaultdict
+from typing import List, Mapping, Optional, Set
 
 from pybel import BELGraph
 from pybel.constants import ANNOTATIONS
@@ -11,7 +11,7 @@ from pybel.parser.exc import (
     MissingNamespaceNameWarning, MissingNamespaceRegexWarning, UndefinedAnnotationWarning, UndefinedNamespaceWarning,
 )
 from pybel.struct.filters.edge_predicates import edge_has_annotation
-from pybel.struct.summary import count_error_types, count_naked_names, get_naked_names
+from pybel.struct.summary.errors import count_error_types, count_naked_names, get_naked_names
 from pybel.struct.summary.node_summary import get_names_by_namespace, get_namespaces
 from ..utils import count_dict_values
 
@@ -37,9 +37,18 @@ __all__ = [
 def get_namespaces_with_incorrect_names(graph: BELGraph) -> Set[str]:
     """Return the set of all namespaces with incorrect names in the graph."""
     return {
-        e.namespace
-        for _, _, e, _ in graph.warnings
-        if isinstance(e, (MissingNamespaceNameWarning, MissingNamespaceRegexWarning))
+        exc.namespace
+        for _, exc, _ in graph.warnings
+        if isinstance(exc, (MissingNamespaceNameWarning, MissingNamespaceRegexWarning))
+    }
+
+
+def get_undefined_namespaces(graph: BELGraph) -> Set[str]:
+    """Get all namespaces that are used in the BEL graph aren't actually defined."""
+    return {
+        exc.namespace
+        for _, exc, _ in graph.warnings
+        if isinstance(exc, UndefinedNamespaceWarning)
     }
 
 
@@ -49,9 +58,21 @@ def get_incorrect_names_by_namespace(graph: BELGraph, namespace: str) -> Set[str
     :return: The set of all incorrect names from the given namespace in the graph
     """
     return {
-        e.name
-        for _, _, e, _ in graph.warnings
-        if isinstance(e, (MissingNamespaceNameWarning, MissingNamespaceRegexWarning)) and e.namespace == namespace
+        exc.name
+        for _, exc, _ in graph.warnings
+        if isinstance(exc, (MissingNamespaceNameWarning, MissingNamespaceRegexWarning)) and exc.namespace == namespace
+    }
+
+
+def get_undefined_namespace_names(graph: BELGraph, namespace: str) -> Set[str]:
+    """Get the names from a namespace that wasn't actually defined.
+
+    :return: The set of all names from the undefined namespace
+    """
+    return {
+        exc.name
+        for _, exc, _ in graph.warnings
+        if isinstance(exc, UndefinedNamespaceWarning) and exc.namespace == namespace
     }
 
 
@@ -66,36 +87,15 @@ def get_incorrect_names(graph: BELGraph) -> Mapping[str, Set[str]]:
     }
 
 
-def get_undefined_namespaces(graph: BELGraph) -> Set[str]:
-    """Get all namespaces that are used in the BEL graph aren't actually defined."""
-    return {
-        e.namespace
-        for _, _, e, _ in graph.warnings
-        if isinstance(e, UndefinedNamespaceWarning)
-    }
-
-
-def get_undefined_namespace_names(graph: BELGraph, namespace: str) -> Set[str]:
-    """Get the names from a namespace that wasn't actually defined.
-    
-    :return: The set of all names from the undefined namespace
-    """
-    return {
-        e.name
-        for _, _, e, _ in graph.warnings
-        if isinstance(e, UndefinedNamespaceWarning) and e.namespace == namespace
-    }
-
-
 def get_undefined_annotations(graph: BELGraph) -> Set[str]:
     """Get all annotations that aren't actually defined.
     
     :return: The set of all undefined annotations
     """
     return {
-        e.annotation
-        for _, _, e, _ in graph.warnings
-        if isinstance(e, UndefinedAnnotationWarning)
+        exc.annotation
+        for _, exc, _ in graph.warnings
+        if isinstance(exc, UndefinedAnnotationWarning)
     }
 
 
@@ -106,7 +106,7 @@ def calculate_incorrect_name_dict(graph: BELGraph) -> Mapping[str, str]:
     """
     missing = defaultdict(list)
 
-    for line_number, line, e, ctx in graph.warnings:
+    for _, e, ctx in graph.warnings:
         if not isinstance(e, (MissingNamespaceNameWarning, MissingNamespaceRegexWarning)):
             continue
         missing[e.namespace].append(e.name)
@@ -121,17 +121,17 @@ def calculate_error_by_annotation(graph: BELGraph, annotation: str) -> Mapping[s
     """
     results = defaultdict(list)
 
-    for line_number, line, e, context in graph.warnings:
-        if not context or not edge_has_annotation(context, annotation):
+    for _, exc, ctx in graph.warnings:
+        if not ctx or not edge_has_annotation(ctx, annotation):
             continue
 
-        values = context[ANNOTATIONS][annotation]
+        values = ctx[ANNOTATIONS][annotation]
 
         if isinstance(values, str):
-            results[values].append(e.__class__.__name__)
+            results[values].append(exc.__class__.__name__)
         elif isinstance(values, Iterable):
             for value in values:
-                results[value].append(e.__class__.__name__)
+                results[value].append(exc.__class__.__name__)
 
     return dict(results)
 
@@ -143,8 +143,8 @@ def group_errors(graph: BELGraph) -> Mapping[str, List[int]]:
     """
     warning_summary = defaultdict(list)
 
-    for ln, _, e, _ in graph.warnings:
-        warning_summary[str(e)].append(ln)
+    for _, exc, _ in graph.warnings:
+        warning_summary[str(exc)].append(exc.line_number)
 
     return dict(warning_summary)
 

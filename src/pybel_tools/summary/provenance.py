@@ -2,21 +2,23 @@
 
 """This module contains functions to summarize the provenance (citations, evidences, and authors) in a BEL graph."""
 
+import itertools as itt
 import logging
+import typing
 from collections import Counter, defaultdict
 from datetime import datetime
 from typing import Iterable, List, Mapping, Optional, Set, Tuple, Union
 
-import itertools as itt
-
 from pybel import BELGraph
-from pybel.constants import *
+from pybel.constants import (
+    ANNOTATIONS, CITATION, CITATION_AUTHORS, CITATION_DATE, CITATION_REFERENCE, CITATION_TYPE, EVIDENCE,
+)
 from pybel.dsl import BaseEntity
 from pybel.struct.filters import filter_edges
 from pybel.struct.filters.edge_predicates import edge_has_annotation
 from pybel.struct.summary import iterate_pubmed_identifiers
 from ..filters import build_edge_data_filter, build_pmid_inclusion_filter
-from ..utils import count_defaultdict, count_dict_values, graph_edge_data_iter
+from ..utils import count_defaultdict, count_dict_values, group_as_dict
 
 __all__ = [
     'count_pmids',
@@ -24,16 +26,15 @@ __all__ = [
     'count_citations',
     'count_citations_by_annotation',
     'count_authors',
-    'count_unique_authors',
     'count_author_publications',
-    'count_unique_citations',
     'get_authors',
     'get_authors_by_keyword',
     'count_authors_by_annotation',
     'get_evidences_by_pmid',
     'count_citation_years',
     'create_timeline',
-    'get_citation_years'
+    'get_citation_years',
+    'count_confidences',
 ]
 
 log = logging.getLogger(__name__)
@@ -90,19 +91,6 @@ def count_pmids(graph: BELGraph) -> Counter:
     return Counter(iterate_pubmed_identifiers(graph))
 
 
-def get_citation_pair(data):
-    return data[CITATION][CITATION_TYPE], data[CITATION][CITATION_REFERENCE].strip()
-
-
-def count_unique_citations(graph: BELGraph) -> int:
-    """Return the number of unique citations in the graph."""
-    return len({
-        get_citation_pair(data)
-        for data in graph_edge_data_iter(graph)
-        if CITATION in data
-    })
-
-
 def count_citations(graph: BELGraph, **annotations) -> Counter:
     """Counts the citations in a graph based on a given filter
 
@@ -118,12 +106,12 @@ def count_citations(graph: BELGraph, **annotations) -> Counter:
         if CITATION not in d:
             continue
 
-        citations[u, v].add(get_citation_pair(d))
+        citations[u, v].add((d[CITATION][CITATION_TYPE], d[CITATION][CITATION_REFERENCE].strip()))
 
     return Counter(itt.chain.from_iterable(citations.values()))
 
 
-def count_citations_by_annotation(graph: BELGraph, annotation: str) -> Mapping[str, Counter]:
+def count_citations_by_annotation(graph: BELGraph, annotation: str) -> Mapping[str, typing.Counter[str]]:
     """Group the citation counters by subgraphs induced by the annotation.
 
     :param graph: A BEL graph
@@ -142,66 +130,31 @@ def count_citations_by_annotation(graph: BELGraph, annotation: str) -> Mapping[s
     return {k: Counter(itt.chain.from_iterable(v.values())) for k, v in citations.items()}
 
 
-def _check_authors_in_data(data) -> bool:
-    return CITATION not in data or CITATION_AUTHORS not in data[CITATION]
-
-
-def _raise_for_unparsed_authors(data: Mapping) -> None:
-    authors = data[CITATION][CITATION_AUTHORS]
-    if isinstance(authors, str):
-        raise ValueError('Graph should be converted with pbt.mutation.parse_authors first: {}'.format(authors))
-
-
-def count_authors(graph: BELGraph) -> Counter:
+def count_authors(graph: BELGraph) -> typing.Counter[str]:
     """Count the number of edges in which each author appears."""
-    authors = []
-
-    for data in graph_edge_data_iter(graph):
-        if _check_authors_in_data(data):
-            continue
-        _raise_for_unparsed_authors(data)
-        for author in data[CITATION][CITATION_AUTHORS]:
-            authors.append(author)
-
-    return Counter(authors)
+    return Counter(graph._iterate_authors())
 
 
-def count_author_publications(graph: BELGraph) -> Counter:
+def count_author_publications(graph: BELGraph) -> typing.Counter[str]:
     """Count the number of publications of each author to the given graph."""
-    authors = defaultdict(list)
-
-    for data in graph_edge_data_iter(graph):
-        if _check_authors_in_data(data):
-            continue
-        _raise_for_unparsed_authors(data)
-        for author in data[CITATION][CITATION_AUTHORS]:
-            authors[author].append(data[CITATION][CITATION_REFERENCE].strip())
-
+    authors = group_as_dict(_iter_author_publiations(graph))
     return Counter(count_dict_values(count_defaultdict(authors)))
 
 
-# TODO switch to use node filters
+def _iter_author_publiations(graph: BELGraph) -> Iterable[Tuple[str, Tuple[str, str]]]:
+    for _, _, data in graph.edges(data=True):
+        if CITATION not in data or CITATION_AUTHORS not in data[CITATION]:
+            continue
+        for author in data[CITATION][CITATION_AUTHORS]:
+            yield (
+                author,
+                (data[CITATION][CITATION_TYPE], data[CITATION][CITATION_REFERENCE])
+            )
+
+
 def get_authors(graph: BELGraph) -> Set[str]:
     """Get the set of all authors in the given graph."""
-    return set(_iterate_authors(graph))
-
-
-def _iterate_authors(graph: BELGraph) -> Iterable[str]:
-    for _, _, data in graph.edges(data=True):
-        if _check_authors_in_data(data):
-            continue
-
-        authors = data[CITATION][CITATION_AUTHORS]
-
-        if isinstance(authors, str):
-            yield authors
-        else:
-            yield from authors.strip().split('|')
-
-
-def count_unique_authors(graph: BELGraph) -> int:
-    """Count the number of unique authors whose publications contributed to the graph."""
-    return len(get_authors(graph))
+    return set(graph._iterate_authors())
 
 
 def get_authors_by_keyword(keyword: str, graph=None, authors=None) -> Set[str]:
@@ -231,29 +184,28 @@ def get_authors_by_keyword(keyword: str, graph=None, authors=None) -> Set[str]:
     }
 
 
-def count_authors_by_annotation(graph: BELGraph, annotation: str = 'Subgraph') -> Mapping[str, Counter]:
-    """Groups the author counters by subgraphs induced by the annotation
+def count_authors_by_annotation(graph: BELGraph, annotation: str = 'Subgraph') -> Mapping[str, typing.Counter[str]]:
+    """Group the author counters by sub-graphs induced by the annotation.
 
     :param graph: A BEL graph
     :param annotation: The annotation to use to group the graph
     :return: A dictionary of Counters {subgraph name: Counter from {author: frequency}}
     """
-    authors = defaultdict(list)
-
-    for data in graph_edge_data_iter(graph):
-        if not edge_has_annotation(data, annotation) or CITATION not in data or CITATION_AUTHORS not in data[CITATION]:
-            continue
-        if isinstance(data[CITATION][CITATION_AUTHORS], str):
-            raise ValueError('Graph should be converted with pybel.mutation.parse_authors first')
-        for author in data[CITATION][CITATION_AUTHORS]:
-            authors[data[ANNOTATIONS][annotation]].append(author)
-
+    authors = group_as_dict(_iter_authors_by_annotation(graph, annotation=annotation))
     return count_defaultdict(authors)
 
 
+def _iter_authors_by_annotation(graph: BELGraph, annotation: str = 'Subgraph') -> Iterable[Tuple[str, str]]:
+    for _, _, data in graph.edges(data=True):
+        if not edge_has_annotation(data, annotation) or CITATION not in data or CITATION_AUTHORS not in data[CITATION]:
+            continue
+        for author in data[CITATION][CITATION_AUTHORS]:
+            yield data[ANNOTATIONS][annotation], author
+
+
 def get_evidences_by_pmid(graph: BELGraph, pmids: Union[str, Iterable[str]]):
-    """Ges a dictionary from the given PubMed identifiers to the sets of all evidence strings associated with each
-    in the graph
+    """Get a dictionary from the given PubMed identifiers to the sets of all evidence strings associated with each
+    in the graph.
 
     :param graph: A BEL graph
     :param pmids: An iterable of PubMed identifiers, as strings. Is consumed and converted to a set.
@@ -269,11 +221,11 @@ def get_evidences_by_pmid(graph: BELGraph, pmids: Union[str, Iterable[str]]):
 
 
 # TODO date parsing should be handled during either pybel parse-time or during graph loading.
-def count_citation_years(graph: BELGraph) -> Counter:
+def count_citation_years(graph: BELGraph) -> typing.Counter[int]:
     """Count the number of citations from each year."""
     result = defaultdict(set)
 
-    for data in graph_edge_data_iter(graph):
+    for _, _, data in graph.edges(data=True):
         if CITATION not in data or CITATION_DATE not in data[CITATION]:
             continue
 
@@ -301,7 +253,7 @@ def get_citation_years(graph: BELGraph) -> List[Tuple[int, int]]:
     return create_timeline(count_citation_years(graph))
 
 
-def create_timeline(year_counter: Counter) -> List[Tuple[int, int]]:
+def create_timeline(year_counter: typing.Counter[int]) -> List[Tuple[int, int]]:
     """Complete the Counter timeline.
 
     :param Counter year_counter: counter dict for each year
@@ -310,12 +262,23 @@ def create_timeline(year_counter: Counter) -> List[Tuple[int, int]]:
     if not year_counter:
         return []
 
-    until_year = datetime.now().year
-    from_year = min(year_counter)
+    from_year = min(year_counter) - 1
+    until_year = datetime.now().year + 1
 
-    timeline = [
+    return [
         (year, year_counter.get(year, 0))
         for year in range(from_year, until_year)
     ]
 
-    return timeline
+
+def count_confidences(graph: BELGraph) -> typing.Counter[str]:
+    """Count the confidences in the graph."""
+    return Counter(
+        (
+            'None'
+            if ANNOTATIONS not in data or 'Confidence' not in data[ANNOTATIONS] else
+            list(data[ANNOTATIONS]['Confidence'])[0]
+        )
+        for _, _, data in graph.edges(data=True)
+        if CITATION in data  # don't bother with unqualified statements
+    )

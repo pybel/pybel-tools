@@ -156,8 +156,8 @@ def build_author_inclusion_filter(author: Strings) -> EdgePredicate:
             :return: If the edge has a citation with an author that matches the the contained author
             """
             return has_authors(data) and any(
-                a in data[CITATION][CITATION_AUTHORS]
-                for a in authors
+                author in data[CITATION][CITATION_AUTHORS]
+                for author in authors
             )
 
         return author_filter

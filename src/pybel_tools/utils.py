@@ -3,19 +3,17 @@
 """This module contains functions useful throughout PyBEL Tools"""
 
 import datetime
+import itertools as itt
 import json
 import logging
-import os
 import typing
 from collections import Counter, defaultdict
 from operator import itemgetter
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Set, Sized, Tuple, TypeVar
+from typing import Callable, Dict, Iterable, List, Mapping, Optional, Set, Sized, Tuple, TypeVar, Union
 
-import itertools as itt
 import networkx as nx
 
 from pybel import BELGraph
-from pybel.typing import EdgeData
 from .constants import VERSION
 
 log = logging.getLogger(__name__)
@@ -32,13 +30,11 @@ def pairwise(iterable: Iterable[X]) -> Iterable[Tuple[X, X]]:
     return zip(a, b)
 
 
-def graph_edge_data_iter(graph: BELGraph) -> Iterable[EdgeData]:
-    """Iterate over the edge data dictionaries.
-
-    :return: An iterator over the edge dictionaries in the graph
-    """
-    for _, _, data in graph.edges(data=True):
-        yield data
+def group_as_dict(list_of_pairs: Iterable[Tuple[X, Y]]) -> Mapping[X, List[Y]]:
+    r = defaultdict(list)
+    for a, b in list_of_pairs:
+        r[a].append(b)
+    return dict(r)
 
 
 def count_defaultdict(dict_of_lists: Mapping[X, List[Y]]) -> Mapping[X, typing.Counter[Y]]:
@@ -202,7 +198,10 @@ def safe_add_edge(graph, u, v, key, attr_dict, **attr):
         graph.add_edge(u, v, attr_dict=attr_dict, **attr)
 
 
-def prepare_c3(data: Mapping[str, int], y_axis_label: str = 'y', x_axis_label: str = 'x') -> str:
+def prepare_c3(data: Union[List[Tuple[str, int]], Mapping[str, int]],
+               y_axis_label: str = 'y',
+               x_axis_label: str = 'x',
+               ) -> str:
     """Prepares C3 JSON for making a bar chart from a Counter
 
     :param data: A dictionary of {str: int} to display as bar chart
@@ -210,11 +209,14 @@ def prepare_c3(data: Mapping[str, int], y_axis_label: str = 'y', x_axis_label: s
     :param x_axis_label: X axis internal label. Should be left as default 'x')
     :return: A JSON dictionary for making a C3 bar chart
     """
-    labels, values = zip(*sorted(data.items(), key=itemgetter(1), reverse=True))
+    if not isinstance(data, list):
+        data = sorted(data.items(), key=itemgetter(1), reverse=True)
+
+    labels, values = zip(*data)
 
     return json.dumps([
         [x_axis_label] + list(labels),
-        [y_axis_label] + list(values)
+        [y_axis_label] + list(values),
     ])
 
 

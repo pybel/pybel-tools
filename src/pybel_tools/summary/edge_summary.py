@@ -2,16 +2,14 @@
 
 """This module contains functions that provide summaries of the edges in a graph."""
 
+import itertools as itt
 from collections import Counter, defaultdict
 from typing import Iterable, List, Mapping, Optional, Set, Tuple, TypeVar
-
-import itertools as itt
 
 from pybel import BELGraph
 from pybel.constants import ANNOTATIONS, RELATION
 from pybel.dsl import BaseEntity
 from pybel.struct.filters.edge_predicates import edge_has_annotation
-from pybel.struct.filters.node_predicates import keep_node_permissive
 from pybel.struct.filters.typing import NodePredicate
 from pybel.struct.summary import (
     count_annotations, count_pathologies, count_relations, get_annotations, get_unused_annotations,
@@ -92,8 +90,8 @@ def count_annotation_values(graph: BELGraph, annotation: str) -> Counter:
 
 def count_annotation_values_filtered(graph: BELGraph,
                                      annotation: str,
-                                     source_filter: Optional[NodePredicate] = None,
-                                     target_filter: Optional[NodePredicate] = None,
+                                     source_predicate: Optional[NodePredicate] = None,
+                                     target_predicate: Optional[NodePredicate] = None,
                                      ) -> Counter:
     """Count in how many edges each annotation appears in a graph, but filter out source nodes and target nodes.
 
@@ -101,18 +99,34 @@ def count_annotation_values_filtered(graph: BELGraph,
 
     :param graph: A BEL graph
     :param annotation: The annotation to count
-    :param source_filter: A predicate (graph, node) -> bool for keeping source nodes
-    :param target_filter: A predicate (graph, node) -> bool for keeping target nodes
+    :param source_predicate: A predicate (graph, node) -> bool for keeping source nodes
+    :param target_predicate: A predicate (graph, node) -> bool for keeping target nodes
     :return: A Counter from {annotation value: frequency}
     """
-    source_filter = keep_node_permissive if source_filter is None else source_filter
-    target_filter = keep_node_permissive if target_filter is None else target_filter
-
-    return Counter(
-        data[ANNOTATIONS][annotation]
-        for u, v, data in graph.edges(data=True)
-        if edge_has_annotation(data, annotation) and source_filter(graph, u) and target_filter(graph, v)
-    )
+    if source_predicate and target_predicate:
+        return Counter(
+            data[ANNOTATIONS][annotation]
+            for u, v, data in graph.edges(data=True)
+            if edge_has_annotation(data, annotation) and source_predicate(graph, u) and target_predicate(graph, v)
+        )
+    elif source_predicate:
+        return Counter(
+            data[ANNOTATIONS][annotation]
+            for u, v, data in graph.edges(data=True)
+            if edge_has_annotation(data, annotation) and source_predicate(graph, u)
+        )
+    elif target_predicate:
+        return Counter(
+            data[ANNOTATIONS][annotation]
+            for u, v, data in graph.edges(data=True)
+            if edge_has_annotation(data, annotation) and target_predicate(graph, u)
+        )
+    else:
+        return Counter(
+            data[ANNOTATIONS][annotation]
+            for u, v, data in graph.edges(data=True)
+            if edge_has_annotation(data, annotation)
+        )
 
 
 def pair_is_consistent(graph: BELGraph, u: BaseEntity, v: BaseEntity) -> Optional[str]:

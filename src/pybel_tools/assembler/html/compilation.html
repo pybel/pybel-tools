@@ -1,0 +1,279 @@
+{% macro render_list_group(items, columns) -%}
+    <ul class="list-group">
+        {% for item in items|sort %}
+            <li class="list-group-item {{ 12 / columns if columns is defined else '' }}">
+                {{ item }}
+            </li>
+        {% endfor %}
+    </ul>
+{%- endmacro %}
+
+<h2>Namespaces</h2>
+<div>
+    <h3 data-toc-text="References">
+        Namespace References
+        <span class="badge badge-pill badge-light">{{ graph.namespace_url|length }}</span>
+    </h3>
+    <p>
+        This section lists all of the namespaces that are defined in the original BEL document.
+    </p>
+    <table class="table table-hover table-striped" id="table-namespace-urls">
+        <thead>
+        <tr>
+            <th>Keyword</th>
+            <th>URL</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for key, value in graph.namespace_url.items()|sort %}
+            <tr>
+                <td>{{ key }}</td>
+                <td><a href="{{ value }}">{{ value }}</a></td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    {% if unused_namespaces is defined and unused_namespaces|length > 0 %}
+        <h3 data-toc-text="Unused">
+            Unused Namespaces
+            <span class="badge badge-pill badge-light">{{ unused_namespaces|length }}</span>
+        </h3>
+        <p>
+            The source BEL document contained references to the following namespaces, but they were never
+            used. It is suggested to delete their definitions from the BEL document to improve readability
+            and parsing speed.
+        </p>
+        {{ render_list_group(unused_namespaces) }}
+    {% endif %}
+
+    {% if naked_names is defined and naked_names|length > 0 %}
+        <h3 data-toc-text="Naked Names">
+            Naked Names
+            <span class="badge badge-pill badge-light">{{ naked_names|length }}</span>
+        </h3>
+        <p>
+            Names referenced without a namespace are antithetical to reproducible science and data
+            integration practices.
+        </p>
+        {{ render_list_group(naked_names) }}
+    {% endif %}
+
+    {% if undefined_namespaces is defined and undefined_namespaces|length > 0 %}
+        <h3>Undefined Namespaces
+            <span class="badge badge-pill badge-light">{{ undefined_namespaces|length }}</span>
+        </h3>
+        <p>
+            The source BEL document contained references to the following namespaces, but they were never
+            defined. Click the links to download them as enumerated namespaces, and update the BEL document
+            accordingly.
+        </p>
+        {{ render_list_group(undefined_namespaces) }}
+    {% endif %}
+
+    {% if namespaces_with_incorrect_names is defined and namespaces_with_incorrect_names|length > 0 %}
+        <h3 data-toc-text="Incorrect Names">
+            Namespaces with Incorrect Names
+            <span class="badge badge-pill badge-light">{{ namespaces_with_incorrect_names|length }}</span>
+        </h3>
+        {{ render_list_group(namespaces_with_incorrect_names) }}
+    {% endif %}
+</div>
+
+<h2>Annotations</h2>
+<div>
+    <h3 data-toc-text="References">
+        Annotation References
+        <span class="badge badge-pill badge-light">{{ graph.annotation_url|length }}</span>
+    </h3>
+    <p>
+        This section lists all of the annotations that are defined in the original BEL document.
+    </p>
+    <table class="table table-hover table-striped" id="table-annotation-urls">
+        <thead>
+        <tr>
+            <th>Keyword</th>
+            <th>URL</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for key, value in graph.annotation_url.items()|sort %}
+            <tr>
+                <td>{{ key }}</td>
+                <td><a href="{{ value }}">{{ value }}</a></td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    {% if unused_annotations is defined and unused_annotations|length > 0 %}
+        <h3 data-toc-text="Unused">
+            Unused Annotations
+            <span class="badge badge-pill badge-light">{{ unused_annotations|length }}</span>
+        </h3>
+        <p>
+            The source BEL document contained references to the following annotations, but they were never
+            used. It is suggested to delete their definitions from the BEL document to improve readability
+            and parsing speed.
+        </p>
+        <p>
+            <strong>Note:</strong> this may be due to errors occurring in all statements with these
+            annotations.
+        </p>
+        {{ render_list_group(unused_annotations) }}
+    {% endif %}
+
+    {% if graph.annotation_list|length > 0 %}
+        <h3 data-toc-text="Local">
+            Locally Defined Annotations
+            <span class="badge badge-pill badge-light">{{ graph.annotation_list|length }}</span>
+        </h3>
+        <p>
+            The source BEL document contained annotations defined as a list. Click each link to export
+            the list definition as a <code>BELANNO</code> file that can hosted externally to promote
+            re-usability and interoperability. After, you can replace the list definition in the source
+            BEL with a <code>SET ANNOTATION X AS URL "Y"</code> definition.
+        </p>
+        {{ render_list_group(graph.annotation_list) }}
+    {% endif %}
+
+    {% if unused_list_annotation_values is defined and unused_list_annotation_values|length > 0 %}
+        <h3 data-toc-text="Unused Local">
+            Unused Locally Defined Annotations
+            <span class="badge badge-pill badge-light">{{ unused_list_annotation_values|length }}</span>
+        </h3>
+        <p>
+            The source BEL document contained the following list annotations, but no references to the
+            following values. It is suggested to prune these values from the list definitions.
+        </p>
+        <p>
+            <strong>Note:</strong> this may be due to errors occurring in all statements with these
+            annotations.
+        </p>
+        <table class="table table-hover table-responsive table-striped">
+            <thead>
+            <tr>
+                <th>Annotation</th>
+                <th>Values</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for annotation, values in unused_list_annotation_values.items()|sort %}
+                <tr>
+                    <td>{{ annotation }}</td>
+                    <td>
+                        <ul class="row">
+                            {% for value in values %}
+                                <li class="col-lg-3 col-md-4 col-sm-6">
+                                    {{ value }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+
+        {% if undefined_annotation is defined and undefined_annotations|length > 0 %}
+            <h3 data-toc-text="Undefined">
+                Undefined Annotations
+                <span class="badge badge-pill badge-light">{{ undefined_annotations|length }}</span>
+            </h3>
+            <p>
+                The source BEL document contained references to the following annotations, but they were
+                never defined.
+            </p>
+            {{ render_list_group(undefined_annotations) }}
+        {% endif %}
+
+    {% endif %}
+</div>
+
+<h2>Warnings</h2>
+<div>
+    <!-- BEL Parser Errors -->
+    {% if chart_3_data %}
+        <h3 data-toc-text="Summary">Warning Statistics</h3>
+        <div class="col-lg-6 col-md-6">
+            <div id="chart3"></div>
+        </div>
+    {% endif %}
+
+    {% if error_groups is defined and error_groups|length > 0 %}
+        <h3 data-toc-text="Most Frequent">
+            Most Frequent {{ error_groups|length }} Errors
+        </h3>
+        <table class="table table-hover table-responsive table-striped">
+            <thead>
+            <tr>
+                <th>Error</th>
+                <th>Frequency</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for label, count in error_groups %}
+                {% if count > 1 %}
+                    <tr>
+                        <td><code>{{ label }}</code></td>
+                        <td>{{ count }}</td>
+                    </tr>
+                {% endif %}
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+    {% if syntax_errors|length > 0 %}
+        <h3 data-toc-text="Syntax Errors">
+            Syntax Errors
+            <span class="badge badge-pill badge-light">{{ syntax_errors|length }}</span>
+        </h3>
+        <table class="table table-hover table-responsive table-striped" id="table-syntax-errors">
+            <thead>
+            <tr>
+                <th>Path</th>
+                <th>Line</th>
+                <th>BEL</th>
+                <th>Message</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for path, exc, _ in syntax_errors %}
+                <tr>
+                    <td>{{ path }}</td>
+                    <td>{{ exc.line_number }}</td>
+                    <td><code>{{ exc.line }}</code></td>
+                    <td>{{ exc }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+    {% if graph.warnings|length > 0 %}
+        <h3>All Errors
+            <span class="badge badge-pill badge-light">{{ graph.warnings|length }}</span>
+        </h3>
+        <table class="table table-hover table-responsive table-striped" id="table-all-warnings">
+            <thead>
+            <tr>
+                <th>Path</th>
+                <th>Line</th>
+                <th>BEL</th>
+                <th>Message</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for path, exc, _ in graph.warnings %}
+                <tr>
+                    <td>{{ path }}</td>
+                    <td>{{ exc.line_number }}</td>
+                    <td><code>{{ exc.line }}</code></td>
+                    <td>{{ exc }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</div>

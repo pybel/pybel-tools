@@ -1,0 +1,720 @@
+{% extends "base.html" %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        nav[data-toggle="toc"] {
+            top: 42px;
+        }
+
+        h2, h3 {
+            margin-top: 40px;
+            margin-bottom: 16px;
+        }
+
+        @media (max-width: 768px) {
+            nav[data-toggle="toc"] {
+                margin-bottom: 42px;
+                position: static;
+            }
+
+            nav[data-toggle='toc'] .nav .nav {
+                display: block;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block title %}{{ graph }}{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <!-- sidebar, which will move to the top on a small screen -->
+            <div class="col-sm-2 col-md-2 col-lg-2">
+                <nav id="toc" data-toggle="toc" class="sticky-top"></nav>
+            </div>
+            <!-- main content area -->
+            <div class="col-sm-10 col-md-10 col-lg-10">
+                <div class="row">
+                    <div class="col-sm-9 col-md-9 col-lg-9">
+                        <h1 style="margin-top: 35px;">{{ graph.name }}
+                            <small class="text-muted">{{ graph.version }}</small>
+                        </h1>
+                        <p>
+                            {% if graph.description %}
+                                {{ graph.description }}
+                            {% else %}
+                                Provenance information is extracted from the header in the source BEL document.
+                            {% endif %}
+                        </p>
+
+                        <dl class="dl-horizontal">
+                            <dt>Authors</dt>
+                            <dd>{{ graph.authors }}</dd>
+                            <dt>Contact</dt>
+                            <dd>
+                                <a href="mailto:{{ graph.contact }}">{{ graph.contact }}</a>
+                            </dd>
+                            {% if graph.licenses %}
+                                <dt>License</dt>
+                                <dd>{{ graph.licenses }}</dd>
+                            {% endif %}
+                            {% if graph.copyright %}
+                                <dt>Copyright</dt>
+                                <dd>{{ graph.copyright }}</dd>
+                            {% endif %}
+                        </dl>
+
+                        <h2>Summary</h2>
+                        <dl class="dl-horizontal" style="columns: 2;">
+                            {% for key, value in summary_dict.items() %}
+                                <dt>{{ key }}</dt>
+                                <dd>{{ value }}</dd>
+                            {% endfor %}
+                        </dl>
+                    </div>
+                </div>
+
+                <!-- Summary Charts -->
+                <h3>Nodes</h3>
+                <p>
+                    Each node in a BEL graph is assigned a type. Most nodes are then identified with a
+                    namespace:identifier pair, or a definition based on other nodes as in the case of complexes,
+                    composites, and chemical reactions.
+                </p>
+                <div class="row">
+                    <div class="col-lg-6 col-md-6" id="chart-node-types"></div>
+                    <div class="col-lg-6 col-md-6" id="chart-namespaces"></div>
+                    {% if chart_5_data %}
+                        <div class="col-lg-6 col-md-6" id="chart-variants"></div>
+                    {% endif %}
+                </div>
+
+                <h3>Edges</h3>
+                <div class="row">
+                    <div class="col-lg-6 col-md-6" id="chart-edge-types"></div>
+                    {% if chart_4_data %}
+                        <div class="col-lg-6 col-md-6" id="chart-transformations"></div>
+                    {% endif %}
+                </div>
+
+                <h3>Topology</h3>
+                <div class="row">
+                    <div class="col-lg-6 col-md-6" id="chart-node-degrees"></div>
+                    {% if chart_9_data %}
+                        <div class="col-lg-6 col-md-6" id="chart-pathology-degrees"></div>
+                    {% endif %}
+                </div>
+
+                <h3>Bibliometrics</h3>
+                <div class="row">
+                    <div class="col-lg-6 col-md-6" id="chart-publication-years"></div>
+                    <div class="col-lg-6 col-md-6" id="chart-author-contributions"></div>
+                </div>
+
+                <!-- TODO add popout with https://datatables.net/examples/api/row_details.html -->
+                <h2>Statements</h2>
+                <table class="table table-hover table-responsive table-striped" id="table-statements">
+                    <thead>
+                    <tr>
+                        <th>Reference</th>
+                        <th>BEL</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for u, v, d in graph.edges(data=True) %}
+                        {% if d['citation'] %}
+                            <tr>
+                                <td>
+                                    {{ 'pmid' if d['citation']['type'] =='PubMed' else d['citation']['type'] }}:{{ d['citation']['reference'] }}
+                                </td>
+                                <td>{{ graph.edge_to_bel(u, v, d) }}</td>
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+                    </tbody>
+                </table>
+
+                <h3>Curation Quality</h3>
+                <div class="row">
+                    <div class="col-lg-6 col-md-6" id="chart-confidence-count"></div>
+                </div>
+
+                {% include "compilation.html" %}
+
+                <h2>Biogrammar</h2>
+                <div>
+                    {% if regulatory_pairs is defined and regulatory_pairs|length > 0 %}
+                        <h3 data-toc-text="Regulatory Pairs">
+                            Regulatory Pairs
+                            <span class="badge badge-pill badge-light">{{ regulatory_pairs|length }}</span>
+                        </h3>
+                        <p>
+                            These pairs of nodes represent motifs like <code>A increases B</code> and
+                            <code>B decreases A</code>.
+                        </p>
+                        <table class="table table-hover table-responsive table-striped" id="regulatory-pairs-table">
+                            <thead>
+                            <tr>
+                                <th>Node A</th>
+                                <th>Node B</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for source, source_id, target, target_hash in regulatory_pairs %}
+                                <tr>
+                                    <td>{{ source }}</td>
+                                    <td>{{ target }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    {% endif %}
+
+                    {% if contradictory_pairs is defined and contradictory_pairs|length > 0 %}
+                        <h3 data-toc-text="Contradictory Pairs">
+                            Contradictory Pairs
+                            <span class="badge badge-pill badge-light">{{ contradictory_pairs|length }}</span>
+                        </h3>
+                        <p>
+                            These pairs of nodes have a contradiction in their causal relationships, meaning they
+                            have more than one of <code>INCREASES</code>, <code>DECREASES</code>, or <code>CAUSES NO
+                            CHANGE</code>. This may be due to different experimental conditions, so these statements
+                            need to be carefully considered in analyses.
+                        </p>
+                        <table class="table table-hover table-responsive table-striped"
+                               id="contradictory-pairs-table">
+                            <thead>
+                            <tr>
+                                <th>Source</th>
+                                <th>Relations</th>
+                                <th>Target</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for source, source_hash, target, target_hash, relations in contradictory_pairs %}
+                                <tr>
+                                    <td>{{ source }}</td>
+                                    <td>{{ ', '.join(relations) }}</td>
+                                    <td>{{ target }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    {% endif %}
+
+                    {% if unstable_pairs is defined and unstable_pairs|length > 0 %}
+                        <h3 data-toc-text="Unstable Pairs">
+                            Unstable Pairs
+                            <span class="badge badge-pill badge-light">{{ unstable_pairs|length }}</span>
+                        </h3>
+                        <dl>
+                            <dt>Chaotic Pairs</dt>
+                            <dd>Nodes that mutually increase each other, such as when both <code>A increases
+                                B</code> and <code>B increases A</code>.
+                            </dd>
+                            <dt>Dampened Pairs</dt>
+                            <dd>Nodes that mutually decrease each other, such as when both <code>A decreases
+                                B</code> and <code>B decreases A</code>.
+                            </dd>
+                        </dl>
+                        <p>
+                            While neither chaotic nor dampened pairs are biologically invalid, they require
+                            additional context to understand their regulation.
+                        </p>
+                        <table class="table table-hover table-responsive table-striped" id="unstable-pairs-table">
+                            <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Node A</th>
+                                <th>Node B</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for source, source_hash, target, target_hash, label in unstable_pairs %}
+                                <tr>
+                                    <td>{{ label }}</td>
+                                    <td>{{ source }}</td>
+                                    <td>{{ target }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    {% endif %}
+
+                    {% if contradictory_triplets is defined and contradictory_triplets|length > 0 %}
+                        <h3 data-toc-text="Contradictory Triplets">
+                            Contradictory Triplets
+                            <span class="badge badge-pill badge-light">{{ contradictory_triplets|length }}</span>
+                        </h3>
+                        <p>
+                            Analysis of triple stability comes from a deep graph theoretic background. It
+                            identifies triangles within the graph that have logically inconsistent relations.
+                        </p>
+                        <dl>
+                            <dt>Separately Unstable Triplet</dt>
+                            <dd>When both <code>A positiveCorrelation B</code>, <code>B negativeCorrelation
+                                C</code>, but <code>C positiveCorrelation A</code>.
+                            </dd>
+                            <dt>Mutually Unstable Triplets</dt>
+                            <dd>When both <code>A negativeCorrelation B</code>, <code>B negativeCorrelation
+                                C</code>, and <code>C negativeCorrelation A</code>.
+                            </dd>
+                            <dt>Jens Contradictory Triplet</dt>
+                            <dd>When <code>A increases B</code>, <code>A decreases C</code>, and <code>C
+                                positiveCorrelation A</code>.
+                            </dd>
+                            <dt>Increase Mismatch Triplet</dt>
+                            <dd>When <code>A increases B</code>, <code>A increases C</code>, and <code>C
+                                negativeCorrelation A</code>.
+                            </dd>
+                            <dt>Decrease Mismatch Triplet</dt>
+                            <dd>When <code>A decreases B</code>, <code>A decreases C</code>, and <code>C
+                                negativeCorrelation A</code>.
+                            </dd>
+                        </dl>
+                        <table class="table table-hover table-responsive table-striped"
+                               id="contradictory-triplets-table">
+                            <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Node A</th>
+                                <th>Node B</th>
+                                <th>Node C</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for a, aid, b, bid, c, cid, label in contradictory_triplets %}
+                                <tr>
+                                    <td>{{ label }}</td>
+                                    <td>{{ a }}</td>
+                                    <td>{{ b }}</td>
+                                    <td>{{ c }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    {% endif %}
+
+                    {% if unstable_triplets is defined and unstable_triplets|length > 0 %}
+                        <h3 data-toc-text="Unstable Triplets">
+                            Unstable Triplets
+                            <span class="badge badge-pill badge-light">{{ unstable_triplets|length }}</span>
+                        </h3>
+                        <p>
+                            Like unstable pairs, unstable triplets require additional context to understand their
+                            mechanisms of regulation.
+                        </p>
+                        <dl>
+                            <dt>Chaotic Triplets</dt>
+                            <dd>A triplet of nodes that mutually increase each other, such as when <code>A
+                                increases B</code>, <code>B increases C</code>, and <code>C increases A</code>.
+                            </dd>
+                            <dt>Dampened Triplets</dt>
+                            <dd>A triplet of nodes that mutually decreases each other, such as when <code>A
+                                decreases B</code>, <code>B decreases C</code>, and <code>C decreases A</code>.
+                            </dd>
+                        </dl>
+                        <table class="table table-hover table-responsive table-striped"
+                               id="unstable-triplets-table">
+                            <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Node A</th>
+                                <th>Node B</th>
+                                <th>Node C</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for a, aid, b, bid, c, cid, label in unstable_triplets %}
+                                <tr>
+                                    <td>{{ label }}</td>
+                                    <td>{{ a }}</td>
+                                    <td>{{ b }}</td>
+                                    <td>{{ c }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    {% endif %}
+
+                    {% if causal_pathologies is defined and causal_pathologies|length > 0 %}
+                        <h3 data-toc-text="Causal Pathologies">
+                            Causal Pathologies
+                            <span class="badge badge-pill badge-light">{{ causal_pathologies|length }}</span>
+                        </h3>
+                        <p>
+                            Pathologies are more dogmatically the result of molecular and physical processes,
+                            and do not necessarily make sense as the subject of causal statements.
+                        </p>
+                        <table class="table table-hover table-responsive table-striped"
+                               id="causal-pathologies-table">
+                            <thead>
+                            <tr>
+                                <th>Source</th>
+                                <th>Relation</th>
+                                <th>Target</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for source, source_hash, target, target_hash, relation in causal_pathologies %}
+                                <tr>
+                                    <td>{{ source }}</td>
+                                    <td>{{ relation }}</td>
+                                    <td>{{ target }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $("#table-statements").DataTable();
+
+            // Provenance Summary Tables
+            $("#table-namespace-urls").DataTable();
+            $("#table-annotation-urls").DataTable();
+
+            // Warning Summary Tables
+            $("#table-syntax-errors").DataTable();
+            $("#table-all-warnings").DataTable();
+
+            // Biogrammar Tables
+            $("#regulatory-pairs-table").DataTable();
+            $("#contradictory-pairs-table").DataTable();
+            $("#unstable-pairs-table").DataTable();
+            $("#contradictory-triplets-table").DataTable();
+            $("#unstable-triplets-table").DataTable();
+            $("#causal-pathologies-table").DataTable();
+        });
+    </script>
+
+    <script>
+        c3.generate({
+            padding: {
+                top: 15,
+                left: 100
+            },
+            size: {
+                height: 350
+            },
+            bindto: '#chart-node-types',
+            data: {
+                x: 'x',
+                columns: {{ chart_1_data|safe}},
+                type: 'bar'
+            },
+            title: {
+                text: 'Node Types ({{ graph.number_of_nodes() }})'
+            },
+            axis: {
+                rotated: true,
+                x: {
+                    type: 'category'
+                }
+            },
+            legend: {
+                show: false
+            }
+        });
+
+        c3.generate({
+            padding: {
+                top: 15,
+                left: 100
+            },
+            size: {
+                height: 350
+            },
+            bindto: '#chart-edge-types',
+            data: {
+                x: 'x',
+                columns: {{ chart_2_data|safe}},
+                type: 'bar'
+            },
+            title: {
+                text: 'Edge Types ({{ graph.number_of_edges() }})'
+            },
+            axis: {
+                rotated: true,
+                x: {
+                    type: 'category'
+                }
+            },
+            legend: {
+                show: false
+            }
+        });
+
+        {% if chart_4_data %}
+            c3.generate({
+                padding: {
+                    top: 15,
+                    left: 100
+                },
+                size: {
+                    height: 350
+                },
+                bindto: '#chart-transformations',
+                data: {
+                    x: 'x',
+                    columns: {{ chart_4_data|safe}},
+                    type: 'bar'
+                },
+                title: {
+                    text: 'Transformations ({{ number_transformations }})'
+                },
+                axis: {
+                    rotated: true,
+                    x: {
+                        type: 'category'
+                    }
+                },
+                legend: {
+                    show: false
+                }
+            });
+        {% endif %}
+
+        {% if chart_5_data %}
+            c3.generate({
+                padding: {
+                    top: 15,
+                    left: 100
+                },
+                size: {
+                    height: 350
+                },
+                bindto: '#chart-variants',
+                data: {
+                    x: 'x',
+                    columns: {{ chart_5_data|safe}},
+                    type: 'bar'
+                },
+                title: {
+                    text: 'Variants ({{ number_variants }})'
+                },
+                axis: {
+                    rotated: true,
+                    x: {
+                        type: 'category'
+                    }
+                },
+                legend: {
+                    show: false
+                }
+            });
+        {% endif %}
+
+        c3.generate({
+            padding: {
+                top: 15,
+                left: 100
+            },
+            size: {
+                height: 350
+            },
+            bindto: '#chart-namespaces',
+            data: {
+                x: 'x',
+                columns: {{ chart_6_data|safe}},
+                type: 'bar'
+            },
+            title: {
+                text: 'Namespaces ({{ number_namespaces }})'
+            },
+            axis: {
+                rotated: true,
+                x: {
+                    type: 'category'
+                }
+            },
+            legend: {
+                show: false
+            }
+        });
+
+        c3.generate({
+            padding: {
+                top: 15,
+                left: 100
+            },
+            size: {
+                height: 350
+            },
+            bindto: '#chart-node-degrees',
+            data: {
+                x: 'x',
+                columns: {{ chart_7_data|safe}},
+                type: 'bar'
+            },
+            title: {
+                text: 'Node Degrees'
+            },
+            axis: {
+                rotated: true,
+                x: {
+                    type: 'category'
+                }
+            },
+            legend: {
+                show: false
+            }
+        });
+
+        {% if chart_9_data %}
+            c3.generate({
+                padding: {
+                    top: 15,
+                    left: 100
+                },
+                size: {
+                    height: 350
+                },
+                bindto: '#chart-pathology-degrees',
+                data: {
+                    x: 'x',
+                    columns: {{ chart_9_data|safe}},
+                    type: 'bar'
+                },
+                title: {
+                    text: 'Pathologies'
+                },
+                axis: {
+                    rotated: true,
+                    x: {
+                        type: 'category'
+                    }
+                },
+                legend: {
+                    show: false
+                }
+            });
+        {% endif %}
+
+        {% if chart_10_data %}
+            c3.generate({
+                padding: {
+                    top: 15
+                },
+                size: {
+                    height: 350
+                },
+                data: {
+                    x: 'x',
+                    columns: {{ chart_10_data|safe}}
+                },
+                bindto: '#chart-publication-years',
+                axis: {
+                    x: {
+                        type: 'timeseries',
+                        tick: {
+                            format: '%Y'
+                        }
+                    }
+                },
+                title: {
+                    text: 'Publication Years'
+                },
+                legend: {
+                    show: false
+                }
+            });
+        {% endif %}
+
+        c3.generate({
+            padding: {
+                top: 15,
+                left: 100
+            },
+            size: {
+                height: 350
+            },
+            bindto: '#chart-author-contributions',
+            data: {
+                x: 'x',
+                columns: {{ chart_authors_count|safe}},
+                type: 'bar'
+            },
+            title: {
+                text: 'Authors ({{ graph.number_of_authors() }})'
+            },
+            axis: {
+                rotated: true,
+                x: {
+                    type: 'category'
+                }
+            },
+            legend: {
+                show: false
+            }
+        });
+
+        {% if chart_3_data %}
+            c3.generate({
+                padding: {
+                    top: 15,
+                    left: 100
+                },
+                size: {
+                    height: 350
+                },
+                bindto: '#chart3',
+                data: {
+                    x: 'x',
+                    columns: {{ chart_3_data|safe}},
+                    type: 'bar'
+                },
+                title: {
+                    text: 'Warning Types'
+                },
+                axis: {
+                    rotated: true,
+                    x: {
+                        type: 'category'
+                    }
+                },
+                legend: {
+                    show: false
+                }
+            });
+        {% endif %}
+
+        c3.generate({
+            padding: {
+                top: 15,
+                left: 100
+            },
+            size: {
+                height: 350
+            },
+            bindto: '#chart-confidence-count',
+            data: {
+                x: 'x',
+                columns: {{ chart_confidence_count|safe}},
+                type: 'bar'
+            },
+            title: {
+                text: 'Confidences'
+            },
+            axis: {
+                x: {
+                    type: 'category'
+                }
+            },
+            legend: {
+                show: false
+            },
+            labels: true
+        });
+    </script>
+{% endblock %}
