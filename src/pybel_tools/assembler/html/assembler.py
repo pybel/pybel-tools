@@ -6,10 +6,8 @@ corresponding to objects"""
 import itertools as itt
 import logging
 import os
-import time
-from typing import Dict, Mapping, Tuple
+from typing import Mapping, Tuple
 
-import networkx as nx
 from jinja2 import Environment, FileSystemLoader
 
 from pybel import BELGraph
@@ -24,7 +22,6 @@ from pybel_tools.analysis.stability import (
     get_chaotic_pairs, get_chaotic_triplets, get_contradiction_summary, get_dampened_pairs, get_dampened_triplets,
     get_decrease_mismatch_triplets, get_increase_mismatch_triplets, get_jens_unstable,
     get_mutually_unstable_correlation_triples, get_regulatory_pairs, get_separate_unstable_correlation_triples,
-
 )
 from pybel_tools.filters import has_pathology_causal
 from pybel_tools.summary import (
@@ -36,7 +33,6 @@ from pybel_tools.utils import prepare_c3, prepare_c3_time_series
 
 __all__ = [
     'to_html',
-    'make_graph_summary',
     'get_network_summary_dict',
     'prepare_c3',
 ]
@@ -94,35 +90,6 @@ def to_html(graph: BELGraph) -> str:
         # Everything else :)
         **context
     )
-
-
-def make_graph_summary(graph: BELGraph) -> Dict:
-    """Make a graph summary for sticking in the report including the summary from :func:`get_network_summary_dict`."""
-    log.debug('summarizing %s', graph)
-    t = time.time()
-
-    number_nodes = graph.number_of_nodes()
-
-    try:
-        average_degree = graph.number_of_edges() / graph.number_of_nodes()
-    except ZeroDivisionError:
-        average_degree = 0.0
-
-    rv = dict(
-        number_nodes=number_nodes,
-        number_edges=graph.number_of_edges(),
-        number_warnings=graph.number_of_warnings(),
-        number_citations=graph.number_of_citations(),
-        number_authors=graph.number_of_authors(),
-        number_components=nx.number_weakly_connected_components(graph),
-        network_density=nx.density(graph),
-        average_degree=average_degree,
-        summary_dict=get_network_summary_dict(graph),
-    )
-
-    log.debug('summarized %s in %.2f seconds', graph, time.time() - t)
-
-    return rv
 
 
 def get_network_summary_dict(graph: BELGraph) -> Mapping:
