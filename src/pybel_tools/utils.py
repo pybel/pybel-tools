@@ -212,7 +212,11 @@ def prepare_c3(data: Union[List[Tuple[str, int]], Mapping[str, int]],
     if not isinstance(data, list):
         data = sorted(data.items(), key=itemgetter(1), reverse=True)
 
-    labels, values = zip(*data)
+    try:
+        labels, values = zip(*data)
+    except ValueError:
+        log.info(f'no values found for {x_axis_label}, {y_axis_label}')
+        labels, values = [], []
 
     return json.dumps([
         [x_axis_label] + list(labels),
