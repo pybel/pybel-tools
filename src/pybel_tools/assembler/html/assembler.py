@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Utilities in this package should not depend on anything (especially proxies), and should instead take arguments
-corresponding to objects"""
+"""Generate HTML summaries of BEL graphs."""
 
 import itertools as itt
 import logging
