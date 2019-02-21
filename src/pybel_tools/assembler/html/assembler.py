@@ -44,7 +44,14 @@ template = environment.get_template('index.html')
 
 
 def to_html(graph: BELGraph) -> str:
-    """Render the graph as an HTML string."""
+    """Render the graph as an HTML string.
+
+    Common usage may involve writing to a file like:
+
+    >>> from pybel.examples import sialic_acid_graph
+    >>> with open('html_output.html', 'w') as file
+    ...     print(to_html(sialic_acid_graph), file=file)
+    """
     context = get_network_summary_dict(graph)
     summary_dict = graph.summary_dict()
 

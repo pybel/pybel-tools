@@ -39,6 +39,13 @@ Links
    mutation
 
 .. toctree::
+   :caption: Assemblers
+   :name: assemblers
+
+   assemblers/html
+   assemblers/ideogram
+
+.. toctree::
    :caption: Workflows
    :name: workflows
 

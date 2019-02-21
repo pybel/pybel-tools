@@ -6,10 +6,8 @@ import os
 import random
 from typing import Any, Mapping, Optional, Set
 
-import bio2bel_hgnc
 import pandas as pd
 from IPython.display import Javascript
-from bio2bel_hgnc.models import HumanGene
 from jinja2 import Template
 
 from pybel import BELGraph
@@ -41,7 +39,14 @@ def to_jupyter(graph: BELGraph, chart: Optional[str] = None) -> Javascript:
 
 
 def to_html(graph: BELGraph, chart: Optional[str] = None) -> str:
-    """Render the graph as an HTML string."""
+    """Render the graph as an HTML string.
+
+    Common usage may involve writing to a file like:
+
+    >>> from pybel.examples import sialic_acid_graph
+    >>> with open('ideogram_output.html', 'w') as file
+    ...     print(to_html(sialic_acid_graph), file=file)
+    """
     return html_template.render(**_get_context(graph, chart=chart))
 
 
@@ -61,6 +66,9 @@ def _generate_id() -> str:
 
 def prerender(graph: BELGraph) -> Mapping[str, Mapping[str, Any]]:
     """Generate the annotations JSON for Ideogram."""
+    import bio2bel_hgnc
+    from bio2bel_hgnc.models import HumanGene
+
     graph: BELGraph = graph.copy()
     enrich_protein_and_rna_origins(graph)
     collapse_all_variants(graph)

@@ -40,7 +40,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'pybel-tools'
-copyright = '2016-2018, Charles Tapley Hoyt'
+copyright = '2016-2019, Charles Tapley Hoyt'
 author = 'Charles Tapley Hoyt'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -52,10 +52,10 @@ author = 'Charles Tapley Hoyt'
 release = '0.7.1-dev'
 
 parsed_version = re.match(
-    '(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(?:-(?P<release>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+(?P<build>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?',
+    r'(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(?:-(?P<release>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+(?P<build>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?',
     release
 )
-version = parsed_version.expand('\g<major>.\g<minor>.\g<patch>')
+version = parsed_version.expand(r'\g<major>.\g<minor>.\g<patch>')
 
 if parsed_version.group('release'):
     tags.add('prerelease')
@@ -124,7 +124,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'pybel-tools.tex', 'pybel-tools Documentation',
+    (master_doc, 'pybel-tools.tex', 'PyBEL-Tools Documentation',
      'Charles Tapley Hoyt', 'manual'),
 ]
 
@@ -133,7 +133,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'pybel-tools', 'pybel-tools Documentation',
+    (master_doc, 'pybel-tools', 'PyBEL-Tools Documentation',
      [author], 1)
 ]
 
@@ -143,8 +143,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'pybel-tools', 'pybel-tools Documentation',
-     author, 'pybel-tools', 'One line description of project.',
+    (master_doc, 'pybel-tools', 'PyBEL-Tools Documentation',
+     author, 'pybel-tools', 'Algorithms and tools for PyBEL.',
      'Miscellaneous'),
 ]
 

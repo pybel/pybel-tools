@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 
-"""Generate HTML summaries of BEL graphs."""
+"""Generate summary pages of BEL graphs in HTML."""
 
 from .assembler import to_html
+
+__all__ = [
+    'to_html',
+]
