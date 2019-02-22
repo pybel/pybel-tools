@@ -29,7 +29,7 @@ Links
 
 .. toctree::
    :maxdepth: 2
-   :caption: Graph Utilities
+   :caption: Graph Tools
    :name: graphutils
 
    summary
@@ -39,11 +39,14 @@ Links
    mutation
 
 .. toctree::
-   :caption: Assemblers
-   :name: assemblers
+   :caption: Algorithms
+   :name: algorithms
 
-   assemblers/html
-   assemblers/ideogram
+   algorithms/rcr
+   algorithms/causalr
+   algorithms/spia
+   algorithms/neurommsig
+   algorithms/epicom
 
 .. toctree::
    :caption: Workflows
@@ -53,7 +56,13 @@ Links
    expansion
    generation
    heat
-   algorithms
+
+.. toctree::
+   :caption: Assemblers
+   :name: assemblers
+
+   assemblers/html
+   assemblers/ideogram
 
 .. toctree::
    :caption: Other Utilities
