@@ -44,7 +44,7 @@ def to_html(graph: BELGraph, chart: Optional[str] = None) -> str:
     Common usage may involve writing to a file like:
 
     >>> from pybel.examples import sialic_acid_graph
-    >>> with open('ideogram_output.html', 'w') as file
+    >>> with open('ideogram_output.html', 'w') as file:
     ...     print(to_html(sialic_acid_graph), file=file)
     """
     return html_template.render(**_get_context(graph, chart=chart))
