@@ -40,7 +40,6 @@ log = logging.getLogger(__name__)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 environment = Environment(autoescape=False, loader=FileSystemLoader(HERE), trim_blocks=False)
-template = environment.get_template('index.html')
 
 
 def to_html(graph: BELGraph) -> str:
@@ -71,6 +70,7 @@ def to_html(graph: BELGraph) -> str:
         for label in ('None', 'Very Low', 'Low', 'Medium', 'High', 'Very High')
     ]
 
+    template = environment.get_template('index.html')
     return template.render(
         graph=graph,
         # Node Charts
