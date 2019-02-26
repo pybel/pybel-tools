@@ -62,7 +62,7 @@ import logging
 import random
 from collections import defaultdict
 from operator import itemgetter
-from typing import Callable, Hashable, Iterable, List, Mapping, Optional, Set, Tuple, TypeVar
+from typing import Any, Callable, Hashable, Iterable, List, Mapping, Optional, Set, Tuple, TypeVar
 
 import numpy as np
 from scipy import stats
@@ -162,6 +162,7 @@ def calculate_average_scores_on_subgraphs(
         default_score: Optional[float] = None,
         runs: Optional[int] = None,
         use_tqdm: bool = False,
+        tqdm_kwargs: Optional[Mapping[str, Any]] = None,
 ) -> Mapping[H, Tuple[float, float, float, float, int, int]]:
     """Calculate the scores over precomputed candidate mechanisms.
 
@@ -192,7 +193,10 @@ def calculate_average_scores_on_subgraphs(
     it = subgraphs.items()
 
     if use_tqdm:
-        it = tqdm(it, total=len(subgraphs), desc='Candidate mechanisms')
+        _tqdm_kwargs = dict(total=len(subgraphs), desc='Candidate mechanisms')
+        if tqdm_kwargs:
+            _tqdm_kwargs.update(tqdm_kwargs)
+        it = tqdm(it, **_tqdm_kwargs)
 
     for node, subgraph in it:
         number_first_neighbors = subgraph.in_degree(node)
