@@ -12,6 +12,7 @@ To run this module on an arbitrary BEL graph, use the command ``python -m pybel_
 
 import os
 import sys
+from collections import OrderedDict
 from itertools import product
 from typing import Dict, Mapping, Set
 
@@ -31,7 +32,7 @@ __all__ = [
     'spia_matrices_to_tsvs',
 ]
 
-KEGG_RELATIONS = {
+KEGG_RELATIONS = [
     "activation",
     "compound",
     "binding_association",
@@ -57,7 +58,7 @@ KEGG_RELATIONS = {
     "indirect effect",
     "activation_compound",
     "activation_ubiquination"
-}
+]
 
 
 def bel_to_spia_matrices(graph: BELGraph) -> Mapping[str, pd.DataFrame]:
@@ -124,10 +125,13 @@ def build_spia_matrices(nodes: Set[str]) -> Dict[str, pd.DataFrame]:
     :return: Dictionary of adjacency matrix for each relationship
     """
     nodes = list(sorted(nodes))
-    return {
-        relation: pd.DataFrame(0, index=nodes, columns=nodes)
-        for relation in KEGG_RELATIONS
-    }
+
+    # Create sheets of the excel in the given order
+    matrices = OrderedDict()
+    for relation in KEGG_RELATIONS:
+        matrices[relation] = pd.DataFrame(0, index=nodes, columns=nodes)
+
+    return matrices
 
 
 def update_spia_matrices(spia_matrices: Dict[str, pd.DataFrame],
@@ -190,7 +194,7 @@ def spia_matrices_to_excel(spia_matrices: Mapping[str, pd.DataFrame], path: str)
     writer = pd.ExcelWriter(path, engine='xlsxwriter')
 
     for relation, df in spia_matrices.items():
-        df.to_excel(writer, sheet_name=relation)
+        df.to_excel(writer, sheet_name=relation, index=False)
 
     # Save excel
     writer.save()
