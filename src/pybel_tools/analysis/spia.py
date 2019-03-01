@@ -17,8 +17,6 @@ from typing import Dict, Mapping, Set
 
 import click
 import pandas as pd
-from tqdm import tqdm
-
 from pybel import BELGraph
 from pybel.cli import graph_pickle_argument
 from pybel.constants import (
@@ -71,7 +69,7 @@ def bel_to_spia_matrices(graph: BELGraph) -> Mapping[str, pd.DataFrame]:
     index_nodes = get_matrix_index(graph)
     spia_matrices = build_spia_matrices(index_nodes)
 
-    for u, v, edge_data in tqdm(graph.edges(data=True), total=graph.number_of_edges()):
+    for u, v, edge_data in graph.edges(data=True):
         # Both nodes are CentralDogma abundances
         if isinstance(u, CentralDogma) and isinstance(v, CentralDogma):
             # Update matrix dict
