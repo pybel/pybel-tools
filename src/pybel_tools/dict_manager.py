@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""This class contains an alternate implementation of the PyBEL database manager that only stores graphs
-in memory
-"""
+"""This class contains an alternate implementation of the PyBEL database manager that only stores graphs in memory."""
 
 from typing import Iterable, List, Optional
 
@@ -15,7 +13,7 @@ class _Namespace:
 
 
 class DictManager(Manager):
-    """A dictionary-based implementation of the PyBEL Manager"""
+    """A dictionary-based implementation of the PyBEL Manager."""
 
     def __init__(self, connection: Optional[str] = None):
         super(DictManager, self).__init__(connection=connection)

@@ -10,5 +10,3 @@ title_url_fmt = "http://togows.dbcls.jp/entry/ncbi-pubmed/{}/title"
 so_url_fmt = "http://togows.dbcls.jp/entry/ncbi-pubmed/{}/so"
 
 WEIGHT = 'weight'
-
-DEFAULT_SERVICE_URL = 'https://pybel.scai.fraunhofer.de'
