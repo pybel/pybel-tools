@@ -178,7 +178,7 @@ def update_spia_matrices(spia_matrices: Dict[str, pd.DataFrame],
             spia_matrices["inhibition"][u_name][v_name] = 1
 
     elif relation == ASSOCIATION:
-        spia_matrices["binding/association"][u_name][v_name] = 1
+        spia_matrices["binding_association"][u_name][v_name] = 1
 
 
 def spia_matrices_to_excel(spia_matrices: Mapping[str, pd.DataFrame], path: str) -> None:
