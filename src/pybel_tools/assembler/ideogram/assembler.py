@@ -25,16 +25,12 @@ HERE = os.path.join(os.path.dirname(os.path.abspath(__file__)))
 COLUMNS = ['start_position_on_the_genomic_accession',
            'end_position_on_the_genomic_accession', ]
 
-# Create a template object from the template file, load once
-with open(os.path.join(HERE, 'index.html'), 'rt') as f:
-    html_template = Template(f.read())
-
-with open(os.path.join(HERE, 'render_with_javascript.js'), 'rt') as f:
-    js_template = Template(f.read())
-
 
 def to_jupyter(graph: BELGraph, chart: Optional[str] = None) -> Javascript:
     """Render the graph as JavaScript in a Jupyter Notebook."""
+    with open(os.path.join(HERE, 'render_with_javascript.js'), 'rt') as f:
+        js_template = Template(f.read())
+
     return Javascript(js_template.render(**_get_context(graph, chart=chart)))
 
 
@@ -47,6 +43,9 @@ def to_html(graph: BELGraph, chart: Optional[str] = None) -> str:
     >>> with open('ideogram_output.html', 'w') as file:
     ...     print(to_html(sialic_acid_graph), file=file)
     """
+    with open(os.path.join(HERE, 'index.html'), 'rt') as f:
+        html_template = Template(f.read())
+
     return html_template.render(**_get_context(graph, chart=chart))
 
 
