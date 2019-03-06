@@ -78,11 +78,12 @@ def list_abundance_cartesian_expansion(graph: BELGraph) -> None:
                     annotations=d.get(ANNOTATIONS),
                 )
 
-    graph.remove_nodes_from(
+    list_nodes = {
         node
-        for node in graph
+        for node in graph.nodes()
         if isinstance(node, ListAbundance)
-    )
+    }
+    graph.remove_nodes_from(list_nodes)
 
 
 def reaction_cartesian_expansion(graph: BELGraph) -> None:
@@ -140,8 +141,9 @@ def reaction_cartesian_expansion(graph: BELGraph) -> None:
                         annotations=d.get(ANNOTATIONS),
                     )
 
-    graph.remove_nodes_from(
+    reaction_nodes = {
         node
-        for node in graph
-        if isinstance(node, Reaction)
-    )
+        for node in graph.nodes()
+        if isinstance(node, ListAbundance)
+    }
+    graph.remove_nodes_from(reaction_nodes)
