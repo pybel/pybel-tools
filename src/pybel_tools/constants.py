@@ -2,7 +2,7 @@
 
 """Constants for PyBEL-Tools."""
 
-VERSION = '0.7.1-dev'
+VERSION = '0.7.1'
 
 abstract_url_fmt = "http://togows.dbcls.jp/entry/ncbi-pubmed/{}/abstract"
 title_url_fmt = "http://togows.dbcls.jp/entry/ncbi-pubmed/{}/title"
