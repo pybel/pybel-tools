@@ -54,7 +54,7 @@ KEGG_RELATIONS = [
     "repression",
     "dissociation_phosphorylation",
     "indirect effect_phosphorylation",
-    "activation_binding/association",
+    "activation_binding_association",
     "indirect effect",
     "activation_compound",
     "activation_ubiquination"
