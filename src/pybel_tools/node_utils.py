@@ -144,6 +144,22 @@ def reaction_cartesian_expansion(graph: BELGraph) -> None:
     reaction_nodes = {
         node
         for node in graph.nodes()
+        if isinstance(node, Reaction)
+    }
+    graph.remove_nodes_from(reaction_nodes)
+
+def remove_complex_nodes(graph:BELGraph) -> None:
+    """Remove complex nodes."""
+    list_nodes = {
+        node
+        for node in graph.nodes()
         if isinstance(node, ListAbundance)
+    }
+    graph.remove_nodes_from(list_nodes)
+
+    reaction_nodes = {
+        node
+        for node in graph.nodes()
+        if isinstance(node, Reaction)
     }
     graph.remove_nodes_from(reaction_nodes)
