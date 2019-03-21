@@ -232,6 +232,4 @@ def collapse_nodes_with_same_names(graph: BELGraph) -> None:
 
         survivor_mapping[a].add(b)
 
-    print('survivors', dict(survivor_mapping))
     collapse_nodes(graph, survivor_mapping)
-
