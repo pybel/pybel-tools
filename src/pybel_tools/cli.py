@@ -2,8 +2,8 @@
 
 """A command line interface for PyBEL-Tools.
 
-Why does this file exist, and why not put this in __main__?
-You might be tempted to import things from __main__ later, but that will cause
+Why does this file exist, and why not put this in ``__main__``?
+You might be tempted to import things from ``__main__`` later, but that will cause
 problems--the code will get executed twice:
  - When you run `python3 -m pybel_tools` python will execute
    ``__main__.py`` as a script. That means there won't be any
@@ -19,8 +19,8 @@ from getpass import getuser
 from typing import TextIO
 
 import click
-from bel_resources import parse_bel_resource, write_annotation, write_namespace
 
+from bel_resources import parse_bel_resource, write_annotation, write_namespace
 from pybel import BELGraph, Manager, from_lines
 from pybel.cli import connection_option, graph_pickle_argument
 from pybel.constants import NAMESPACE_DOMAIN_OTHER
@@ -29,17 +29,18 @@ from pybel.utils import get_version as pybel_version
 from .utils import get_version
 
 
-@click.group(help=f"PyBEL-Tools v{get_version()} Command Line Interface on {sys.executable}\n with PyBEL v{pybel_version()}")
+@click.group(help=f"PyBEL-Tools v{get_version()} Command Line Interface on {sys.executable}\n"
+                  f"with PyBEL v{pybel_version()}")
 @click.version_option()
 def main():
-    """PyBEL Tools Command Line Interface."""
+    """Command Line Interface for PyBEL Tools."""
 
 
 @main.group()
 @connection_option
 @click.pass_context
 def io(ctx, connection: str):
-    """Upload and conversion utilities"""
+    """Upload and conversion utilities."""
     ctx.obj = Manager(connection=connection)
 
 

@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 
-import logging
+"""Collapse functions to supplement :mod:`pybel.struct.mutation.collapse`."""
 
+import logging
+from collections import defaultdict
+
+import itertools as itt
 import networkx as nx
 
 from pybel import BELGraph
-from pybel.constants import EQUIVALENT_TO, GENE, HAS_VARIANT, ORTHOLOGOUS, PROTEIN, RELATION
+from pybel.constants import EQUIVALENT_TO, GENE, HAS_VARIANT, NAME, NAMESPACE, ORTHOLOGOUS, PROTEIN, RELATION
 from pybel.dsl import BaseEntity, Gene, Protein
 from pybel.struct.filters import build_relation_predicate, filter_edges, has_polarity
 from pybel.struct.filters.typing import EdgePredicates
@@ -24,6 +28,7 @@ __all__ = [
     'collapse_equivalencies_by_namespace',
     'collapse_orthologies_by_namespace',
     'collapse_to_protein_interactions',
+    'collapse_nodes_with_same_names',
 ]
 
 log = logging.getLogger(__name__)
@@ -71,7 +76,7 @@ def rewire_variants_to_genes(graph: BELGraph) -> None:
     nx.relabel_nodes(graph, mapping, copy=False)
 
 
-def _collapse_edge_passing_predicates(graph:BELGraph, edge_predicates:EdgePredicates=None) -> None:
+def _collapse_edge_passing_predicates(graph: BELGraph, edge_predicates: EdgePredicates = None) -> None:
     """Collapse all edges passing the given edge predicates."""
     for u, v, _ in filter_edges(graph, edge_predicates=edge_predicates):
         collapse_pair(graph, survivor=u, victim=v)

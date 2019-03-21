@@ -91,7 +91,7 @@ def load_differential_gene_expression(path: str,
                                       logfc_column: str = 'logFC',
                                       aggregator: Optional[Callable[[List[float]], float]] = None,
                                       ) -> Mapping[str, float]:
-    """Load and preprocess a differential gene expression data.
+    """Load and pre-process a differential gene expression data.
 
     :param path: The path to the CSV
     :param gene_symbol_column: The header of the gene symbol column in the data frame

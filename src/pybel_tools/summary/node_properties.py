@@ -3,7 +3,7 @@
 """This module contains functions that calculate properties of nodes"""
 
 from collections import Counter
-from typing import Iterable, Mapping, Optional, Set, Tuple, Union
+from typing import Any, Iterable, Mapping, Optional, Set, Tuple, Union
 
 import networkx as nx
 
@@ -34,9 +34,10 @@ __all__ = [
 ]
 
 
-def get_causal_out_edges(graph: BELGraph,
-                         nbunch: Union[BaseEntity, Iterable[BaseEntity]],
-                         ) -> Set[Tuple[BaseEntity, BaseEntity]]:
+def get_causal_out_edges(
+        graph: BELGraph,
+        nbunch: Union[BaseEntity, Iterable[BaseEntity]],
+) -> Set[Tuple[BaseEntity, BaseEntity]]:
     """Get the out-edges to the given node that are causal.
 
     :return: A set of (source, target) pairs where the source is the given node
@@ -48,9 +49,10 @@ def get_causal_out_edges(graph: BELGraph,
     }
 
 
-def get_causal_in_edges(graph: BELGraph,
-                        nbunch: Union[BaseEntity, Iterable[BaseEntity]],
-                        ) -> Set[Tuple[BaseEntity, BaseEntity]]:
+def get_causal_in_edges(
+        graph: BELGraph,
+        nbunch: Union[BaseEntity, Iterable[BaseEntity]],
+) -> Set[Tuple[BaseEntity, BaseEntity]]:
     """Get the in-edges to the given node that are causal.
 
     :return: A set of (source, target) pairs where the target is the given node
@@ -129,19 +131,17 @@ def count_top_centrality(graph: BELGraph, number: Optional[int] = 30) -> Mapping
 
 def get_modifications_count(graph: BELGraph) -> Mapping[str, int]:
     """Get a modifications count dictionary."""
-    translocation_count = len(get_translocated(graph))
-    degradation_count = len(get_degradations(graph))
-    molecular_count = len(get_activities(graph))
+    return remove_falsy_values({
+        'Translocations': len(get_translocated(graph)),
+        'Degradations': len(get_degradations(graph)),
+        'Molecular Activities': len(get_activities(graph)),
+    })
 
-    modification_count_labels = (
-        'Translocations',
-        'Degradations',
-        'Molecular Activities',
-    )
-    modification_counts = (translocation_count, degradation_count, molecular_count)
 
+def remove_falsy_values(counter: Mapping[Any, int]) -> Mapping[Any, int]:
+    """Remove all values that are zero."""
     return {
         label: count
-        for label, count in zip(modification_count_labels, modification_counts)
+        for label, count in counter.items()
         if count
     }

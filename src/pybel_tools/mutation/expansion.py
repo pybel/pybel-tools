@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Expansion functions in PyBEL-Tools."""
+"""Deletion functions to supplement :mod:`pybel.struct.mutation.expansion`."""
 
 import logging
 from collections import Counter, defaultdict

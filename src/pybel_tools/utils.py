@@ -138,7 +138,7 @@ def calculate_tanimoto_set_distances(dict_of_sets: Mapping[X, Set]) -> Mapping[X
 
 
 def calculate_global_tanimoto_set_distances(dict_of_sets: Mapping[X, Set]) -> Mapping[X, Mapping[X, float]]:
-    """Calculate an alternative distance matrix based on the following equation.
+    r"""Calculate an alternative distance matrix based on the following equation.
 
     .. math:: distance(A, B)=1- \|A \cup B\| / \| \cup_{s \in S} s\|
 

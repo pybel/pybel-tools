@@ -7,6 +7,7 @@ import logging
 from itertools import chain
 
 from networkx import relabel_nodes
+
 from pybel import BELGraph
 from pybel.constants import ANNOTATIONS, CITATION, EVIDENCE, RELATION
 from pybel.dsl import ListAbundance, Reaction
@@ -33,7 +34,7 @@ def flatten_list_abundance(node: ListAbundance) -> ListAbundance:
 
 
 def list_abundance_expansion(graph: BELGraph) -> None:
-    """Flatten list abundances"""
+    """Flatten list abundances."""
     mapping = {
         node: flatten_list_abundance(node)
         for node in graph
@@ -148,7 +149,8 @@ def reaction_cartesian_expansion(graph: BELGraph) -> None:
     }
     graph.remove_nodes_from(reaction_nodes)
 
-def remove_complex_nodes(graph:BELGraph) -> None:
+
+def remove_complex_nodes(graph: BELGraph) -> None:
     """Remove complex nodes."""
     list_nodes = {
         node

@@ -12,8 +12,6 @@ This module provides functions for generating sub-graphs based around a single n
 Sub-graphs induced around biological processes should prove to be sub-graphs of the NeuroMMSig/canonical mechanisms
 and provide an even more rich mechanism inventory.
 
-Examples
-~~~~~~~~
 This method has been applied in the following Jupyter Notebooks:
 
 - `Generating Unbiased Candidate Mechanisms <http://nbviewer.jupyter.org/github/pybel/pybel-notebooks/blob/master/
@@ -60,8 +58,7 @@ def get_upstream_leaves(graph: BELGraph) -> Iterable[BaseEntity]:
 
 
 def get_unweighted_upstream_leaves(graph: BELGraph, key: Optional[str] = None) -> Iterable[BaseEntity]:
-    """Get all leaves of the graph with no incoming edges, one outgoing edge, and without the given key in
-    its data dictionary.
+    """Get nodes with no incoming edges, one outgoing edge, and without the given key in its data dictionary.
 
     .. seealso :: :func:`data_does_not_contain_key_builder`
 
@@ -90,7 +87,7 @@ def remove_unweighted_leaves(graph: BELGraph, key: Optional[str] = None) -> None
 
 def is_unweighted_source(graph: BELGraph, node: BaseEntity, key: str) -> bool:
     """Check if the node is both a source and also has an annotation.
-    
+
     :param graph: A BEL graph
     :param node: A BEL node
     :param key: The key in the node data dictionary representing the experimental data
@@ -127,15 +124,16 @@ def remove_unweighted_sources(graph: BELGraph, key: Optional[str] = None) -> Non
 
 @in_place_transformation
 def prune_mechanism_by_data(graph, key: Optional[str] = None) -> None:
-    """Removes all leaves and source nodes that don't have weights. Is a thin wrapper around 
-    :func:`remove_unweighted_leaves` and :func:`remove_unweighted_sources`
+    """Remove all leaves and source nodes that don't have weights.
+
+    Is a thin wrapper around  :func:`remove_unweighted_leaves` and :func:`remove_unweighted_sources`
 
     :param graph: A BEL graph
     :param key: The key in the node data dictionary representing the experimental data. Defaults to
      :data:`pybel_tools.constants.WEIGHT`.
 
     Equivalent to:
-    
+
     >>> remove_unweighted_leaves(graph)
     >>> remove_unweighted_sources(graph)
     """
@@ -171,9 +169,5 @@ def generate_bioprocess_mechanisms(graph, key: Optional[str] = None) -> Mapping[
     """
     return {
         biological_process: generate_mechanism(graph, biological_process, key=key)
-        for biological_process in _get_biological_processes(graph)
+        for biological_process in get_nodes_by_function(graph, BIOPROCESS)
     }
-
-
-def _get_biological_processes(graph: BELGraph) -> Iterable[BiologicalProcess]:
-    return get_nodes_by_function(graph, BIOPROCESS)

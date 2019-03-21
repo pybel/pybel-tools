@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""This module contains convenient functions for removing nodes/edges that are returned from selection functions."""
+"""Deletion functions to supplement :mod:`pybel.struct.mutation.deletion`."""
 
 from typing import Iterable, Tuple
 

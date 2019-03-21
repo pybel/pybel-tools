@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+"""Node deletion functions to supplement :mod:`pybel.struct.filters`."""
+
 from pybel import BELGraph
 from pybel.struct.filters.node_predicate_builders import function_inclusion_filter_builder
 from pybel.struct.mutation import remove_filtered_nodes
@@ -16,7 +18,7 @@ __all__ = [
 
 
 @in_place_transformation
-def remove_nodes_by_function(graph: BELGraph, func: Strings):
+def remove_nodes_by_function(graph: BELGraph, func: Strings) -> None:
     """Remove nodes with the given function.
 
     This could be useful directly to remove pathologies.
@@ -25,7 +27,7 @@ def remove_nodes_by_function(graph: BELGraph, func: Strings):
 
 
 @in_place_transformation
-def remove_nodes_by_namespace(graph: BELGraph, namespace: Strings):
+def remove_nodes_by_namespace(graph: BELGraph, namespace: Strings) -> None:
     """Remove nodes with the given namespace.
 
     This might be useful to exclude information learned about distant species, such as excluding all information
@@ -36,20 +38,20 @@ def remove_nodes_by_namespace(graph: BELGraph, namespace: Strings):
 
 @register_deprecated('remove_mgi_nodes')
 @in_place_transformation
-def remove_mouse_nodes(graph: BELGraph):
+def remove_mouse_nodes(graph: BELGraph) -> None:
     """Remove nodes using the MGI and MGIID namespaces."""
     remove_nodes_by_namespace(graph, ['MGI', 'MGIID'])
 
 
 @register_deprecated('remove_rgd_nodes')
 @in_place_transformation
-def remove_rat_nodes(graph: BELGraph):
+def remove_rat_nodes(graph: BELGraph) -> None:
     """Remove nodes using the RGD and RGDID namespaces."""
     remove_nodes_by_namespace(graph, ['RGD', 'RGDID'])
 
 
 @in_place_transformation
-def remove_nodes_by_function_namespace(graph: BELGraph, func: str, namespace: Strings):
+def remove_nodes_by_function_namespace(graph: BELGraph, func: str, namespace: Strings) -> None:
     """Remove nodes with the given function and namespace.
 
     This might be useful to exclude information learned about distant species, such as excluding all information

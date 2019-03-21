@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""This module contains functions that mutate or make transformations on a network"""
+"""Mutation functions to supplement :mod:`pybel.struct.mutation`."""
 
 from . import collapse, deletion, expansion, highlight, inference, metadata, random
 from .bound import *

@@ -1,12 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""
-
-This module contains functions for filtering node and edge iterables. It relies heavily on the concepts of
-`functional programming <https://en.wikipedia.org/wiki/Functional_programming>`_ and the concept of
-`predicates <https://en.wikipedia.org/wiki/Predicate_(mathematical_logic)>`_.
-
-"""
+"""Filters to supplement :mod:`pybel.struct.filters`."""
 
 from . import edge_filters, node_deletion, node_filters
 from .edge_filters import *

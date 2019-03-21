@@ -1,30 +1,18 @@
 # -*- coding: utf-8 -*-
 
-"""
-Edge Filters
-------------
+"""Edge filters to supplement :mod:`pybel.struct.filters.edge_filters`."""
 
-A edge filter is a function that takes five arguments: a :class:`pybel.BELGraph`, a source node tuple, a target node
-tuple, a key, and a data dictionary. It returns a boolean representing whether the edge passed the given test.
-
-This module contains a set of default functions for filtering lists of edges and building edge filtering functions.
-
-A general use for an edge filter function is to use the built-in :func:`filter` in code like
-:code:`filter(your_edge_filter, graph.edges_iter(keys=True, data=True))`
-"""
-
-from collections import Iterable, Mapping
-from typing import Set
+from typing import Iterable, Mapping, Set
 
 from pybel import BELGraph
-from pybel.constants import *
+from pybel.constants import CITATION, CITATION_AUTHORS, CITATION_REFERENCE, NAMESPACE
 from pybel.dsl import BaseEntity
 from pybel.struct.filters import (
     build_annotation_dict_all_filter, build_annotation_dict_any_filter, count_passed_edge_filter,
 )
 from pybel.struct.filters.edge_predicates import edge_predicate, has_authors, has_pathology_causal, has_pubmed
 from pybel.struct.filters.typing import EdgePredicate, EdgePredicates
-from pybel.typing import Strings
+from pybel.typing import EdgeData, Strings
 from pybel.utils import subdict_matches
 
 __all__ = [
@@ -54,104 +42,104 @@ def summarize_edge_filter(graph: BELGraph, edge_predicates: EdgePredicates) -> N
     ))
 
 
-def build_edge_data_filter(annotations, partial_match: bool = True) -> EdgePredicate:
+def build_edge_data_filter(annotations: Mapping, partial_match: bool = True) -> EdgePredicate: # noqa: D202
     """Build a filter that keeps edges whose data dictionaries are super-dictionaries to the given dictionary.
 
-    :param dict annotations: The annotation query dict to match
+    :param annotations: The annotation query dict to match
     :param partial_match: Should the query values be used as partial or exact matches? Defaults to :code:`True`.
     """
 
     @edge_predicate
-    def annotation_dict_filter(data: Mapping) -> bool:
+    def annotation_dict_filter(data: EdgeData) -> bool:
         """A filter that matches edges with the given dictionary as a sub-dictionary."""
         return subdict_matches(data, annotations, partial_match=partial_match)
 
     return annotation_dict_filter
 
 
-def build_pmid_inclusion_filter(pmid: Strings) -> EdgePredicate:
+def build_pmid_inclusion_filter(pmids: Strings) -> EdgePredicate:
     """Pass for edges with citations whose references are one of the given PubMed identifiers.
     
-    :param pmid: A PubMed identifier or list of PubMed identifiers to filter for
+    :param pmids: A PubMed identifier or list of PubMed identifiers to filter for
     """
-    if isinstance(pmid, str):
+    if isinstance(pmids, str):
         @edge_predicate
-        def pmid_inclusion_filter(data: Mapping) -> bool:
+        def pmid_inclusion_filter(data: EdgeData) -> bool:
             """Only passes for edges with PubMed citations matching the contained PubMed identifier
 
             :return: If the edge has a PubMed citation with the contained PubMed identifier
             """
-            return has_pubmed(data) and data[CITATION][CITATION_REFERENCE] == pmid
+            return has_pubmed(data) and data[CITATION][CITATION_REFERENCE] == pmids
 
-        return pmid_inclusion_filter
-
-    else:
-        pmids = set(pmid)
+    elif isinstance(pmids, Iterable):
+        pmids = set(pmids)
 
         @edge_predicate
-        def pmid_inclusion_filter(data: Mapping) -> bool:
-            """Only passes for edges with PubMed citations matching one of the contained PubMed identifiers
+        def pmid_inclusion_filter(data: EdgeData) -> bool:
+            """Pass for edges with PubMed citations matching one of the contained PubMed identifiers.
 
             :param data: The edge data dictionary
             :return: If the edge has a PubMed citation with one of the contained PubMed identifiers
             """
             return has_pubmed(data) and data[CITATION][CITATION_REFERENCE] in pmids
 
-        return pmid_inclusion_filter
+    else:
+        raise TypeError
+
+    return pmid_inclusion_filter
 
 
-def build_pmid_exclusion_filter(pmid: Strings) -> EdgePredicate:
+def build_pmid_exclusion_filter(pmids: Strings) -> EdgePredicate:
     """Fail for edges with citations whose references are one of the given PubMed identifiers.
 
-    :param pmid: A PubMed identifier or list of PubMed identifiers to filter against
+    :param pmids: A PubMed identifier or list of PubMed identifiers to filter against
     """
-    if isinstance(pmid, str):
+    if isinstance(pmids, str):
         @edge_predicate
-        def pmid_exclusion_filter(data: Mapping) -> bool:
-            """Fails for edges with PubMed citations matching the contained PubMed identifier
+        def pmid_exclusion_filter(data: EdgeData) -> bool:
+            """Fail for edges with PubMed citations matching the contained PubMed identifier.
 
             :return: If the edge has a PubMed citation with the contained PubMed identifier
             """
-            return has_pubmed(data) and data[CITATION][CITATION_REFERENCE] != pmid
+            return has_pubmed(data) and data[CITATION][CITATION_REFERENCE] != pmids
 
-        return pmid_exclusion_filter
-
-    else:
-        pmids = set(pmid)
+    elif isinstance(pmids, Iterable):
+        pmids = set(pmids)
 
         @edge_predicate
-        def pmid_exclusion_filter(data: Mapping) -> bool:
-            """Only passes for edges with PubMed citations matching one of the contained PubMed identifiers
+        def pmid_exclusion_filter(data: EdgeData) -> bool:
+            """Pass for edges with PubMed citations matching one of the contained PubMed identifiers.
 
             :return: If the edge has a PubMed citation with one of the contained PubMed identifiers
             """
             return has_pubmed(data) and data[CITATION][CITATION_REFERENCE] not in pmids
 
-        return pmid_exclusion_filter
+    else:
+        raise TypeError
+
+    return pmid_exclusion_filter
 
 
-def build_author_inclusion_filter(author: Strings) -> EdgePredicate:
-    """Only passes for edges with author information that matches one of the given authors
+def build_author_inclusion_filter(authors: Strings) -> EdgePredicate:
+    """Pass only for edges with author information that matches one of the given authors.
     
-    :param author: The author or list of authors to filter by
+    :param authors: The author or list of authors to filter by
     """
-    if isinstance(author, str):
+    if isinstance(authors, str):
         @edge_predicate
-        def author_filter(data: Mapping) -> bool:
-            """Only passes for edges with citations with an author that matches the contained author
+        def author_filter(data: EdgeData) -> bool:
+            """Pass only for edges with citations with an author that matches the contained author.
 
             :return: If the edge has a citation with an author that matches the the contained author
             """
-            return has_authors(data) and author in data[CITATION][CITATION_AUTHORS]
+            return has_authors(data) and authors in data[CITATION][CITATION_AUTHORS]
 
-        return author_filter
-
-    else:
-        authors = set(author)
+    elif isinstance(authors, Iterable):
+        authors = set(authors)
 
         @edge_predicate
-        def author_filter(data: Mapping) -> bool:
-            """Only passes for edges with citations with an author that matches one or more of the contained authors
+        def author_filter(data: EdgeData) -> bool:
+            """Pass only for edges with citations with an author that matches one or more of the contained authors.
 
             :return: If the edge has a citation with an author that matches the the contained author
             """
@@ -160,21 +148,26 @@ def build_author_inclusion_filter(author: Strings) -> EdgePredicate:
                 for author in authors
             )
 
-        return author_filter
+    else:
+        raise TypeError
+
+    return author_filter
 
 
-def node_has_namespace(node: BaseEntity, namespace: str):
+def node_has_namespace(node: BaseEntity, namespace: str) -> bool:
+    """Pass for nodes that have the given namespace."""
     ns = node.get(NAMESPACE)
     return ns is not None and ns == namespace
 
 
-def node_has_namespaces(node: BaseEntity, namespaces: Set[str]):
+def node_has_namespaces(node: BaseEntity, namespaces: Set[str]) -> bool:
+    """Pass for nodes that have one of the given namespaces."""
     ns = node.get(NAMESPACE)
     return ns is not None and ns in namespaces
 
 
 def build_source_namespace_filter(namespaces: Strings) -> EdgePredicate:
-    """Only passes for edges whose source nodes have the given namespace or one of the given namespaces
+    """Pass for edges whose source nodes have the given namespace or one of the given namespaces.
 
     :param namespaces: The namespace or namespaces to filter by
     """
