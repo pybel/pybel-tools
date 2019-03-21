@@ -208,3 +208,30 @@ def collapse_to_protein_interactions(graph: BELGraph) -> BELGraph:
         return isinstance(u, Gene) and isinstance(v, Gene)
 
     return get_subgraph_by_edge_filter(rv, edge_predicates=[has_polarity, is_edge_ppi])
+
+
+@in_place_transformation
+def collapse_nodes_with_same_names(graph: BELGraph) -> None:
+    """Collapse all nodes with the same name, merging namespaces by picking first alphabetical one."""
+    survivor_mapping = defaultdict(set)
+    for a, b in itt.product(graph, repeat=2):
+        if a == b:
+            continue
+        a_name, b_name = a.get(NAME), b.get(NAME)
+        if not a_name or not b_name or a_name.lower() != b_name.lower():
+            continue
+
+        if a[NAMESPACE] < b[NAMESPACE]:  # keep that order right
+            continue
+
+        if a.keys() != b.keys():  # not same version (might have variants)
+            continue
+        for k in set(a.keys()) - {NAME, NAMESPACE}:
+            if a[k] != b[k]:  # something different
+                continue
+
+        survivor_mapping[a].add(b)
+
+    print('survivors', dict(survivor_mapping))
+    collapse_nodes(graph, survivor_mapping)
+
