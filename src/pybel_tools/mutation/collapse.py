@@ -2,12 +2,11 @@
 
 """Collapse functions to supplement :mod:`pybel.struct.mutation.collapse`."""
 
+import itertools as itt
 import logging
 from collections import defaultdict
 
-import itertools as itt
 import networkx as nx
-
 from pybel import BELGraph
 from pybel.constants import EQUIVALENT_TO, GENE, HAS_VARIANT, NAME, NAMESPACE, ORTHOLOGOUS, PROTEIN, RELATION
 from pybel.dsl import BaseEntity, Gene, Protein
@@ -16,6 +15,8 @@ from pybel.struct.filters.typing import EdgePredicates
 from pybel.struct.mutation import collapse_nodes, collapse_pair, collapse_to_genes, get_subgraph_by_edge_filter
 from pybel.struct.pipeline import in_place_transformation, transformation
 from pybel.typing import Strings
+from tqdm import tqdm
+
 from ..filters.edge_filters import build_source_namespace_filter, build_target_namespace_filter
 from ..summary.edge_summary import pair_is_consistent
 
@@ -213,15 +214,16 @@ def collapse_to_protein_interactions(graph: BELGraph) -> BELGraph:
 @in_place_transformation
 def collapse_nodes_with_same_names(graph: BELGraph) -> None:
     """Collapse all nodes with the same name, merging namespaces by picking first alphabetical one."""
-    survivor_mapping = defaultdict(set)
-    for a, b in itt.product(graph, repeat=2):
-        if a == b:
-            continue
-        a_name, b_name = a.get(NAME), b.get(NAME)
-        if not a_name or not b_name or a_name.lower() != b_name.lower():
+    survivor_mapping = defaultdict(set) # Collapse mapping dict
+    victims = set() # Things already mapped while iterating
+
+    it = tqdm(itt.combinations(graph, r=2), total=graph.number_of_nodes() * (graph.number_of_nodes() - 1) / 2)
+    for a, b in it:
+        if b in victims:
             continue
 
-        if a[NAMESPACE] > b[NAMESPACE]:  # keep that order right (alphabetic)
+        a_name, b_name = a.get(NAME), b.get(NAME)
+        if not a_name or not b_name or a_name.lower() != b_name.lower():
             continue
 
         if a.keys() != b.keys():  # not same version (might have variants)
@@ -233,5 +235,7 @@ def collapse_nodes_with_same_names(graph: BELGraph) -> None:
                 continue
 
         survivor_mapping[a].add(b)
+        # Keep track of things that has been already mapped
+        victims.add(b)
 
     collapse_nodes(graph, survivor_mapping)
