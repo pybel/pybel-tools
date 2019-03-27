@@ -221,11 +221,13 @@ def collapse_nodes_with_same_names(graph: BELGraph) -> None:
         if not a_name or not b_name or a_name.lower() != b_name.lower():
             continue
 
-        if a[NAMESPACE] < b[NAMESPACE]:  # keep that order right
+        if a[NAMESPACE] > b[NAMESPACE]:  # keep that order right (alphabetic)
             continue
 
         if a.keys() != b.keys():  # not same version (might have variants)
             continue
+
+        # Ensure that the values in the keys are also the same
         for k in set(a.keys()) - {NAME, NAMESPACE}:
             if a[k] != b[k]:  # something different
                 continue
