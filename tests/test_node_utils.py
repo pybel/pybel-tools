@@ -4,12 +4,13 @@
 
 import unittest
 
-from pybel_tools.mutation.collapse import collapse_nodes_with_same_names
-from pybel_tools.node_utils import flatten_list_abundance
-
 from pybel import BELGraph
-from pybel.dsl import ComplexAbundance as g, CompositeAbundance as c, Protein
+from pybel.constants import INCREASES
+from pybel.dsl import ComplexAbundance as g, CompositeAbundance as c, Protein, Reaction
+from pybel.examples.various_example import single_reaction_graph, glucose_6_phosphate, glucose, hk1, atp, phosphate, adp
 from pybel.testing.utils import n
+from pybel_tools.mutation.collapse import collapse_nodes_with_same_names
+from pybel_tools.node_utils import flatten_list_abundance, reaction_cartesian_expansion
 
 
 class TestNodeUtils(unittest.TestCase):
@@ -35,6 +36,109 @@ class TestNodeUtils(unittest.TestCase):
 
         for expected, source in pairs:
             self.assertEqual(expected, flatten_list_abundance(source))
+
+    def test_flatten_reaction(self):
+        """Test flattening a reaction."""
+        single_reaction_graph_copy = single_reaction_graph.copy()
+
+        self.assertEqual(single_reaction_graph_copy.number_of_nodes(), 7)
+        self.assertEqual(single_reaction_graph_copy.number_of_edges(), 7)
+
+        reaction_cartesian_expansion(single_reaction_graph_copy)
+
+        self.assertEqual(single_reaction_graph_copy.number_of_nodes(), 6)
+        self.assertEqual(single_reaction_graph_copy.number_of_edges(), 8)
+
+        pairs = [
+            (glucose, INCREASES, glucose_6_phosphate),
+            (glucose, INCREASES, adp),
+            (hk1, INCREASES, glucose_6_phosphate),
+            (hk1, INCREASES, adp),
+            (atp, INCREASES, glucose_6_phosphate),
+            (atp, INCREASES, adp),
+            (phosphate, INCREASES, glucose_6_phosphate),
+            (phosphate, INCREASES, adp),
+        ]
+
+        for source, target, data in single_reaction_graph_copy.edges(data=True):
+            self.assertIn((source, INCREASES, target), pairs)
+
+    def test_flatten_reaction_2(self):
+        """Test flattening a qualified reaction."""
+        node_increases_reaction_graph = BELGraph(
+            name='Node increases reaction',
+            version='1.0.0',
+            description="Example graph",
+            authors='Charles Tapley Hoyt',
+            contact='charles.hoyt@scai.fraunhofer.de',
+        )
+
+        node_increases_reaction_graph.namespace_url.update({
+            'HGNC': 'https://arty.scai.fraunhofer.de/artifactory/bel/namespace/hgnc-human-genes/'
+                    'hgnc-human-genes-20170725.belns',
+            'CHEBI': 'https://arty.scai.fraunhofer.de/artifactory/bel/namespace/chebi/chebi-20170725.belns',
+            'GOBP': 'https://arty.scai.fraunhofer.de/artifactory/bel/namespace/go-biological-process/'
+                    'go-biological-process-20170725.belns'
+        })
+
+        glycolisis_step_1 = Reaction(reactants=[glucose, hk1, atp], products=[glucose_6_phosphate, adp, hk1])
+
+        node_increases_reaction_graph.add_increases(glucose_6_phosphate, glycolisis_step_1, citation='X', evidence='X')
+
+        self.assertEqual(node_increases_reaction_graph.number_of_nodes(), 6)
+        self.assertEqual(node_increases_reaction_graph.number_of_edges(), 7)
+
+        reaction_cartesian_expansion(node_increases_reaction_graph)
+
+        self.assertEqual(node_increases_reaction_graph.number_of_nodes(), 5)
+        # TODO Fix so unqualified duplicate edges are not created (it should be the 8 edges below)
+        self.assertEqual(node_increases_reaction_graph.number_of_edges(), 12)
+
+        # pairs = [
+        #     (glucose, INCREASES, glucose_6_phosphate),
+        #     (glucose, INCREASES, adp),
+        #     (hk1, INCREASES, glucose_6_phosphate),
+        #     (hk1, INCREASES, adp),
+        #     (atp, INCREASES, glucose_6_phosphate),
+        #     (atp, INCREASES, adp),
+        #     (phosphate, INCREASES, glucose_6_phosphate),
+        #     (phosphate, INCREASES, adp),
+        # ]
+        #
+        # for source, target, data in node_increases_reaction_graph.edges(data=True):
+        #     self.assertIn((source, INCREASES, target), pairs)
+
+    def test_flatten_reaction_3(self):
+        """Test flattening a graph containing 2 reactions connected to each other."""
+        two_reactions_graph = BELGraph(
+            name='Two reactions graph',
+            version='1.0.0',
+            description="Example graph",
+            authors='Charles Tapley Hoyt',
+            contact='charles.hoyt@scai.fraunhofer.de',
+        )
+
+        two_reactions_graph.namespace_url.update({
+            'HGNC': 'https://arty.scai.fraunhofer.de/artifactory/bel/namespace/hgnc-human-genes/'
+                    'hgnc-human-genes-20170725.belns',
+            'CHEBI': 'https://arty.scai.fraunhofer.de/artifactory/bel/namespace/chebi/chebi-20170725.belns',
+            'GOBP': 'https://arty.scai.fraunhofer.de/artifactory/bel/namespace/go-biological-process/'
+                    'go-biological-process-20170725.belns'
+        })
+
+        reaction_1 = Reaction(reactants=[glucose, atp], products=[hk1])
+        reaction_2 = Reaction(reactants=[glucose_6_phosphate], products=[adp])
+
+        two_reactions_graph.add_increases(reaction_1, reaction_2, citation='X', evidence='X')
+
+        self.assertEqual(two_reactions_graph.number_of_nodes(), 7)
+        self.assertEqual(two_reactions_graph.number_of_edges(), 6)
+
+        reaction_cartesian_expansion(two_reactions_graph)
+
+        # TODO Fix so unqualified duplicate edges are not created (it should be the 6 edges below)
+        self.assertEqual(two_reactions_graph.number_of_nodes(), 5)
+        self.assertEqual(two_reactions_graph.number_of_edges(), 8)
 
     def test_merge_nodes_by_name(self):
         graph = BELGraph()
