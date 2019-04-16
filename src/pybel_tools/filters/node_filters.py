@@ -2,11 +2,13 @@
 
 """Node filters to supplement :mod:`pybel.struct.filters.node_filters`."""
 
-from typing import Iterable
+from collections import defaultdict
+from typing import Iterable, Mapping, Optional, Set
 
+import pybel
 from pybel import BELGraph
-from pybel.constants import FUNCTION, LABEL, NAMESPACE, PATHOLOGY
-from pybel.dsl import BaseEntity
+from pybel.constants import CAUSAL_RELATIONS, FUNCTION, HAS_VARIANT, LABEL, NAMESPACE, PATHOLOGY, RELATION
+from pybel.dsl import BaseEntity, Protein, ProteinModification
 from pybel.struct.filters import (
     build_node_data_search, build_node_key_search, count_passed_node_filter, data_missing_key_builder,
 )
@@ -29,6 +31,8 @@ __all__ = [
     'exclude_pathology_filter',
     'build_node_data_search',
     'build_node_key_search',
+    'variants_of',
+    'get_variants_to_controllers',
 ]
 
 
@@ -212,3 +216,54 @@ def namespace_inclusion_builder(namespace) -> NodePredicate:  # noqa: D202
         return node.get(NAMESPACE) == namespace
 
     return has_namespace
+
+
+def variants_of(
+        graph: BELGraph,
+        node: Protein,
+        modifications: Optional[Set[str]] = None,
+) -> Set[Protein]:
+    """Returns all variants of the given node."""
+    if modifications:
+        return _get_filtered_variants_of(graph, node, modifications)
+
+    return {
+        v
+        for u, v, key, data in graph.edges(keys=True, data=True)
+        if (
+            u == node
+            and data[RELATION] == HAS_VARIANT
+            and pybel.struct.has_protein_modification(v)
+        )
+    }
+
+
+def _get_filtered_variants_of(graph, node, modifications):
+    return {
+        v
+        for u, v, key, data in graph.edges(keys=True, data=True)
+        if (
+            u == node
+            and data[RELATION] == HAS_VARIANT
+            and pybel.struct.has_protein_modification(v)
+            and any(
+                variant['identifier']['name'] in modifications
+                for variant in v.variants if 'identifier' in variant
+                if isinstance(variant, ProteinModification)
+            )
+        )
+    }
+
+
+def get_variants_to_controllers(
+        graph: BELGraph,
+        node: Protein,
+        modifications: Optional[Set[str]] = None,
+) -> Mapping[Protein, Set[Protein]]:
+    """Get a mapping from variants of the given node to all of its upstream controllers."""
+    rv = defaultdict(set)
+    variants = variants_of(graph, node, modifications)
+    for controller, variant, data in graph.in_edges(variants, data=True):
+        if data[RELATION] in CAUSAL_RELATIONS:
+            rv[variant].add(controller)
+    return rv
