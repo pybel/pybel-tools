@@ -236,10 +236,10 @@ def enrich_reactions(graph: BELGraph):
     nodes = list(get_nodes_by_function(graph, REACTION))
     for u in nodes:
         for v in u.reactants:
-            graph.add_unqualified_edge(u, v, HAS_REACTANT)
+            graph.add_has_reactant(u, v)
 
         for v in u.products:
-            graph.add_unqualified_edge(u, v, HAS_PRODUCT)
+            graph.add_has_product(u, v)
 
 
 @uni_in_place_transformation

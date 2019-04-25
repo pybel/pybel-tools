@@ -5,10 +5,12 @@
 import itertools as itt
 import logging
 from itertools import chain
+from typing import Set, Type
 
 from networkx import relabel_nodes
-from pybel import BELGraph
-from pybel.constants import ANNOTATIONS, CITATION, EVIDENCE, RELATION, INCREASES, HAS_REACTANT
+
+from pybel import BELGraph, BaseAbundance
+from pybel.constants import ANNOTATIONS, CITATION, EVIDENCE, INCREASES, RELATION
 from pybel.dsl import BaseEntity, ListAbundance, Reaction
 
 __all__ = [
@@ -78,23 +80,21 @@ def list_abundance_cartesian_expansion(graph: BELGraph) -> None:
                     annotations=d.get(ANNOTATIONS),
                 )
 
-    list_nodes = {
-        node
-        for node in graph.nodes()
-        if isinstance(node, ListAbundance)
-    }
-    graph.remove_nodes_from(list_nodes)
+    _remove_list_abundance_nodes(graph)
 
 
-def _reaction_cartesion_expansion_unqualified_helper(graph: BELGraph, u: BaseEntity, v: BaseEntity, d: dict) -> None:
+def _reaction_cartesion_expansion_unqualified_helper(
+        graph: BELGraph,
+        u: BaseEntity,
+        v: BaseEntity,
+        d: dict,
+) -> None:
     """Helper to deal with cartension expansion in unqualified edges."""
     if isinstance(u, Reaction) and isinstance(v, Reaction):
-
-        enzymes = _get_enzymes_in_reaction(u) + _get_enzymes_in_reaction(v)
+        enzymes = _get_catalysts_in_reaction(u) | _get_catalysts_in_reaction(v)
 
         for reactant, product in chain(itt.product(u.reactants, u.products),
                                        itt.product(v.reactants, v.products)):
-
             if reactant in enzymes or product in enzymes:
                 continue
 
@@ -112,7 +112,7 @@ def _reaction_cartesion_expansion_unqualified_helper(graph: BELGraph, u: BaseEnt
 
     elif isinstance(u, Reaction):
 
-        enzymes = _get_enzymes_in_reaction(u)
+        enzymes = _get_catalysts_in_reaction(u)
 
         for product in u.products:
 
@@ -133,7 +133,7 @@ def _reaction_cartesion_expansion_unqualified_helper(graph: BELGraph, u: BaseEnt
 
     elif isinstance(v, Reaction):
 
-        enzymes = _get_enzymes_in_reaction(v)
+        enzymes = _get_catalysts_in_reaction(v)
 
         for reactant in v.reactants:
 
@@ -153,42 +153,38 @@ def _reaction_cartesion_expansion_unqualified_helper(graph: BELGraph, u: BaseEnt
                 )
 
 
-def _get_enzymes_in_reaction(reaction: Reaction):
+def _get_catalysts_in_reaction(reaction: Reaction) -> Set[BaseAbundance]:
     """Return nodes that are both in reactants and reactions in a reaction."""
-    return [
+    return {
         reactant
         for reactant in reaction.reactants
         if reactant in reaction.products
-    ]
+    }
 
 
-def reaction_cartesian_expansion(graph: BELGraph, accept_unqualified_edges=True) -> None:
+def reaction_cartesian_expansion(graph: BELGraph, accept_unqualified_edges: bool = True) -> None:
     """Expand all reactions to simple subject-predicate-object networks."""
-    for u, v, k, d in list(graph.edges(keys=True, data=True)):
-
+    for u, v, d in list(graph.edges(keys=True, data=True)):
         # Deal with unqualified edges
         if CITATION not in d and accept_unqualified_edges:
             _reaction_cartesion_expansion_unqualified_helper(graph, u, v, d)
             continue
 
         if isinstance(u, Reaction) and isinstance(v, Reaction):
-
-            enzymes = _get_enzymes_in_reaction(u) + _get_enzymes_in_reaction(v)
+            catalysts = _get_catalysts_in_reaction(u) | _get_catalysts_in_reaction(v)
 
             for reactant, product in chain(itt.product(u.reactants, u.products), itt.product(v.reactants, v.products)):
-
-                if reactant in enzymes or product in enzymes:
+                if reactant in catalysts or product in catalysts:
                     continue
-
                 graph.add_increases(
                     reactant, product,
                     citation=d.get(CITATION),
                     evidence=d.get(EVIDENCE),
                     annotations=d.get(ANNOTATIONS),
                 )
-            for product, reactant in itt.product(u.products, u.reactants):
 
-                if reactant in enzymes or product in enzymes:
+            for product, reactant in itt.product(u.products, u.reactants):
+                if reactant in catalysts or product in catalysts:
                     continue
 
                 graph.add_qualified_edge(
@@ -200,13 +196,11 @@ def reaction_cartesian_expansion(graph: BELGraph, accept_unqualified_edges=True)
                 )
 
         elif isinstance(u, Reaction):
-
-            enzymes = _get_enzymes_in_reaction(u)
+            catalysts = _get_catalysts_in_reaction(u)
 
             for product in u.products:
-
                 # Skip create increases edges between enzymes
-                if product in enzymes:
+                if product in catalysts:
                     continue
 
                 # Only add edge between v and reaction if the node is not part of the reaction
@@ -218,6 +212,7 @@ def reaction_cartesian_expansion(graph: BELGraph, accept_unqualified_edges=True)
                         evidence=d.get(EVIDENCE),
                         annotations=d.get(ANNOTATIONS),
                     )
+
                 for reactant in u.reactants:
                     graph.add_increases(
                         reactant, product,
@@ -227,12 +222,11 @@ def reaction_cartesian_expansion(graph: BELGraph, accept_unqualified_edges=True)
                     )
 
         elif isinstance(v, Reaction):
-
             for reactant in v.reactants:
-                enzymes = _get_enzymes_in_reaction(v)
+                catalysts = _get_catalysts_in_reaction(v)
 
                 # Skip create increases edges between enzymes
-                if reactant in enzymes:
+                if reactant in catalysts:
                     continue
 
                 # Only add edge between v and reaction if the node is not part of the reaction
@@ -252,27 +246,26 @@ def reaction_cartesian_expansion(graph: BELGraph, accept_unqualified_edges=True)
                         annotations=d.get(ANNOTATIONS),
                     )
 
-    reaction_nodes = {
-        node
-        for node in graph.nodes()
-        if isinstance(node, Reaction)
-    }
-
-    graph.remove_nodes_from(reaction_nodes)
+    _remove_reaction_nodes(graph)
 
 
-def remove_complex_nodes(graph: BELGraph) -> None:
+def remove_reified_nodes(graph: BELGraph) -> None:
     """Remove complex nodes."""
-    list_nodes = {
-        node
-        for node in graph.nodes()
-        if isinstance(node, ListAbundance)
-    }
-    graph.remove_nodes_from(list_nodes)
+    _remove_list_abundance_nodes(graph)
+    _remove_reaction_nodes(graph)
 
-    reaction_nodes = {
+
+def _remove_list_abundance_nodes(graph: BELGraph):
+    _remove_typed_nodes(graph, ListAbundance)
+
+
+def _remove_reaction_nodes(graph: BELGraph):
+    _remove_typed_nodes(graph, Reaction)
+
+
+def _remove_typed_nodes(graph: BELGraph, cls: Type[BaseEntity]):
+    graph.remove_nodes_from({
         node
         for node in graph.nodes()
-        if isinstance(node, Reaction)
-    }
-    graph.remove_nodes_from(reaction_nodes)
+        if isinstance(node, cls)
+    })
