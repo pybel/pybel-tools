@@ -65,21 +65,7 @@ class TestNodeUtils(unittest.TestCase):
 
     def test_flatten_reaction_2(self):
         """Test flattening a qualified reaction."""
-        node_increases_reaction_graph = BELGraph(
-            name='Node increases reaction',
-            version='1.0.0',
-            description="Example graph",
-            authors='Charles Tapley Hoyt',
-            contact='charles.hoyt@scai.fraunhofer.de',
-        )
-
-        node_increases_reaction_graph.namespace_url.update({
-            'HGNC': 'https://arty.scai.fraunhofer.de/artifactory/bel/namespace/hgnc-human-genes/'
-                    'hgnc-human-genes-20170725.belns',
-            'CHEBI': 'https://arty.scai.fraunhofer.de/artifactory/bel/namespace/chebi/chebi-20170725.belns',
-            'GOBP': 'https://arty.scai.fraunhofer.de/artifactory/bel/namespace/go-biological-process/'
-                    'go-biological-process-20170725.belns'
-        })
+        node_increases_reaction_graph = BELGraph()
 
         glycolisis_step_1 = Reaction(reactants=[glucose, hk1, atp], products=[glucose_6_phosphate, adp, hk1])
 
@@ -110,24 +96,10 @@ class TestNodeUtils(unittest.TestCase):
 
     def test_flatten_reaction_3(self):
         """Test flattening a graph containing 2 reactions connected to each other."""
-        two_reactions_graph = BELGraph(
-            name='Two reactions graph',
-            version='1.0.0',
-            description="Example graph",
-            authors='Charles Tapley Hoyt',
-            contact='charles.hoyt@scai.fraunhofer.de',
-        )
+        two_reactions_graph = BELGraph()
 
-        two_reactions_graph.namespace_url.update({
-            'HGNC': 'https://arty.scai.fraunhofer.de/artifactory/bel/namespace/hgnc-human-genes/'
-                    'hgnc-human-genes-20170725.belns',
-            'CHEBI': 'https://arty.scai.fraunhofer.de/artifactory/bel/namespace/chebi/chebi-20170725.belns',
-            'GOBP': 'https://arty.scai.fraunhofer.de/artifactory/bel/namespace/go-biological-process/'
-                    'go-biological-process-20170725.belns'
-        })
-
-        reaction_1 = Reaction(reactants=[glucose, atp], products=[hk1])
-        reaction_2 = Reaction(reactants=[glucose_6_phosphate], products=[adp])
+        reaction_1 = Reaction(reactants=[glucose, atp], products=hk1)
+        reaction_2 = Reaction(reactants=glucose_6_phosphate, products=adp)
 
         two_reactions_graph.add_increases(reaction_1, reaction_2, citation='X', evidence='X')
 
@@ -144,8 +116,8 @@ class TestNodeUtils(unittest.TestCase):
         graph = BELGraph()
         a_hgnc, a_entrez = [Protein(namespace, 'a') for namespace in ('HGNC', 'ncbigene')]
         b = Protein('ncbigene', 'b')
-        graph.add_increases(a_hgnc, b, n(), n())
-        graph.add_increases(a_entrez, b, n(), n())
+        graph.add_increases(a_hgnc, b, citation=n(), evidence=n())
+        graph.add_increases(a_entrez, b, citation=n(), evidence=n())
         self.assertEqual(3, graph.number_of_nodes())
         self.assertEqual(2, graph.number_of_edges())
         collapse_nodes_with_same_names(graph)
