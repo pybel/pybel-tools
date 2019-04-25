@@ -8,7 +8,6 @@ from itertools import chain
 from typing import Set, Type
 
 from networkx import relabel_nodes
-
 from pybel import BELGraph, BaseAbundance
 from pybel.constants import ANNOTATIONS, CITATION, EVIDENCE, INCREASES, RELATION
 from pybel.dsl import BaseEntity, ListAbundance, Reaction
@@ -164,7 +163,7 @@ def _get_catalysts_in_reaction(reaction: Reaction) -> Set[BaseAbundance]:
 
 def reaction_cartesian_expansion(graph: BELGraph, accept_unqualified_edges: bool = True) -> None:
     """Expand all reactions to simple subject-predicate-object networks."""
-    for u, v, d in list(graph.edges(keys=True, data=True)):
+    for u, v, d in list(graph.edges(data=True)):
         # Deal with unqualified edges
         if CITATION not in d and accept_unqualified_edges:
             _reaction_cartesion_expansion_unqualified_helper(graph, u, v, d)
