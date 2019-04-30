@@ -11,3 +11,4 @@ Code Contributors
 - `Daniel Domingo <https://github.com/ddomingof>`_
 - `Andrej Konotopez <https://github.com/lekono>`_
 - Reagon Karki
+- `Mauricio Lacerda <https://github.com/mauriciopl>`_
