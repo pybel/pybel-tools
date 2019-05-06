@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""
+"""Additional summary functions for BEL graphs to supplement :mod:`pybel.struct.summary`.
 
 These scripts are designed to assist in the analysis of errors within BEL documents
 and provide some suggestions for fixes.

@@ -15,6 +15,7 @@ from pybel.struct.summary import (
     count_annotations, count_pathologies, count_relations, get_annotations, get_unused_annotations,
     get_unused_list_annotation_values, iter_annotation_value_pairs, iter_annotation_values,
 )
+
 from .contradictions import pair_has_contradiction
 
 __all__ = [
@@ -63,7 +64,7 @@ def count_unique_relations(graph: BELGraph) -> Counter:
 
 
 def get_annotations_containing_keyword(graph: BELGraph, keyword: str) -> List[Mapping[str, str]]:
-    """Get annotation/value pairs for values for whom the search string is a substring
+    """Get annotation/value pairs for values for whom the search string is a substring.
 
     :param graph: A BEL graph
     :param keyword: Search for annotations whose values have this as a substring
@@ -79,7 +80,7 @@ def get_annotations_containing_keyword(graph: BELGraph, keyword: str) -> List[Ma
 
 
 def count_annotation_values(graph: BELGraph, annotation: str) -> Counter:
-    """Count in how many edges each annotation appears in a graph
+    """Count in how many edges each annotation appears in a graph.
 
     :param graph: A BEL graph
     :param annotation: The annotation to count
@@ -88,11 +89,12 @@ def count_annotation_values(graph: BELGraph, annotation: str) -> Counter:
     return Counter(iter_annotation_values(graph, annotation))
 
 
-def count_annotation_values_filtered(graph: BELGraph,
-                                     annotation: str,
-                                     source_predicate: Optional[NodePredicate] = None,
-                                     target_predicate: Optional[NodePredicate] = None,
-                                     ) -> Counter:
+def count_annotation_values_filtered(
+        graph: BELGraph,
+        annotation: str,
+        source_predicate: Optional[NodePredicate] = None,
+        target_predicate: Optional[NodePredicate] = None,
+) -> Counter:
     """Count in how many edges each annotation appears in a graph, but filter out source nodes and target nodes.
 
     See :func:`pybel_tools.utils.keep_node` for a basic filter.
@@ -143,8 +145,8 @@ def pair_is_consistent(graph: BELGraph, u: BaseEntity, v: BaseEntity) -> Optiona
 
 
 def get_contradictory_pairs(graph: BELGraph) -> Iterable[Tuple[BaseEntity, BaseEntity]]:
-    """Iterates over contradictory node pairs in the graph based on their causal relationships
-    
+    """Iterate over contradictory node pairs in the graph based on their causal relationships.
+
     :return: An iterator over (source, target) node pairs that have contradictory causal edges
     """
     for u, v in graph.edges():

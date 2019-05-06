@@ -9,7 +9,6 @@ printing summary information, and exporting summarized graphs
 import logging
 
 import pandas as pd
-
 from pybel import BELGraph
 from pybel.struct.summary import count_functions, count_relations
 
@@ -21,8 +20,8 @@ __all__ = [
 log = logging.getLogger(__name__)
 
 
-def plot_summary_axes(graph: BELGraph, lax, rax, logx=True):
-    """Plots your graph summary statistics on the given axes.
+def plot_summary_axes(graph: BELGraph, lax, rax, logx: bool = True):
+    """Plot the graph summary statistics on the given axes.
 
     After, you should run :func:`plt.tight_layout` and you must run :func:`plt.show` to view.
 
@@ -58,8 +57,10 @@ def plot_summary_axes(graph: BELGraph, lax, rax, logx=True):
     rax.set_title('Number of edges: {}'.format(graph.number_of_edges()))
 
 
-def plot_summary(graph: BELGraph, plt, logx=True, **kwargs):
-    """Plots your graph summary statistics. This function is a thin wrapper around :func:`plot_summary_axis`. It
+def plot_summary(graph: BELGraph, plt, logx: bool = True, **kwargs):
+    """Plot your graph summary statistics.
+
+    This function is a thin wrapper around :func:`plot_summary_axis`. It
     automatically takes care of building figures given matplotlib's pyplot module as an argument. After, you need
     to run :func:`plt.show`.
 

@@ -11,11 +11,11 @@ import os
 import re
 import time
 from functools import partial
-from typing import Mapping
+from typing import Mapping, TextIO
 
 import pandas as pd
-
-from bel_resources import get_bel_resource, make_knowledge_header
+import pybel
+from bel_resources import get_bel_resource
 from pybel import BELGraph
 from pybel.dsl import Abundance, Gene
 from pybel.utils import ensure_quotes
@@ -34,12 +34,11 @@ miRNApattern = re.compile(r"^MIR.*$")
 miRNAspattern = re.compile(r"^(MIR.*),((MIR.*$),)*(MIR.*$)$")
 
 
-def preprocessing_excel(path):
+def preprocessing_excel(path: str) -> pd.DataFrame:
     """Preprocess the excel sheet
 
-    :param filepath: filepath of the excel data
+    :param path: filepath of the excel data
     :return: df: pandas dataframe with excel data
-    :rtype: pandas.DataFrame
     """
     if not os.path.exists(path):
         raise ValueError("Error: %s file not found" % path)
@@ -96,14 +95,9 @@ def munge_cell(cell, line=None, validators=None):
 
 
 def preprocessing_br_projection_excel(path: str) -> pd.DataFrame:
-    """Preprocess the excel file.
-
-    Parameters
-    ----------
-    path : Filepath of the excel sheet
-    """
+    """Preprocess the excel file."""
     if not os.path.exists(path):
-        raise ValueError("Error: %s file not found" % path)
+        raise ValueError(f"Error: {path} file not found")
 
     return pd.read_excel(path, sheetname=0, header=0)
 
@@ -112,6 +106,8 @@ munge_snp = partial(munge_cell, validators=[SNPpattern, SNPspatternSpaceComma])
 
 mesh_alzheimer = "Alzheimer Disease"  # Death to the eponym!
 mesh_parkinson = "Parkinson Disease"
+CANNED_EVIDENCE = 'Serialized from NeuroMMSigDB'
+CANNED_CITATION = '28651363'
 
 pathway_column = 'Subgraph Name'
 genes_column = 'Genes'
@@ -146,9 +142,7 @@ def preprocess(path: str) -> pd.DataFrame:
 
 
 def get_nift_values() -> Mapping[str, str]:
-    """Extract the list of NIFT names from the BEL resource and builds a dictionary mapping from the lowercased version
-    to the uppercase version.
-    """
+    """Map NIFT names that have been normalized to the original names."""
     r = get_bel_resource(NIFT)
     return {
         name.lower(): name
@@ -156,48 +150,35 @@ def get_nift_values() -> Mapping[str, str]:
     }
 
 
-def write_neurommsig_biolerplate(disease, file):
-    lines = make_knowledge_header(
-        name='NeuroMMSigDB for {}'.format(disease),
-        description='SNP and Clinical Features for Subgraphs in {}'.format(disease),
-        authors='Daniel Domingo-Fernandez, Charles Tapley Hoyt, Mufassra Naz, Aybuge Altay, Anandhi Iyappan',
-        contact='daniel.domingo.fernandez@scai.fraunhofer.de',
-        version=time.strftime('%Y%m%d'),
-        namespace_url={
-            'NIFT': NIFT,
-            'HGNC': HGNC_HUMAN_GENES,
-        },
-        namespace_patterns={
-            'dbSNP': DBSNP_PATTERN
-        },
-        annotation_url={
-            'Subgraph': NEUROMMSIG,
-            'MeSHDisease': MESHD
-        },
-    )
+def write_neurommsig_bel(
+        file: TextIO,
+        df: pd.DataFrame,
+        disease: str,
+        nift_values: Mapping[str, str],
+) -> None:
+    """Write the NeuroMMSigDB excel sheet to BEL.
 
-    for line in lines:
-        print(line, file=file)
-
-    print('SET Citation = {"PubMed", "NeuroMMSigDB", "28651363"}', file=file)
-    print('SET Evidence = "Serialized from NeuroMMSigDB"', file=file)
-    print('SET MeSHDisease = "{}"\n'.format(disease), file=file)
+    :param file: a file or file-like that can be writen to
+    :param df:
+    :param disease:
+    :param nift_values: a dictionary of lower-cased to normal names in NIFT
+    """
+    graph = get_neurommsig_bel(df, disease, nift_values)
+    pybel.to_bel(graph, file)
 
 
-def write_neurommsig_bel(file,
-                         df: pd.DataFrame,
-                         disease: str,
-                         nift_values: Mapping[str, str],
-                         ):
-    """Writes the NeuroMMSigDB excel sheet to BEL
+def get_neurommsig_bel(
+        df: pd.DataFrame,
+        disease: str,
+        nift_values: Mapping[str, str],
+) -> BELGraph:
+    """Generate the NeuroMMSig BEL graph.
 
     :param file: a file or file-like that can be writen to
     :param df:
     :param disease:
     :param nift_values: a dictionary of lowercased to normal names in NIFT
     """
-    write_neurommsig_biolerplate(disease, file)
-
     missing_features = set()
     fixed_caps = set()
     nift_value_originals = set(nift_values.values())
@@ -223,8 +204,8 @@ def write_neurommsig_bel(file,
                 graph.add_association(
                     Gene('HGNC', gene),
                     Gene('DBSNP', snp),
-                    evidence='Serialized from NeuroMMSigDB',
-                    citation='28651363',
+                    evidence=CANNED_EVIDENCE,
+                    citation=CANNED_CITATION,
                     annotations={
                         'MeSHDisease': disease,
                     },
@@ -245,8 +226,8 @@ def write_neurommsig_bel(file,
                 graph.add_association(
                     Gene('HGNC', gene),
                     Abundance('NIFT', clinical_feature),
-                    evidence='Serialized from NeuroMMSigDB',
-                    citation='28651363',
+                    evidence=CANNED_EVIDENCE,
+                    citation=CANNED_CITATION,
                     annotations={
                         'MeSHDisease': disease,
                     },
@@ -257,8 +238,8 @@ def write_neurommsig_bel(file,
                         graph.add_association(
                             Gene('DBSNP', clinical_snp),
                             Abundance('NIFT', clinical_feature),
-                            evidence='Serialized from NeuroMMSigDB',
-                            citation='28651363',
+                            evidence=CANNED_EVIDENCE,
+                            citation=CANNED_CITATION,
                             annotations={
                                 'MeSHDisease': disease,
                             },
@@ -273,3 +254,5 @@ def write_neurommsig_bel(file,
         log.warning('Fixed capitalization')
         for broken, fixed in fixed_caps:
             log.warning('%s -> %s', broken, fixed)
+
+    return graph

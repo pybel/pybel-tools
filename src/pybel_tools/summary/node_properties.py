@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""This module contains functions that calculate properties of nodes"""
+"""This module contains functions that calculate properties of nodes."""
 
 from collections import Counter
 from typing import Any, Iterable, Mapping, Optional, Set, Tuple, Union
@@ -90,7 +90,7 @@ def get_causal_central_nodes(graph: BELGraph, func: str) -> Set[BaseEntity]:
 
 
 def get_causal_sink_nodes(graph: BELGraph, func) -> Set[BaseEntity]:
-    """Returns a set of all ABUNDANCE nodes that have an causal out-degree of 0.
+    """Return a set of all ABUNDANCE nodes that have an causal out-degree of 0.
 
     This likely means that the knowledge assembly is incomplete, or there is a curation error.
     """
@@ -116,7 +116,8 @@ def get_translocated(graph: BELGraph) -> Set[BaseEntity]:
     return get_nodes(graph, is_translocated)
 
 
-def count_top_degrees(graph: BELGraph, number: Optional[int] = 30):
+def count_top_degrees(graph: BELGraph, number: Optional[int] = 30) -> Mapping[BaseEntity, int]:
+    """Get the nodes with the top degrees."""
     dd = graph.degree()
     dc = Counter(dd)
     return dict(dc.most_common(number))

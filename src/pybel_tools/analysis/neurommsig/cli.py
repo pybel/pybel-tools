@@ -2,7 +2,7 @@
 
 """This module contains the CLI to export NeuroMMSig as BEL.
 
-To run, type :code:`python3 -m pybel_tools.analysis.neurommsig.cli` in the command line
+To run, type :code:`python3 -m pybel_tools.analysis.neurommsig` in the command line
 """
 
 import logging

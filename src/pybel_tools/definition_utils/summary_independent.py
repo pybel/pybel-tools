@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
-"""Utilities for serializing to BEL namespace and BEL annotation files"""
+"""Utilities for serializing to BEL namespace and BEL annotation files."""
 
 import logging
+from typing import Iterable, Mapping
 
 from bel_resources import get_bel_resource, write_namespace
 
@@ -19,13 +20,15 @@ DATE_VERSION_FMT = '%Y%m%d'
 DEFAULT_NS_DESCRIPTION = 'This namespace was serialized by PyBEL Tools'
 
 
-def get_merged_namespace_names(locations, check_keywords=True):
-    """Loads many namespaces and combines their names.
+def get_merged_namespace_names(
+        locations: Iterable[str],
+        check_keywords: bool = True,
+) -> Mapping[str, str]:
+    """Load many namespaces and combines their names.
 
-    :param iter[str] locations: An iterable of URLs or file paths pointing to BEL namespaces.
-    :param bool check_keywords: Should all the keywords be the same? Defaults to ``True``
+    :param locations: An iterable of URLs or file paths pointing to BEL namespaces.
+    :param check_keywords: Should all the keywords be the same? Defaults to ``True``
     :return: A dictionary of {names: labels}
-    :rtype: dict[str, str]
 
     Example Usage
 
@@ -51,13 +54,31 @@ def get_merged_namespace_names(locations, check_keywords=True):
     return result
 
 
-def merge_namespaces(input_locations, output_path, namespace_name, namespace_keyword, namespace_domain, author_name,
-                     citation_name, namespace_description=None, namespace_species=None, namespace_version=None,
-                     namespace_query_url=None, namespace_created=None, author_contact=None, author_copyright=None,
-                     citation_description=None, citation_url=None, citation_version=None, citation_date=None,
-                     case_sensitive=True, delimiter='|', cacheable=True, functions=None, value_prefix='',
-                     sort_key=None, check_keywords=True):
-    """Merges namespaces from multiple locations to one.
+def merge_namespaces(
+        input_locations,
+        output_path,
+        namespace_name,
+        namespace_keyword,
+        namespace_domain,
+        author_name,
+        citation_name,
+        namespace_description=None,
+        namespace_species=None,
+        namespace_version=None,
+        namespace_query_url=None,
+        namespace_created=None,
+        author_contact=None,
+        author_copyright=None,
+        citation_description=None,
+        citation_url=None,
+        citation_version=None,
+        citation_date=None,
+        case_sensitive=True,
+        delimiter='|',
+        cacheable=True,
+        check_keywords=True,
+) -> None:
+    """Merge namespaces from multiple locations to one.
 
     :param iter input_locations: An iterable of URLs or file paths pointing to BEL namespaces.
     :param str output_path: The path to the file to write the merged namespace
@@ -83,10 +104,6 @@ def merge_namespaces(input_locations, output_path, namespace_name, namespace_key
     :param bool case_sensitive: Should this config file be interpreted as case-sensitive?
     :param str delimiter: The delimiter between names and labels in this config file
     :param bool cacheable: Should this config file be cached?
-    :param functions: The encoding for the elements in this namespace
-    :type functions: iterable of characters
-    :param str value_prefix: a prefix for each name
-    :param sort_key: A function to sort the values with :func:`sorted`
     :param bool check_keywords: Should all the keywords be the same? Defaults to ``True``
     """
     results = get_merged_namespace_names(input_locations, check_keywords=check_keywords)
@@ -113,8 +130,5 @@ def merge_namespaces(input_locations, output_path, namespace_name, namespace_key
             case_sensitive=case_sensitive,
             delimiter=delimiter,
             cacheable=cacheable,
-            functions=functions,
-            value_prefix=value_prefix,
-            sort_key=sort_key,
-            file=file
+            file=file,
         )

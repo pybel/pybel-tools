@@ -89,7 +89,7 @@ def get_incorrect_names(graph: BELGraph) -> Mapping[str, Set[str]]:
 
 def get_undefined_annotations(graph: BELGraph) -> Set[str]:
     """Get all annotations that aren't actually defined.
-    
+
     :return: The set of all undefined annotations
     """
     return {
@@ -155,7 +155,9 @@ def get_most_common_errors(graph: BELGraph, n: Optional[int] = 20):
 
 
 def get_names_including_errors_by_namespace(graph: BELGraph, namespace: str) -> Set[str]:
-    """Takes the names from the graph in a given namespace (:func:`pybel.struct.summary.get_names_by_namespace`) and
+    """Get all names appearing in the graph, including erroneous names, for the given namespace.
+
+    Takes the names from the graph in a given namespace (:func:`pybel.struct.summary.get_names_by_namespace`) and
     the erroneous names from the same namespace (:func:`get_incorrect_names_by_namespace`) and returns them together
     as a unioned set
 
@@ -165,7 +167,9 @@ def get_names_including_errors_by_namespace(graph: BELGraph, namespace: str) -> 
 
 
 def get_names_including_errors(graph: BELGraph) -> Mapping[str, Set[str]]:
-    """Takes the names from the graph in a given namespace and the erroneous names from the same namespace and returns
+    """Get all names appearing in the graph, including erroneous names, and group in a dictionary by namespace.
+
+    Takes the names from the graph in a given namespace and the erroneous names from the same namespace and returns
     them together as a unioned set
 
     :return: The dict of the sets of all correct and incorrect names from the given namespace in the graph

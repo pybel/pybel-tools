@@ -7,7 +7,7 @@ import logging
 import typing
 from collections import Counter, defaultdict
 from datetime import datetime
-from typing import Iterable, List, Mapping, Optional, Set, Tuple, Union
+from typing import Iterable, List, Mapping, Optional, Set, Tuple
 
 from pybel import BELGraph
 from pybel.constants import (
@@ -17,6 +17,8 @@ from pybel.dsl import BaseEntity
 from pybel.struct.filters import filter_edges
 from pybel.struct.filters.edge_predicates import edge_has_annotation
 from pybel.struct.summary import iterate_pubmed_identifiers
+from pybel.typing import Strings
+
 from ..filters import build_edge_data_filter, build_pmid_inclusion_filter
 from ..utils import count_defaultdict, count_dict_values, group_as_dict
 
@@ -55,12 +57,13 @@ def _generate_citation_dict(graph: BELGraph) -> Mapping[str, Mapping[Tuple[BaseE
     return dict(results)
 
 
-def get_pmid_by_keyword(keyword: str,
-                        graph: Optional[BELGraph] = None,
-                        pubmed_identifiers: Optional[Set[str]] = None,
-                        ) -> Set[str]:
+def get_pmid_by_keyword(
+        keyword: str,
+        graph: Optional[BELGraph] = None,
+        pubmed_identifiers: Optional[Set[str]] = None,
+) -> Set[str]:
     """Get the set of PubMed identifiers beginning with the given keyword string.
-    
+
     :param keyword: The beginning of a PubMed identifier
     :param graph: A BEL graph
     :param pubmed_identifiers: A set of pre-cached PubMed identifiers
@@ -92,7 +95,7 @@ def count_pmids(graph: BELGraph) -> Counter:
 
 
 def count_citations(graph: BELGraph, **annotations) -> Counter:
-    """Counts the citations in a graph based on a given filter
+    """Count the citations in a graph based on a given filter.
 
     :param graph: A BEL graph
     :param dict annotations: The annotation filters to use
@@ -159,7 +162,7 @@ def get_authors(graph: BELGraph) -> Set[str]:
 
 def get_authors_by_keyword(keyword: str, graph=None, authors=None) -> Set[str]:
     """Get authors for whom the search term is a substring.
-    
+
     :param pybel.BELGraph graph: A BEL graph
     :param keyword: The keyword to search the author strings for
     :param set[str] authors: An optional set of pre-cached authors calculated from the graph
@@ -203,9 +206,8 @@ def _iter_authors_by_annotation(graph: BELGraph, annotation: str = 'Subgraph') -
             yield data[ANNOTATIONS][annotation], author
 
 
-def get_evidences_by_pmid(graph: BELGraph, pmids: Union[str, Iterable[str]]):
-    """Get a dictionary from the given PubMed identifiers to the sets of all evidence strings associated with each
-    in the graph.
+def get_evidences_by_pmid(graph: BELGraph, pmids: Strings) -> Mapping[str, Set[str]]:
+    """Map PubMed identifiers to their evidence strings appearing in the graph.
 
     :param graph: A BEL graph
     :param pmids: An iterable of PubMed identifiers, as strings. Is consumed and converted to a set.
@@ -231,9 +233,10 @@ def count_citation_years(graph: BELGraph) -> typing.Counter[int]:
 
         try:
             dt = _ensure_datetime(data[CITATION][CITATION_DATE])
-            result[dt.year].add((data[CITATION][CITATION_TYPE], data[CITATION][CITATION_REFERENCE]))
-        except Exception:
+        except ValueError:
             continue
+        else:
+            result[dt.year].add((data[CITATION][CITATION_TYPE], data[CITATION][CITATION_REFERENCE]))
 
     return count_dict_values(result)
 
