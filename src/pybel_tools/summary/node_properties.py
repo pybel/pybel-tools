@@ -2,12 +2,13 @@
 
 """This module contains functions that calculate properties of nodes."""
 
-from collections import Counter
-from typing import Any, Iterable, Mapping, Optional, Set, Tuple, Union
+from collections import Counter, defaultdict
+from typing import Any, Iterable, List, Mapping, Optional, Set, Tuple, Union
 
 import networkx as nx
 
 from pybel import BELGraph
+from pybel.constants import CITATION
 from pybel.dsl import BaseEntity
 from pybel.struct.filters import get_nodes
 from pybel.struct.filters.edge_predicates import is_causal_relation
@@ -31,6 +32,7 @@ __all__ = [
     'count_top_centrality',
     'count_top_degrees',
     'get_modifications_count',
+    'get_node_citations',
 ]
 
 
@@ -146,3 +148,20 @@ def remove_falsy_values(counter: Mapping[Any, int]) -> Mapping[Any, int]:
         for label, count in counter.items()
         if count
     }
+
+
+def get_node_citations(graph: BELGraph, node: BaseEntity) -> Mapping[BaseEntity, List[Mapping]]:
+    """Get a mapping from all nodes incident to the given node to their shared edges' citations."""
+    rv = defaultdict(list)
+    for t, citation in _iter_node_citations(graph, node):
+        rv[t].append(citation)
+    return dict(rv)
+
+
+def _iter_node_citations(graph: BELGraph, node: BaseEntity):
+    for u, _, data in graph.in_edges(node, data=True):
+        if CITATION in data:
+            yield u, data[CITATION]
+    for _, v, data in graph.out_edges(node, data=True):
+        if CITATION in data:
+            yield v, data[CITATION]
