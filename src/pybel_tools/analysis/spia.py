@@ -35,7 +35,7 @@ __all__ = [
 KEGG_RELATIONS = [
     "activation",
     "compound",
-    "binding_association",
+    "binding/association",
     "expression",
     "inhibition",
     "activation_phosphorylation",
@@ -54,7 +54,7 @@ KEGG_RELATIONS = [
     "repression",
     "dissociation_phosphorylation",
     "indirect effect_phosphorylation",
-    "activation_binding_association",
+    "activation_binding/association",
     "indirect effect",
     "activation_compound",
     "activation_ubiquination"
