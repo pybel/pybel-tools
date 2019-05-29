@@ -16,7 +16,7 @@ from pybel import BELGraph
 from pybel.constants import (
     ACTIVITY, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS,
     CAUSAL_RELATIONS, DEGRADATION, HAS_COMPONENT, HAS_VARIANT, MODIFIER,
-    OBJECT, REGULATES, TRANSCRIBED_TO, TRANSLATED_TO
+    OBJECT, REGULATES, TRANSCRIBED_TO, TRANSLATED_TO, TWO_WAY_RELATIONS
 )
 from pybel.dsl import (
     abundance, activity, BaseEntity, ComplexAbundance, degradation, fragment,
@@ -105,9 +105,29 @@ class ReifiedConverter(ABC):
                 v)
 
 
+class NonCausalConverter(ReifiedConverter):
+    """Converts BEL statements of the form A pos B, A neg B and A cor B."""
+
+    @classmethod
+    def predicate(cls, u: BaseEntity, v: BaseEntity,
+                  key: str, edge_data: Dict) -> bool:
+        return ("relation" in edge_data and
+                edge_data['relation'] in TWO_WAY_RELATIONS)
+
+    @classmethod
+    def convert(cls,
+                u: BaseEntity,
+                v: BaseEntity,
+                key: str,
+                edge_data: Dict
+                ) -> Optional[Tuple[BaseEntity, str, bool, bool, BaseEntity]]:
+        return None  # TODO Froehlich likes to see this implemented.
+
 class PTMConverter(ReifiedConverter):
     """Converts BEL statements of the form A X p(B, pmod(*))."""
 
+    # Full list of pmod may be found at
+    # http://openbel.org/language/version_2.0/bel_specification_version_2.0.html#_modification_types_provided_in_default_bel_namespace
     synonyms = ...
 
     @classmethod
@@ -435,7 +455,8 @@ def reify_edge(u: BaseEntity,
         DegradationConverter,
         PromotesTranslationConverter,
         AbundanceConverter,
-        HasVariantConverter
+        HasVariantConverter,
+        NonCausalConverter
     ]
     for converter in converters:
         if converter.predicate(u, v, key, edge_data):
