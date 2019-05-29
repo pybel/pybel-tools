@@ -45,7 +45,7 @@ def calculate_subgraph_edge_overlap(
     Mapping[str, Mapping[str, EdgeSet]],
     Mapping[str, Mapping[str, float]],
 ]:
-    """Build a DatafFame to show the overlap between different sub-graphs.
+    """Build a Dataframe to show the overlap between different sub-graphs.
 
     Options:
     1. Total number of edges overlap (intersection)
@@ -95,11 +95,12 @@ def summarize_subgraph_node_overlap(graph: BELGraph, node_predicates=None, annot
     return calculate_tanimoto_set_distances(r1)
 
 
-def rank_subgraph_by_node_filter(graph: BELGraph,
-                                 node_predicates: Union[NodePredicate, Iterable[NodePredicate]],
-                                 annotation: str = 'Subgraph',
-                                 reverse: bool = True,
-                                 ) -> List[Tuple[str, int]]:
+def rank_subgraph_by_node_filter(
+        graph: BELGraph,
+        node_predicates: Union[NodePredicate, Iterable[NodePredicate]],
+        annotation: str = 'Subgraph',
+        reverse: bool = True,
+) -> List[Tuple[str, int]]:
     """Rank sub-graphs by which have the most nodes matching an given filter.
 
     A use case for this function would be to identify which subgraphs contain the most differentially expressed

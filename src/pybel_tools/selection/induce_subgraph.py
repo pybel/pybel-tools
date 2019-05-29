@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+"""Subgraph induction functions."""
+
 import networkx as nx
 
 from pybel import BELGraph

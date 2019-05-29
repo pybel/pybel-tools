@@ -9,6 +9,7 @@ printing summary information, and exporting summarized graphs
 import logging
 
 import pandas as pd
+
 from pybel import BELGraph
 from pybel.struct.summary import count_functions, count_relations
 

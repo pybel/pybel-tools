@@ -18,7 +18,6 @@ from pybel.struct.filters import filter_edges
 from pybel.struct.filters.edge_predicates import edge_has_annotation
 from pybel.struct.summary import iterate_pubmed_identifiers
 from pybel.typing import Strings
-
 from ..filters import build_edge_data_filter, build_pmid_inclusion_filter
 from ..utils import count_defaultdict, count_dict_values, group_as_dict
 
