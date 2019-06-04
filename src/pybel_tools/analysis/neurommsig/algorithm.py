@@ -19,6 +19,8 @@ from pybel.struct import (
     collapse_all_variants, collapse_to_genes, enrich_protein_and_rna_origins, get_nodes_by_function,
     get_subgraphs_by_annotation,
 )
+from tqdm import tqdm
+
 from ...utils import calculate_betweenness_centality
 
 __all__ = [
@@ -36,15 +38,18 @@ neurommsig_graph_preprocessor = Pipeline.from_functions([
 ])
 
 
-def get_neurommsig_scores(graph: BELGraph,
-                          genes: List[Gene],
-                          annotation: str = 'Subgraph',
-                          ora_weight: Optional[float] = None,
-                          hub_weight: Optional[float] = None,
-                          top_percent: Optional[float] = None,
-                          topology_weight: Optional[float] = None,
-                          preprocess: bool = False
-                          ) -> Optional[Mapping[str, float]]:
+def get_neurommsig_scores(
+        graph: BELGraph,
+        genes: List[Gene],
+        annotation: str = 'Subgraph',
+        ora_weight: Optional[float] = None,
+        hub_weight: Optional[float] = None,
+        top_percent: Optional[float] = None,
+        topology_weight: Optional[float] = None,
+        preprocess: bool = False,
+        use_tqdm: bool = False,
+        tqdm_kwargs: Optional[Mapping] = None,
+) -> Optional[Mapping[str, float]]:
     """Preprocess the graph, stratify by the given annotation, then run the NeuroMMSig algorithm on each.
 
     :param graph: A BEL graph
@@ -69,8 +74,11 @@ def get_neurommsig_scores(graph: BELGraph,
     if preprocess:
         graph = neurommsig_graph_preprocessor.run(graph)
 
-    if not any(gene in graph for gene in genes):
-        logger.debug('no genes mapping to graph')
+    if all(isinstance(gene, str) for gene in genes):
+        genes = [Gene('HGNC', gene) for gene in genes]
+
+    if all(gene not in graph for gene in genes):
+        logger.warning('no genes mapping to graph')
         return
 
     subgraphs = get_subgraphs_by_annotation(graph, annotation=annotation)
@@ -82,16 +90,21 @@ def get_neurommsig_scores(graph: BELGraph,
         hub_weight=hub_weight,
         top_percent=top_percent,
         topology_weight=topology_weight,
+        use_tqdm=use_tqdm,
+        tqdm_kwargs=tqdm_kwargs,
     )
 
 
-def get_neurommsig_scores_prestratified(subgraphs: Mapping[str, BELGraph],
-                                        genes: List[Gene],
-                                        ora_weight: Optional[float] = None,
-                                        hub_weight: Optional[float] = None,
-                                        top_percent: Optional[float] = None,
-                                        topology_weight: Optional[float] = None,
-                                        ) -> Optional[Mapping[str, float]]:
+def get_neurommsig_scores_prestratified(
+        subgraphs: Mapping[str, BELGraph],
+        genes: List[Gene],
+        ora_weight: Optional[float] = None,
+        hub_weight: Optional[float] = None,
+        top_percent: Optional[float] = None,
+        topology_weight: Optional[float] = None,
+        use_tqdm: bool = False,
+        tqdm_kwargs: Optional[Mapping] = None,
+) -> Mapping[str, float]:
     """Takes a graph stratification and runs neurommsig on each
 
     :param subgraphs: A pre-stratified set of graphs
@@ -103,6 +116,7 @@ def get_neurommsig_scores_prestratified(subgraphs: Mapping[str, BELGraph],
     :param top_percent: The percentage of top genes to use as hubs. Defaults to 5% (0.05).
     :param topology_weight: The relative weight of the topolgical analysis core from
      :py:func:`neurommsig_topology`. Defaults to 1.0.
+    :param use_tqdm: If true, show a progress bar
     :return: A dictionary from {annotation value: NeuroMMSig composite score}
 
     Pre-processing steps:
@@ -111,6 +125,9 @@ def get_neurommsig_scores_prestratified(subgraphs: Mapping[str, BELGraph],
     2. Collapse all proteins, RNAs and miRNAs to genes with :func:``
     3. Collapse variants to genes with :func:``
     """
+    it = subgraphs.items()
+    if use_tqdm:
+        it = tqdm(it, **(tqdm_kwargs or {}))
     return {
         name: get_neurommsig_score(
             graph=subgraph,
@@ -120,16 +137,18 @@ def get_neurommsig_scores_prestratified(subgraphs: Mapping[str, BELGraph],
             top_percent=top_percent,
             topology_weight=topology_weight,
         )
-        for name, subgraph in subgraphs.items()
+        for name, subgraph in it
     }
 
 
-def get_neurommsig_score(graph: BELGraph,
-                         genes: List[Gene],
-                         ora_weight: Optional[float] = None,
-                         hub_weight: Optional[float] = None,
-                         top_percent: Optional[float] = None,
-                         topology_weight: Optional[float] = None) -> float:
+def get_neurommsig_score(
+        graph: BELGraph,
+        genes: List[Gene],
+        ora_weight: Optional[float] = None,
+        hub_weight: Optional[float] = None,
+        top_percent: Optional[float] = None,
+        topology_weight: Optional[float] = None,
+) -> float:
     """Calculate the composite NeuroMMSig Score for a given list of genes.
 
     :param graph: A BEL graph

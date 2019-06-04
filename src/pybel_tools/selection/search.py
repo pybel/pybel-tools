@@ -1,6 +1,13 @@
 # -*- coding: utf-8 -*-
 
+"""Node search functions."""
+
+from typing import Iterable
+
+from pybel import BELGraph, BaseEntity
 from pybel.struct.filters import build_node_name_search, filter_nodes
+from pybel.typing import Strings
+
 from ..filters.node_filters import namespace_inclusion_builder
 
 __all__ = [
@@ -10,14 +17,12 @@ __all__ = [
 ]
 
 
-def search_node_names(graph, query):
+def search_node_names(graph: BELGraph, query: Strings) -> Iterable[BaseEntity]:
     """Search for nodes containing a given string(s).
 
-    :param pybel.BELGraph graph: A BEL graph
+    :param graph: A BEL graph
     :param query: The search query
-    :type query: str or iter[str]
     :return: An iterator over nodes whose names match the search query
-    :rtype: iter
 
     Example:
 
@@ -31,32 +36,31 @@ def search_node_names(graph, query):
     return filter_nodes(graph, build_node_name_search(query))
 
 
-def search_node_namespace_names(graph, query, namespace):
+def search_node_namespace_names(
+        graph: BELGraph,
+        query: Strings,
+        namespace: Strings,
+) -> Iterable[BaseEntity]:
     """Search for nodes with the given namespace(s) and whose names containing a given string(s).
 
-    :param pybel.BELGraph graph: A BEL graph
+    :param graph: A BEL graph
     :param query: The search query
-    :type query: str or iter[str]
     :param namespace: The namespace(s) to filter
-    :type namespace: str or iter[str]
     :return: An iterator over nodes whose names match the search query
-    :rtype: iter
     """
     node_predicates = [
         namespace_inclusion_builder(namespace),
-        build_node_name_search(query)
+        build_node_name_search(query),
     ]
 
     return filter_nodes(graph, node_predicates)
 
 
-def search_node_hgnc_names(graph, query):
+def search_node_hgnc_names(graph: BELGraph, query: Strings) -> Iterable[BaseEntity]:
     """Search for nodes with the HGNC namespace and whose names containing a given string(s).
 
-    :param pybel.BELGraph graph: A BEL graph
+    :param graph: A BEL graph
     :param query: The search query
-    :type query: str or iter[str]
     :return: An iterator over nodes whose names match the search query
-    :rtype: iter
     """
     return search_node_namespace_names(graph, query, namespace='HGNC')

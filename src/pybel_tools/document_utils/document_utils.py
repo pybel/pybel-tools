@@ -7,8 +7,8 @@ from typing import Iterable, Mapping, Optional, Set, TextIO, Union
 from xml.etree import ElementTree
 
 import requests
-
 from bel_resources import make_knowledge_header
+
 from ..constants import abstract_url_fmt, title_url_fmt
 
 __all__ = [
@@ -65,7 +65,7 @@ def get_entrez_gene_data(entrez_ids: Iterable[Union[str, int]]):
 
 
 def make_pubmed_gene_group(entrez_ids: Iterable[Union[str, int]]) -> Iterable[str]:
-    """Builds a skeleton for gene summaries
+    """Build a skeleton for gene summaries.
 
     :param entrez_ids: A list of Entrez Gene identifiers to query the PubMed service
     :return: An iterator over statement lines for NCBI Entrez Gene summaries
@@ -81,23 +81,24 @@ def make_pubmed_gene_group(entrez_ids: Iterable[Union[str, int]]) -> Iterable[st
         yield '\nUNSET Evidence\nUNSET Citation'
 
 
-def write_boilerplate(name: str,
-                      version: Optional[str] = None,
-                      description: Optional[str] = None,
-                      authors: Optional[str] = None,
-                      contact: Optional[str] = None,
-                      copyright: Optional[str] = None,
-                      licenses: Optional[str] = None,
-                      disclaimer: Optional[str] = None,
-                      namespace_url: Optional[Mapping[str, str]] = None,
-                      namespace_patterns: Optional[Mapping[str, str]] = None,
-                      annotation_url: Optional[Mapping[str, str]] = None,
-                      annotation_patterns: Optional[Mapping[str, str]] = None,
-                      annotation_list: Optional[Mapping[str, Set[str]]] = None,
-                      pmids: Optional[Iterable[Union[str, int]]] = None,
-                      entrez_ids: Optional[Iterable[Union[str, int]]] = None,
-                      file: Optional[TextIO] = None,
-                      ) -> None:
+def write_boilerplate(
+        name: str,
+        version: Optional[str] = None,
+        description: Optional[str] = None,
+        authors: Optional[str] = None,
+        contact: Optional[str] = None,
+        copyright: Optional[str] = None,
+        licenses: Optional[str] = None,
+        disclaimer: Optional[str] = None,
+        namespace_url: Optional[Mapping[str, str]] = None,
+        namespace_patterns: Optional[Mapping[str, str]] = None,
+        annotation_url: Optional[Mapping[str, str]] = None,
+        annotation_patterns: Optional[Mapping[str, str]] = None,
+        annotation_list: Optional[Mapping[str, Set[str]]] = None,
+        pmids: Optional[Iterable[Union[str, int]]] = None,
+        entrez_ids: Optional[Iterable[Union[str, int]]] = None,
+        file: Optional[TextIO] = None,
+) -> None:
     """Write a boilerplate BEL document, with standard document metadata, definitions.
 
     :param name: The unique name for this BEL document

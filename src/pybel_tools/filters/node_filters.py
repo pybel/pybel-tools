@@ -266,4 +266,4 @@ def get_variants_to_controllers(
     for controller, variant, data in graph.in_edges(variants, data=True):
         if data[RELATION] in CAUSAL_RELATIONS:
             rv[variant].add(controller)
-    return rv
+    return dict(rv)

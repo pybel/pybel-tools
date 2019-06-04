@@ -11,31 +11,32 @@ A metapath can be defined with two levels of granularity:
 """
 
 from functools import lru_cache
+from typing import Iterable, List, Tuple
 
-from pybel.constants import FUNCTION
+from pybel import BELGraph
+from pybel.dsl import BaseEntity
 
 __all__ = [
     'convert_path_to_metapath',
-    'get_walks_exhaustive',
-    'match_simple_metapath',
+    'yield_walks_exhaustive',
+    'iterate_simple_metapaths',
 ]
 
 
-def convert_path_to_metapath(graph, nodes):
-    """Converts a list of nodes to their corresponding functions
+def convert_path_to_metapath(nodes: Iterable[BaseEntity]) -> List[str]:
+    """Convert a list of nodes to their corresponding functions
 
-    :param list[tuple] nodes: A list of BEL node tuples
-    :rtype: list[str]
+    :param nodes: A list of BEL node tuples
     """
     return [
-        graph.node[node][FUNCTION]
+        node.function
         for node in nodes
     ]
 
 
 @lru_cache(maxsize=None)
-def get_walks_exhaustive(graph, node, length):
-    """Gets all walks under a given length starting at a given node
+def yield_walks_exhaustive(graph, node, length: int) -> Iterable[Tuple]:
+    """Get all walks under a given length starting at a given node
 
     :param networkx.Graph graph: A graph
     :param node: Starting node
@@ -46,45 +47,62 @@ def get_walks_exhaustive(graph, node, length):
     if 0 == length:
         return (node,),
 
-    return tuple(
-        (node, key) + path
-        for neighbor in graph.edge[node]
-        for path in get_walks_exhaustive(graph, neighbor, length - 1)
+    return (
+        (node, relation) + path
+        for neighbor in graph[node]
+        for path in yield_walks_exhaustive(graph, neighbor, length - 1)
         if node not in path
-        for key in graph.edge[node][neighbor]
+        for relation in set(graph[node][neighbor][key]['relation'] for key in graph[node][neighbor])
     )
 
 
-def match_simple_metapath(graph, node, simple_metapath):
+def iterate_simple_metapaths(
+        graph: BELGraph,
+        node: BaseEntity,
+        simple_metapath: List[str],
+) -> Iterable[Tuple[BaseEntity, ...]]:
     """Matches a simple metapath starting at the given node
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param tuple node: A BEL node
-    :param list[str] simple_metapath: A list of BEL Functions
+    :param graph: A BEL graph
+    :param node: A BEL node
+    :param simple_metapath: A list of BEL Functions
     :return: An iterable over paths from the node matching the metapath
     :rtype: iter[tuple]
+
+    .. code-block:: python
+
+        from hbp_knowledge import get_graph
+        from pybel.dsl import Protein
+        from pybel.constants import PROTEIN
+
+        graph = get_graph()
+
+        mapt = Protein('HGNC', 'MAPT')
+
+        for simple_metapath in iterate_simple_metapaths(graph, mapt, [PROTEIN, PROTEIN]):
+            print(*(str(node) for node in simple_metapath))
     """
     if 0 == len(simple_metapath):
         yield node,
 
     else:
-        for neighbor in graph.edges[node]:
-            if graph.nodes[neighbor][FUNCTION] == simple_metapath[0]:
-                for path in match_simple_metapath(graph, neighbor, simple_metapath[1:]):
-                    if node not in path:
-                        yield (node,) + path
+        for neighbor in graph[node]:
+            if neighbor.function != simple_metapath[0]:
+                continue
+            for path in iterate_simple_metapaths(graph, neighbor, simple_metapath[1:]):
+                if node not in path:
+                    yield (node,) + path
 
 
-def convert_simple_walk(graph, simple_walk):
-    """Converts a walk into a sequence of BEL functions
+def convert_simple_walk(simple_walk: Iterable[BaseEntity]) -> List[str]:
+    """Convert a walk into a sequence of BEL functions
 
-    :param pybel.BELGraph graph: A BEL graph
     :param iter[tuple] simple_walk: An iterable of BEL nodes
     :return: A list of BEL functions of the walk
     :rtype: list[str]
     """
     return [
-        graph.nodes[node][FUNCTION]
+        node.function
         for node in simple_walk
     ]
 
@@ -111,3 +129,19 @@ def convert_complex_walk(graph, complex_walk):
     :rtype: list[str]
     """
     raise NotImplementedError
+
+
+def _main():
+    from hbp_knowledge import get_graph
+
+    graph = get_graph()
+    graph.summarize()
+
+    for node in graph:
+        walks = yield_walks_exhaustive(graph, node, 3)
+        for i, walk in enumerate(walks):
+            print(i, *[str(n) for n in walk])
+
+
+if __name__ == '__main__':
+    _main()

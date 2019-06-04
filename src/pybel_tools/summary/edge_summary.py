@@ -4,7 +4,7 @@
 
 import itertools as itt
 from collections import Counter, defaultdict
-from typing import Iterable, List, Mapping, Optional, Set, Tuple, TypeVar
+from typing import Iterable, List, Mapping, Optional, Set, Tuple, TypeVar, Type
 
 from pybel import BELGraph
 from pybel.constants import ANNOTATIONS, RELATION
@@ -15,7 +15,6 @@ from pybel.struct.summary import (
     count_annotations, count_pathologies, count_relations, get_annotations, get_unused_annotations,
     get_unused_list_annotation_values, iter_annotation_value_pairs, iter_annotation_values,
 )
-
 from .contradictions import pair_has_contradiction
 
 __all__ = [
