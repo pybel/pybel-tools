@@ -15,7 +15,7 @@ import networkx as nx
 from pybel import BELGraph
 from pybel.constants import (
     ACTIVITY, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS,
-    CAUSAL_RELATIONS, DEGRADATION, HAS_COMPONENT, HAS_VARIANT, MODIFIER,
+    CAUSAL_RELATIONS, DEGRADATION, HAS_COMPONENT, HAS_VARIANT, IS_A, MODIFIER,
     OBJECT, REGULATES, TRANSCRIBED_TO, TRANSLATED_TO, TWO_WAY_RELATIONS
 )
 from pybel.dsl import (
@@ -33,6 +33,7 @@ REIF_OBJECT = 'object'
 
 ACTIVATES = 'activates'
 COMPLEX = 'hasComponent'
+CORRELATES = 'correlatesTo'
 FRAGMENTS = 'fragments'
 INCREASES_ABUNDANCE = 'abundance'
 DEGRADATES = 'degradates'
@@ -108,12 +109,15 @@ class ReifiedConverter(ABC):
 class NonCausalConverter(ReifiedConverter):
     """Converts BEL statements of the form A pos B, A neg B and A cor B."""
 
+    target_relation = CORRELATES
+
     @classmethod
     def predicate(cls, u: BaseEntity, v: BaseEntity,
                   key: str, edge_data: Dict) -> bool:
         return ("relation" in edge_data and
                 edge_data['relation'] in TWO_WAY_RELATIONS)
 
+    """
     @classmethod
     def convert(cls,
                 u: BaseEntity,
@@ -121,7 +125,8 @@ class NonCausalConverter(ReifiedConverter):
                 key: str,
                 edge_data: Dict
                 ) -> Optional[Tuple[BaseEntity, str, bool, bool, BaseEntity]]:
-        return None  # TODO Froehlich likes to see this implemented.
+        return None  # TODO Froehlich likes to see this implemented. """
+
 
 class PTMConverter(ReifiedConverter):
     """Converts BEL statements of the form A X p(B, pmod(*))."""
@@ -247,6 +252,26 @@ class HasVariantConverter(ReifiedConverter):
                   key: str, edge_data: Dict) -> bool:
         return ("relation" in edge_data and
                 edge_data['relation'] == HAS_VARIANT)
+
+    @classmethod
+    def convert(cls,
+                u: BaseEntity,
+                v: BaseEntity,
+                key: str,
+                edge_data: Dict
+                ) -> Optional[Tuple[BaseEntity, str, bool, bool, BaseEntity]]:
+        return None
+
+
+class IsAConverter(ReifiedConverter):
+    """Identifies edges of the form A isA B. Do not convert them to
+    reified edges."""
+
+    @classmethod
+    def predicate(cls, u: BaseEntity, v: BaseEntity,
+                  key: str, edge_data: Dict) -> bool:
+        return ("relation" in edge_data and
+                edge_data['relation'] == IS_A)
 
     @classmethod
     def convert(cls,
@@ -469,7 +494,7 @@ def reify_edge(u: BaseEntity,
     return None
 
 
-def reify_bel_graph(bel_graph: BELGraph) -> nx.DiGraph:
+def reify_bel_graph(bel_graph: BELGraph) -> nx.DiGraph:  # TODO Use undirected graphs?
     """Generate a new graph with reified edges."""
     reified_graph = nx.DiGraph()
     gen = count()
@@ -487,7 +512,9 @@ def reify_bel_graph(bel_graph: BELGraph) -> nx.DiGraph:
                 reif_edge_num, label=reif_edge_label, causal=causal
             )
             reified_graph.add_edge(new_u, reif_edge_num, label=REIF_SUBJECT)
-            reified_graph.add_edge(new_v, reif_edge_num, label=REIF_OBJECT)
+            # reified_graph.add_edge(new_v, reif_edge_num, label=REIF_OBJECT)
+            # maintain the direction of the original graph
+            reified_graph.add_edge(reif_edge_num, new_v, label=REIF_OBJECT)
 
     return reified_graph
 
