@@ -16,7 +16,8 @@ from pybel import BELGraph
 from pybel.constants import (
     ACTIVITY, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS,
     CAUSAL_RELATIONS, DEGRADATION, HAS_COMPONENT, HAS_VARIANT, IS_A, MODIFIER,
-    OBJECT, REGULATES, TRANSCRIBED_TO, TRANSLATED_TO, TWO_WAY_RELATIONS
+    OBJECT, REGULATES, TRANSCRIBED_TO, TRANSLATED_TO, TWO_WAY_RELATIONS,
+    BIOMARKER_FOR, CAUSES_NO_CHANGE, HAS_MEMBER
 )
 from pybel.dsl import (
     abundance, activity, BaseEntity, ComplexAbundance, degradation, fragment,
@@ -283,6 +284,27 @@ class IsAConverter(ReifiedConverter):
         return None
 
 
+class NonReifiableRelationshipsConverter(ReifiedConverter):
+    """Identifies edges that won`t be reified."""
+
+    do_not_reify = [BIOMARKER_FOR, CAUSES_NO_CHANGE, HAS_MEMBER]
+
+    @classmethod
+    def predicate(cls, u: BaseEntity, v: BaseEntity,
+                  key: str, edge_data: Dict) -> bool:
+        return ("relation" in edge_data and
+                edge_data['relation'] in cls.do_not_reify)
+
+    @classmethod
+    def convert(cls,
+                u: BaseEntity,
+                v: BaseEntity,
+                key: str,
+                edge_data: Dict
+                ) -> Optional[Tuple[BaseEntity, str, bool, bool, BaseEntity]]:
+        return None
+
+
 class FragmentationConverter(ReifiedConverter):
     """Converts BEL statements of the form A B p(C, pmod(Hy))."""
 
@@ -481,7 +503,9 @@ def reify_edge(u: BaseEntity,
         PromotesTranslationConverter,
         AbundanceConverter,
         HasVariantConverter,
-        NonCausalConverter
+        NonCausalConverter,
+        IsAConverter,
+        NonReifiableRelationshipsConverter
     ]
     for converter in converters:
         if converter.predicate(u, v, key, edge_data):
@@ -512,8 +536,6 @@ def reify_bel_graph(bel_graph: BELGraph) -> nx.DiGraph:  # TODO Use undirected g
                 reif_edge_num, label=reif_edge_label, causal=causal
             )
             reified_graph.add_edge(new_u, reif_edge_num, label=REIF_SUBJECT)
-            # reified_graph.add_edge(new_v, reif_edge_num, label=REIF_OBJECT)
-            # maintain the direction of the original graph
             reified_graph.add_edge(reif_edge_num, new_v, label=REIF_OBJECT)
 
     return reified_graph
