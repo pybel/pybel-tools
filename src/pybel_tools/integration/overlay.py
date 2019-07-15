@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""This module contains functions that help overlay tabular data to nodes in a graph"""
+"""This module contains functions that help overlay tabular data to nodes in a graph."""
 
 import logging
 from collections import defaultdict
@@ -27,12 +27,13 @@ log = logging.getLogger(__name__)
 
 
 @in_place_transformation
-def overlay_data(graph: BELGraph,
-                 data: Mapping[BaseEntity, Any],
-                 label: Optional[str] = None,
-                 overwrite: bool = False,
-                 ) -> None:
-    """Overlays tabular data on the network
+def overlay_data(
+        graph: BELGraph,
+        data: Mapping[BaseEntity, Any],
+        label: Optional[str] = None,
+        overwrite: bool = False,
+) -> None:
+    """Overlay tabular data on the network.
 
     :param graph: A BEL Graph
     :param data: A dictionary of {tuple node: data for that node}
@@ -55,14 +56,15 @@ def overlay_data(graph: BELGraph,
 
 
 @in_place_transformation
-def overlay_type_data(graph: BELGraph,
-                      data: Mapping[str, float],
-                      func: str,
-                      namespace: str,
-                      label: Optional[str] = None,
-                      overwrite: bool = False,
-                      impute: Optional[float] = None,
-                      ) -> None:
+def overlay_type_data(
+        graph: BELGraph,
+        data: Mapping[str, float],
+        func: str,
+        namespace: str,
+        label: Optional[str] = None,
+        overwrite: bool = False,
+        impute: Optional[float] = None,
+) -> None:
     """Overlay tabular data on the network for data that comes from an data set with identifiers that lack
     namespaces.
 
@@ -86,19 +88,20 @@ def overlay_type_data(graph: BELGraph,
     overlay_data(graph, new_data, label=label, overwrite=overwrite)
 
 
-def load_differential_gene_expression(path: str,
-                                      gene_symbol_column: str = 'Gene.symbol',
-                                      logfc_column: str = 'logFC',
-                                      aggregator: Optional[Callable[[List[float]], float]] = None,
-                                      ) -> Mapping[str, float]:
+def load_differential_gene_expression(
+        path: str,
+        gene_symbol_column: str = 'Gene.symbol',
+        logfc_column: str = 'logFC',
+        aggregator: Optional[Callable[[List[float]], float]] = None,
+) -> Mapping[str, float]:
     """Load and pre-process a differential gene expression data.
 
     :param path: The path to the CSV
     :param gene_symbol_column: The header of the gene symbol column in the data frame
     :param logfc_column: The header of the log-fold-change column in the data frame
     :param aggregator: A function that aggregates a list of differential gene expression values. Defaults to
-                       :func:`numpy.median`. Could also use: :func:`numpy.mean`, :func:`numpy.average`,
-                       :func:`numpy.min`, or :func:`numpy.max`
+     :func:`numpy.median`. Could also use: :func:`numpy.mean`, :func:`numpy.average`, :func:`numpy.min`, or
+     :func:`numpy.max`
     :return: A dictionary of {gene symbol: log fold change}
     """
     if aggregator is None:

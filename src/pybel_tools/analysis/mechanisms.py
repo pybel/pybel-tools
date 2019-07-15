@@ -2,9 +2,7 @@
 
 """This module contains functions to compare generated subgraphs to canonical subgraphs."""
 
-import itertools as itt
-from collections import defaultdict
-from typing import Any, Dict, Mapping
+from typing import Any, Mapping
 
 from pybel import BELGraph
 from pybel.struct import get_subgraphs_by_annotation
@@ -12,7 +10,7 @@ from ..generation import generate_bioprocess_mechanisms
 from ..utils import tanimoto_set_similarity
 
 __all__ = [
-    'compare'
+    'compare',
 ]
 
 
@@ -31,15 +29,17 @@ def compare(graph: BELGraph, annotation: str = 'Subgraph') -> Mapping[str, Mappi
     candidate_mechanisms = generate_bioprocess_mechanisms(graph)
     candidate_nodes = _transform_graph_dict_to_node_dict(candidate_mechanisms)
 
-    results: Dict[str, Dict[str, float]] = defaultdict(dict)
-
-    it = itt.product(canonical_nodes.items(), candidate_nodes.items())
-    for (canonical_name, canonical_graph), (candidate_bp, candidate_graph) in it:
-        tanimoto = tanimoto_set_similarity(candidate_nodes, canonical_nodes)
-        results[canonical_name][candidate_bp] = tanimoto
-
-    return dict(results)
+    return {
+        canonical_name: {
+            candidate_bp: tanimoto_set_similarity(candidate_nodes, canonical_nodes)
+            for candidate_bp, candidate_graph in candidate_nodes.items()
+        }
+        for canonical_name, canonical_graph in canonical_nodes.items()
+    }
 
 
 def _transform_graph_dict_to_node_dict(d: Mapping[Any, BELGraph]):
-    return {key: set(graph) for key, graph in d.items()}
+    return {
+        key: set(graph)
+        for key, graph in d.items()
+    }

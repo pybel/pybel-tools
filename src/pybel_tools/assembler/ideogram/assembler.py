@@ -4,7 +4,7 @@
 
 import os
 import random
-from typing import Any, Mapping, Optional, Set
+from typing import Any, Mapping, Optional, Set, TextIO
 
 import pandas as pd
 from IPython.display import Javascript
@@ -18,12 +18,16 @@ from pybel.struct.mutation import collapse_all_variants, enrich_protein_and_rna_
 
 __all__ = [
     'to_html',
+    'to_html_file',
+    'to_html_path',
     'to_jupyter',
 ]
 
-HERE = os.path.join(os.path.dirname(os.path.abspath(__file__)))
-COLUMNS = ['start_position_on_the_genomic_accession',
-           'end_position_on_the_genomic_accession', ]
+HERE = os.path.abspath(os.path.dirname(__file__))
+COLUMNS = [
+    'start_position_on_the_genomic_accession',
+    'end_position_on_the_genomic_accession',
+]
 
 
 def to_jupyter(graph: BELGraph, chart: Optional[str] = None) -> Javascript:
@@ -47,6 +51,17 @@ def to_html(graph: BELGraph, chart: Optional[str] = None) -> str:
         html_template = Template(f.read())
 
     return html_template.render(**_get_context(graph, chart=chart))
+
+
+def to_html_file(graph: BELGraph, file: Optional[TextIO] = None, chart: Optional[str] = None) -> None:
+    """Write the graph as an HTML file."""
+    print(to_html(graph=graph, chart=chart), file=file)
+
+
+def to_html_path(graph: BELGraph, path: str, chart: Optional[str] = None) -> None:
+    """Write the graph as an HTML file."""
+    with open(path, 'w') as file:
+        to_html_file(graph=graph, file=file, chart=chart)
 
 
 def _get_context(graph: BELGraph, chart: Optional[str] = None) -> Mapping[str, Any]:
@@ -97,15 +112,15 @@ def prerender(graph: BELGraph) -> Mapping[str, Mapping[str, Any]]:
             ),
         }
 
-    df = get_df()
+    refseq_df = get_refseq_df()
 
-    for _, (gene_id, symbol, start, stop) in df[df['Symbol'].isin(hgnc_symbols)].iterrows():
+    for _, (gene_id, symbol, start, stop) in refseq_df[refseq_df['Symbol'].isin(hgnc_symbols)].iterrows():
         result[symbol]['start'] = start
         result[symbol]['stop'] = stop
 
     return result
 
 
-def get_df() -> pd.DataFrame:
+def get_refseq_df() -> pd.DataFrame:
     """Get RefSeq information as a dataframe."""
     return pd.read_csv(os.path.join(HERE, 'refseq_human.csv'))

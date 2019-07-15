@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Utilities to merge multiple BEL documents on the same topic"""
+"""Utilities to merge multiple BEL documents on the same topic."""
 
 import logging
 from typing import Iterable, Mapping, Optional, Set, TextIO, Union
@@ -9,18 +9,21 @@ from xml.etree import ElementTree
 import requests
 from bel_resources import make_knowledge_header
 
-from ..constants import abstract_url_fmt, title_url_fmt
-
 __all__ = [
     'write_boilerplate',
 ]
 
 log = logging.getLogger(__name__)
 
+abstract_url_fmt = "http://togows.dbcls.jp/entry/ncbi-pubmed/{}/abstract"
+title_url_fmt = "http://togows.dbcls.jp/entry/ncbi-pubmed/{}/title"
+#: SO gives short citation information
+so_url_fmt = "http://togows.dbcls.jp/entry/ncbi-pubmed/{}/so"
+
 
 def make_pubmed_abstract_group(pmids: Iterable[Union[str, int]]) -> Iterable[str]:
     """Build a skeleton for the citations' statements.
-    
+
     :param pmids: A list of PubMed identifiers
     :return: An iterator over the lines of the citation section
     """
@@ -30,19 +33,18 @@ def make_pubmed_abstract_group(pmids: Iterable[Union[str, int]]) -> Iterable[str
         res = requests.get(title_url_fmt.format(pmid))
         title = res.content.decode('utf-8').strip()
 
-        yield 'SET Citation = {{"{}", "{}"}}'.format(title, pmid)
+        yield f'SET Citation = {{"{title}", "{pmid}"}}'
 
         res = requests.get(abstract_url_fmt.format(pmid))
         abstract = res.content.decode('utf-8').strip()
 
-        yield 'SET Evidence = "{}"'.format(abstract)
+        yield f'SET Evidence = "{abstract}"'
         yield '\nUNSET Evidence\nUNSET Citation'
 
 
 def _sanitize(s):
-    if s is None:
-        return None
-    return s.strip().replace('\n', '')
+    if s is not None:
+        return s.strip().replace('\n', '')
 
 
 #: Allows for querying the Entrez Gene Summary utility by formatting with an entrez id or list of comma seperated ids

@@ -8,6 +8,7 @@ from itertools import chain
 from typing import Set, Type
 
 from networkx import relabel_nodes
+
 from pybel import BELGraph, BaseAbundance
 from pybel.constants import ANNOTATIONS, CITATION, EVIDENCE, INCREASES, RELATION
 from pybel.dsl import BaseEntity, ListAbundance, Reaction
@@ -88,7 +89,7 @@ def _reaction_cartesion_expansion_unqualified_helper(
         v: BaseEntity,
         d: dict,
 ) -> None:
-    """Helper to deal with cartension expansion in unqualified edges."""
+    """Help deal with cartension expansion in unqualified edges."""
     if isinstance(u, Reaction) and isinstance(v, Reaction):
         enzymes = _get_catalysts_in_reaction(u) | _get_catalysts_in_reaction(v)
 

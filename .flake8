@@ -22,6 +22,9 @@ ignore =
     S101
     # Complains about random number generators
     S311
+    # Complains about XML parser
+    S314
+    S405
 exclude =
     .tox,
     .git,

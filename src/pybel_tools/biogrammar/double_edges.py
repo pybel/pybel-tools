@@ -2,7 +2,7 @@
 
 """This module investigates the properties of paths of length two (A - B - C)."""
 
-from typing import Dict, Iterable, List, Tuple, Mapping
+from typing import Dict, Iterable, List, Mapping, Tuple
 
 from pybel import BELGraph
 from pybel.constants import (
@@ -17,11 +17,12 @@ def self_edge_filter(_: BELGraph, source: BaseEntity, target: BaseEntity, __: st
     return source == target
 
 
-def has_protein_modification_increases_activity(graph: BELGraph,
-                                                source: BaseEntity,
-                                                target: BaseEntity,
-                                                key: str,
-                                                ) -> bool:
+def has_protein_modification_increases_activity(
+        graph: BELGraph,
+        source: BaseEntity,
+        target: BaseEntity,
+        key: str,
+) -> bool:
     """Check if pmod of source causes activity of target."""
     edge_data = graph[source][target][key]
     return has_protein_modification(graph, source) and part_has_modifier(edge_data, OBJECT, ACTIVITY)
@@ -62,22 +63,24 @@ def has_same_subject_object(graph: BELGraph, u: BaseEntity, v: BaseEntity, key: 
     return u == v and data.get(SUBJECT) == data.get(OBJECT)
 
 
-def get_related_causal_out_edges(graph: BELGraph,
-                                 u: BaseEntity,
-                                 edge_data: Dict,
-                                 ) -> Iterable[Tuple[BaseEntity, Dict, str]]:
-    for _, v, data in graph.out_edges(u, data=True):
+def get_related_causal_out_edges(
+        graph: BELGraph,
+        node: BaseEntity,
+        edge_data: Dict,
+) -> Iterable[Tuple[BaseEntity, Dict, str]]:
+    for _, v, data in graph.out_edges(node, data=True):
         if data[RELATION] in CAUSAL_RELATIONS and data.get(SUBJECT) == edge_data:
-            yield v, data, graph.edge_to_bel(u, v, data)
+            yield v, data, graph.edge_to_bel(node, v, data)
 
 
-def get_related_ish_causal_out_edges(graph: BELGraph,
-                                     u: BaseEntity,
-                                     modifier: str,
-                                     ) -> Iterable[Tuple[BaseEntity, Dict, str]]:
-    for _, v, data in graph.out_edges(u, data=True):
+def get_related_ish_causal_out_edges(
+        graph: BELGraph,
+        node: BaseEntity,
+        modifier: str,
+) -> Iterable[Tuple[BaseEntity, Dict, str]]:
+    for _, v, data in graph.out_edges(node, data=True):
         if data[RELATION] in CAUSAL_RELATIONS and data.get(SUBJECT, {}).get(MODIFIER) == modifier:
-            yield v, data, graph.edge_to_bel(u, v, data)
+            yield v, data, graph.edge_to_bel(node, v, data)
 
 
 def summarize_completeness(graph: BELGraph) -> Mapping[str, List]:

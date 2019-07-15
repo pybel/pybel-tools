@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""This module contains functions useful throughout PyBEL Tools"""
+"""This module contains functions useful throughout PyBEL Tools."""
 
 import datetime
 import itertools as itt
@@ -14,7 +14,6 @@ from typing import Callable, Dict, Iterable, List, Mapping, Optional, Set, Sized
 import networkx as nx
 
 from pybel import BELGraph
-from .constants import VERSION
 
 log = logging.getLogger(__name__)
 
@@ -24,17 +23,29 @@ Y = TypeVar('Y')
 
 
 def pairwise(iterable: Iterable[X]) -> Iterable[Tuple[X, X]]:
-    """Iterate over pairs in list s -> (s0,s1), (s1,s2), (s2, s3), ..."""
+    """Iterate over pairs in list.
+
+    s -> (s0,s1), (s1,s2), (s2, s3), ...
+    """
     a, b = itt.tee(iterable)
     next(b, None)
     return zip(a, b)
 
 
-def group_as_dict(list_of_pairs: Iterable[Tuple[X, Y]]) -> Mapping[X, List[Y]]:
-    r = defaultdict(list)
-    for a, b in list_of_pairs:
-        r[a].append(b)
-    return dict(r)
+def group_as_sets(pairs: Iterable[Tuple[X, Y]]) -> Mapping[X, Set[Y]]:
+    """Group elements in the iterable in a dictionary of sets."""
+    rv = defaultdict(set)
+    for x, y in pairs:
+        rv[x].add(y)
+    return dict(rv)
+
+
+def group_as_dict(pairs: Iterable[Tuple[X, Y]]) -> Mapping[X, List[Y]]:
+    """Group elements in the iterable in a dictionary of lists."""
+    rv = defaultdict(list)
+    for x, y in pairs:
+        rv[x].append(y)
+    return dict(rv)
 
 
 def count_defaultdict(dict_of_lists: Mapping[X, List[Y]]) -> Mapping[X, typing.Counter[Y]]:
@@ -58,7 +69,7 @@ def count_dict_values(dict_of_counters: Mapping[X, Sized]) -> typing.Counter[X]:
 
 
 def set_percentage(x: Iterable[X], y: Iterable[X]) -> float:
-    """What percentage of x is contained within y?
+    """Return what percentage of x is contained within y.
 
     :param set x: A set
     :param set y: Another set
@@ -98,17 +109,18 @@ def min_tanimoto_set_similarity(x: Iterable[X], y: Iterable[X]) -> float:
     return len(a & b) / min(len(a), len(b))
 
 
-def calculate_single_tanimoto_set_distances(target: Iterable[X], dict_of_sets: Mapping[Y, Set[X]]) -> Mapping[Y, float]:
+def calculate_single_tanimoto_set_distances(
+        target: Iterable[X],
+        dict_of_sets: Mapping[Y, Set[X]],
+) -> Mapping[Y, float]:
     """Return a dictionary of distances keyed by the keys in the given dict.
 
     Distances are calculated based on pairwise tanimoto similarity of the sets contained
 
-    :param set target: A set
+    :param target: A set
     :param dict_of_sets: A dict of {x: set of y}
-    :type dict_of_sets: dict
     :return: A similarity dicationary based on the set overlap (tanimoto) score between the target set and the sets in
             dos
-    :rtype: dict
     """
     target_set = set(target)
 
@@ -160,7 +172,7 @@ def calculate_global_tanimoto_set_distances(dict_of_sets: Mapping[X, Set]) -> Ma
 
 
 def barh(d, plt, title=None):
-    """A convenience function for plotting a horizontal bar plot from a Counter"""
+    """Plot a horizontal bar plot from a Counter."""
     labels = sorted(d, key=d.get)
     index = range(len(labels))
 
@@ -172,7 +184,7 @@ def barh(d, plt, title=None):
 
 
 def barv(d, plt, title=None, rotation='vertical'):
-    """A convenience function for plotting a vertical bar plot from a Counter"""
+    """Plot a vertical bar plot from a Counter."""
     labels = sorted(d, key=d.get, reverse=True)
     index = range(len(labels))
     plt.xticks(index, labels, rotation=rotation)
@@ -182,27 +194,12 @@ def barv(d, plt, title=None, rotation='vertical'):
         plt.title(title)
 
 
-def safe_add_edge(graph, u, v, key, attr_dict, **attr):
-    """Adds an edge while preserving negative keys, and paying no respect to positive ones
-
-    :param pybel.BELGraph graph: A BEL Graph
-    :param tuple u: The source BEL node
-    :param tuple v: The target BEL node
-    :param int key: The edge key. If less than zero, corresponds to an unqualified edge, else is disregarded
-    :param dict attr_dict: The edge data dictionary
-    :param dict attr: Edge data to assign via keyword arguments
-    """
-    if key < 0:
-        graph.add_edge(u, v, key=key, attr_dict=attr_dict, **attr)
-    else:
-        graph.add_edge(u, v, attr_dict=attr_dict, **attr)
-
-
-def prepare_c3(data: Union[List[Tuple[str, int]], Mapping[str, int]],
-               y_axis_label: str = 'y',
-               x_axis_label: str = 'x',
-               ) -> str:
-    """Prepares C3 JSON for making a bar chart from a Counter
+def prepare_c3(
+        data: Union[List[Tuple[str, int]], Mapping[str, int]],
+        y_axis_label: str = 'y',
+        x_axis_label: str = 'x',
+) -> str:
+    """Prepare a C3 JSON for making a bar chart from a Counter.
 
     :param data: A dictionary of {str: int} to display as bar chart
     :param y_axis_label: The Y axis label
@@ -225,7 +222,7 @@ def prepare_c3(data: Union[List[Tuple[str, int]], Mapping[str, int]],
 
 
 def prepare_c3_time_series(data: List[Tuple[int, int]], y_axis_label: str = 'y', x_axis_label: str = 'x') -> str:
-    """Prepare C3 JSON string dump for a time series.
+    """Prepare a C3 JSON string dump for a time series.
 
     :param data: A list of tuples [(year, count)]
     :param y_axis_label: The Y axis label
@@ -242,12 +239,6 @@ def prepare_c3_time_series(data: List[Tuple[int, int]], y_axis_label: str = 'y',
         [x_axis_label] + list(years),
         [y_axis_label] + list(counter)
     ])
-
-
-def enable_cool_mode() -> None:
-    log.info('enabled cool mode')
-    logging.getLogger('urllib3.connectionpool').setLevel(logging.ERROR)
-    logging.getLogger('pybel.parser').setLevel(logging.CRITICAL)
 
 
 def calculate_betweenness_centality(graph: BELGraph, number_samples: int = CENTRALITY_SAMPLES) -> Counter:
@@ -284,6 +275,3 @@ def canonical_circulation(elements: T, key: Optional[Callable[[T], bool]] = None
     return min(get_circulations(elements), key=key)
 
 
-def get_version() -> str:
-    """Get the current PyBEL Tools version."""
-    return VERSION

@@ -58,6 +58,8 @@ brain imaging features, whose experiments often measure their correlation with t
        random walk sampling <https://doi.org/10.1186/1756-0500-7-516>`_. BMC Research Notes, 7, 516.
 """
 
+from __future__ import annotations
+
 import logging
 import random
 from collections import defaultdict
@@ -66,7 +68,7 @@ from typing import Any, Callable, Hashable, Iterable, List, Mapping, Optional, S
 
 import numpy as np
 from scipy import stats
-from tqdm import tqdm
+from tqdm import tqdm, trange
 
 from pybel import BELGraph
 from pybel.constants import BIOPROCESS, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, RELATION
@@ -107,6 +109,9 @@ RESULT_LABELS = [
     'subgraph_size',
 ]
 
+H = TypeVar('H', bound=Hashable)
+SubgraphScores = Mapping[H, Tuple[float, float, float, float, int, int]]
+
 
 def calculate_average_scores_on_graph(
         graph: BELGraph,
@@ -115,7 +120,7 @@ def calculate_average_scores_on_graph(
         default_score: Optional[float] = None,
         runs: Optional[int] = None,
         use_tqdm: bool = False,
-):
+) -> SubgraphScores:
     """Calculate the scores over all biological processes in the sub-graph.
 
     As an implementation, it simply computes the sub-graphs then calls :func:`calculate_average_scores_on_subgraphs` as
@@ -138,21 +143,16 @@ def calculate_average_scores_on_graph(
     >>> graph = ...  # load graph and data
     >>> scores = calculate_average_scores_on_graph(graph)
     >>> pd.DataFrame.from_items(scores.items(), orient='index', columns=RESULT_LABELS)
-
     """
     subgraphs = generate_bioprocess_mechanisms(graph, key=key)
-    scores = calculate_average_scores_on_subgraphs(
+    return calculate_average_scores_on_subgraphs(
         subgraphs,
         key=key,
         tag=tag,
         default_score=default_score,
         runs=runs,
-        use_tqdm=use_tqdm
+        use_tqdm=use_tqdm,
     )
-    return scores
-
-
-H = TypeVar('H', bound=Hashable)
 
 
 def calculate_average_scores_on_subgraphs(
@@ -163,7 +163,7 @@ def calculate_average_scores_on_subgraphs(
         runs: Optional[int] = None,
         use_tqdm: bool = False,
         tqdm_kwargs: Optional[Mapping[str, Any]] = None,
-) -> Mapping[H, Tuple[float, float, float, float, int, int]]:
+) -> SubgraphScores:
     """Calculate the scores over precomputed candidate mechanisms.
 
     :param subgraphs: A dictionary of keys to their corresponding subgraphs
@@ -244,7 +244,7 @@ def workflow(
         default_score: Optional[float] = None,
         runs: Optional[int] = None,
         minimum_nodes: int = 1,
-) -> List['Runner']:
+) -> List[Runner]:
     """Generate candidate mechanisms and run the heat diffusion workflow.
 
     :param graph: A BEL graph
@@ -262,18 +262,25 @@ def workflow(
     if subgraph.number_of_nodes() <= minimum_nodes:
         return []
 
-    runners = multirun(subgraph, node, key=key, tag=tag, default_score=default_score, runs=runs)
-    return list(runners)
+    return list(multirun(
+        subgraph,
+        node,
+        key=key,
+        tag=tag,
+        default_score=default_score,
+        runs=runs,
+    ))
 
 
-def multirun(graph: BELGraph,
-             node: BaseEntity,
-             key: Optional[str] = None,
-             tag: Optional[str] = None,
-             default_score: Optional[float] = None,
-             runs: Optional[int] = None,
-             use_tqdm: bool = False,
-             ) -> Iterable['Runner']:
+def multirun(
+        graph: BELGraph,
+        node: BaseEntity,
+        key: Optional[str] = None,
+        tag: Optional[str] = None,
+        default_score: Optional[float] = None,
+        runs: Optional[int] = None,
+        use_tqdm: bool = False,
+) -> Iterable[Runner]:
     """Run the heat diffusion workflow multiple times, each time yielding a :class:`Runner` object upon completion.
 
     :param graph: A BEL graph
@@ -289,12 +296,7 @@ def multirun(graph: BELGraph,
     if runs is None:
         runs = 100
 
-    it = range(runs)
-
-    if use_tqdm:
-        it = tqdm(it, total=runs)
-
-    for i in it:
+    for i in (trange(runs) if use_tqdm else range(runs)):
         try:
             runner = Runner(graph, node, key=key, tag=tag, default_score=default_score)
             runner.run()
@@ -306,13 +308,14 @@ def multirun(graph: BELGraph,
 class Runner:
     """This class houses the data related to a single run of the heat diffusion workflow."""
 
-    def __init__(self,
-                 graph: BELGraph,
-                 target_node: BaseEntity,
-                 key: Optional[str] = None,
-                 tag: Optional[str] = None,
-                 default_score: Optional[float] = None,
-                 ) -> None:
+    def __init__(
+            self,
+            graph: BELGraph,
+            target_node: BaseEntity,
+            key: Optional[str] = None,
+            tag: Optional[str] = None,
+            default_score: Optional[float] = None,
+    ) -> None:
         """Initialize the heat diffusion runner class.
 
         :param graph: A BEL graph
@@ -379,7 +382,6 @@ class Runner:
            4. pick randomly which edge
 
         :return: A random in-edge to the lowest in/out degree ratio node. This is a 3-tuple of (node, node, key)
-        :rtype: tuple
         """
         nodes = [
             (n, self.in_out_ratio(n))
@@ -453,7 +455,7 @@ class Runner:
             yield self.get_remaining_graph()
 
     def done_chomping(self) -> bool:
-        """Determines if the algorithm is complete by checking if the target node of this analysis has been scored
+        """Determine if the algorithm is complete by checking if the target node of this analysis has been scored
         yet. Because the algorithm removes edges when it gets stuck until it is un-stuck, it is always guaranteed to
         finish.
 
@@ -496,14 +498,15 @@ class Runner:
         return self.graph.subgraph(self.unscored_nodes_iter())
 
 
-def workflow_aggregate(graph: BELGraph,
-                       node: BaseEntity,
-                       key: Optional[str] = None,
-                       tag: Optional[str] = None,
-                       default_score: Optional[float] = None,
-                       runs: Optional[int] = None,
-                       aggregator: Optional[Callable[[Iterable[float]], float]] = None,
-                       ) -> Optional[float]:
+def workflow_aggregate(
+        graph: BELGraph,
+        node: BaseEntity,
+        key: Optional[str] = None,
+        tag: Optional[str] = None,
+        default_score: Optional[float] = None,
+        runs: Optional[int] = None,
+        aggregator: Optional[Callable[[Iterable[float]], float]] = None,
+) -> Optional[float]:
     """Get the average score over multiple runs.
 
     This function is very simple, and can be copied to do more interesting statistics over the :class:`Runner`
@@ -539,7 +542,7 @@ def workflow_all(graph: BELGraph,
                  default_score: Optional[float] = None,
                  runs: Optional[int] = None,
                  ) -> Mapping[BaseEntity, List[Runner]]:
-    """Run the heat diffusion workflow and get runners for every possible candidate mechanism
+    """Run the heat diffusion workflow and get runners for every possible candidate mechanism.
 
     1. Get all biological processes
     2. Get candidate mechanism induced two level back from each biological process
@@ -562,13 +565,14 @@ def workflow_all(graph: BELGraph,
     return results
 
 
-def workflow_all_aggregate(graph: BELGraph,
-                           key: Optional[str] = None,
-                           tag: Optional[str] = None,
-                           default_score: Optional[float] = None,
-                           runs: Optional[int] = None,
-                           aggregator: Optional[Callable[[Iterable[float]], float]] = None,
-                           ):
+def workflow_all_aggregate(
+        graph: BELGraph,
+        key: Optional[str] = None,
+        tag: Optional[str] = None,
+        default_score: Optional[float] = None,
+        runs: Optional[int] = None,
+        aggregator: Optional[Callable[[Iterable[float]], float]] = None,
+):
     """Run the heat diffusion workflow to get average score for every possible candidate mechanism.
 
     1. Get all biological processes

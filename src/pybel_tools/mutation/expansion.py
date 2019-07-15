@@ -2,21 +2,19 @@
 
 """Deletion functions to supplement :mod:`pybel.struct.mutation.expansion`."""
 
+import itertools as itt
 import logging
 from collections import Counter, defaultdict
-from typing import Iterable, Union
-
-import itertools as itt
+from typing import Iterable, Optional, Union
 
 from pybel import BELGraph
-from pybel.constants import *
-from pybel.dsl import BaseEntity
+from pybel.constants import ANNOTATIONS, GENE, MIRNA, PROTEIN, RELATION, RNA
+from pybel.dsl import BaseEntity, ComplexAbundance, CompositeAbundance, Reaction
 from pybel.struct.filters import and_edge_predicates, concatenate_node_predicates, get_nodes_by_function
 from pybel.struct.filters.edge_predicates import edge_has_annotation, is_causal_relation
 from pybel.struct.filters.node_predicates import keep_node_permissive
 from pybel.struct.filters.typing import EdgeIterator, EdgePredicates, NodePredicates
 from pybel.struct.pipeline import uni_in_place_transformation
-from ..utils import safe_add_edge
 
 __all__ = [
     'get_peripheral_successor_edges',
@@ -98,17 +96,18 @@ def count_possible_predecessors(graph: BELGraph, subgraph: BELGraph) -> Counter:
     return count_sources(get_peripheral_predecessor_edges(graph, subgraph))
 
 
-def get_subgraph_edges(graph: BELGraph,
-                       annotation: str,
-                       value: str,
-                       source_filter=None,
-                       target_filter=None,
-                       ):
+def get_subgraph_edges(
+        graph: BELGraph,
+        annotation: str,
+        value: str,
+        source_filter: Optional[NodePredicates] = None,
+        target_filter: Optional[NodePredicates] = None,
+):
     """Gets all edges from a given subgraph whose source and target nodes pass all of the given filters
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param str annotation:  The annotation to search
-    :param str value: The annotation value to search by
+    :param graph: A BEL graph
+    :param annotation:  The annotation to search
+    :param value: The annotation value to search by
     :param source_filter: Optional filter for source nodes (graph, node) -> bool
     :param target_filter: Optional filter for target nodes (graph, node) -> bool
     :return: An iterable of (source node, target node, key, data) for all edges that match the annotation/value and
@@ -128,11 +127,12 @@ def get_subgraph_edges(graph: BELGraph,
             yield u, v, k, data
 
 
-def get_subgraph_peripheral_nodes(graph: BELGraph,
-                                  subgraph: Iterable[BaseEntity],
-                                  node_predicates: NodePredicates = None,
-                                  edge_predicates: EdgePredicates = None,
-                                  ):
+def get_subgraph_peripheral_nodes(
+        graph: BELGraph,
+        subgraph: Iterable[BaseEntity],
+        node_predicates: Optional[NodePredicates] = None,
+        edge_predicates: Optional[EdgePredicates] = None,
+):
     """Get a summary dictionary of all peripheral nodes to a given sub-graph.
 
     :return: A dictionary of {external node: {'successor': {internal node: list of (key, dict)},
@@ -172,13 +172,15 @@ def get_subgraph_peripheral_nodes(graph: BELGraph,
 
 
 @uni_in_place_transformation
-def expand_periphery(universe: BELGraph,
-                     graph: BELGraph,
-                     node_predicates: NodePredicates = None,
-                     edge_predicates: EdgePredicates = None,
-                     threshold: int = 2,
-                     ) -> None:
-    """Iterates over all possible edges, peripheral to a given subgraph, that could be added from the given graph.
+def expand_periphery(
+        universe: BELGraph,
+        graph: BELGraph,
+        node_predicates: Optional[NodePredicates] = None,
+        edge_predicates: Optional[EdgePredicates] = None,
+        threshold: int = 2,
+) -> None:
+    """Iterate over all possible edges, peripheral to a given subgraph, that could be added from the given graph.
+
     Edges could be added if they go to nodes that are involved in relationships that occur with more than the
     threshold (default 2) number of nodes in the subgraph.
 
@@ -189,8 +191,11 @@ def expand_periphery(universe: BELGraph,
     A reasonable edge filter to use is :func:`pybel_tools.filters.keep_causal_edges` because this function can allow
     for huge expansions if there happen to be hub nodes.
     """
-    nd = get_subgraph_peripheral_nodes(universe, graph, node_predicates=node_predicates,
-                                       edge_predicates=edge_predicates)
+    nd = get_subgraph_peripheral_nodes(
+        universe, graph,
+        node_predicates=node_predicates,
+        edge_predicates=edge_predicates,
+    )
 
     for node, dd in nd.items():
         pred_d = dd['predecessor']
@@ -204,40 +209,42 @@ def expand_periphery(universe: BELGraph,
         graph.add_node(node, attr_dict=universe[node])
 
         for u, edges in pred_d.items():
-            for k, d in edges:
-                safe_add_edge(graph, u, node, k, d)
+            for key, data in edges:
+                graph.add_edge(u, node, key=key, **data)
 
         for v, edges in succ_d.items():
-            for k, d in edges:
-                safe_add_edge(graph, node, v, k, d)
+            for key, data in edges:
+                graph.add_edge(node, v, key=key, **data)
 
 
 @uni_in_place_transformation
 def enrich_complexes(graph: BELGraph) -> None:
     """Add all of the members of the complex abundances to the graph."""
-    nodes = list(get_nodes_by_function(graph, COMPLEX))
-    for u in nodes:
+    for u in graph:
+        if not isinstance(u, ComplexAbundance):
+            continue
         for v in u.members:
             graph.add_has_component(u, v)
 
 
 @uni_in_place_transformation
 def enrich_composites(graph: BELGraph):
-    """Adds all of the members of the composite abundances to the graph."""
-    nodes = list(get_nodes_by_function(graph, COMPOSITE))
-    for u in nodes:
+    """Add all of the members of the composite abundances to the graph."""
+    for u in graph:
+        if not isinstance(u, CompositeAbundance):
+            continue
         for v in u.members:
             graph.add_has_component(u, v)
 
 
 @uni_in_place_transformation
 def enrich_reactions(graph: BELGraph):
-    """Adds all of the reactants and products of reactions to the graph."""
-    nodes = list(get_nodes_by_function(graph, REACTION))
-    for u in nodes:
+    """Add all of the reactants and products of reactions to the graph."""
+    for u in graph:
+        if not isinstance(u, Reaction):
+            continue
         for v in u.reactants:
             graph.add_has_reactant(u, v)
-
         for v in u.products:
             graph.add_has_product(u, v)
 
@@ -297,7 +304,7 @@ def enrich_unqualified(graph: BELGraph):
 # TODO should this bother checking multiple relationship types?
 @uni_in_place_transformation
 def expand_internal(universe: BELGraph, graph: BELGraph, edge_predicates: EdgePredicates = None) -> None:
-    """Edges between entities in the sub-graph that pass the given filters.
+    """Expand on edges between entities in the sub-graph that pass the given filters.
 
     :param universe: The full graph
     :param graph: A sub-graph to find the upstream information

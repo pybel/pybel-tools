@@ -4,7 +4,7 @@
 
 import itertools as itt
 from collections import Counter, defaultdict
-from typing import Iterable, List, Mapping, Optional, Set, Tuple, TypeVar, Type
+from typing import Iterable, List, Mapping, Optional, Set, Tuple, TypeVar
 
 from pybel import BELGraph
 from pybel.constants import ANNOTATIONS, RELATION

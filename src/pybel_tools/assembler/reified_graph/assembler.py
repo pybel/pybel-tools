@@ -3,12 +3,10 @@
 """Utilities to assemble a BEL graph as bipartite graph of nodes and
 reified edges."""
 
-
 import logging
 import unittest
 from abc import ABC, abstractmethod
-from itertools import count
-from typing import Dict, Optional, Tuple
+from typing import Optional, Tuple
 
 import networkx as nx
 
@@ -16,13 +14,13 @@ from pybel import BELGraph
 from pybel.constants import (
     ACTIVITY, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS,
     CAUSAL_RELATIONS, DEGRADATION, HAS_COMPONENT, HAS_VARIANT, MODIFIER,
-    OBJECT, REGULATES, TRANSCRIBED_TO, TRANSLATED_TO
+    OBJECT, REGULATES, TRANSCRIBED_TO, TRANSLATED_TO,
 )
 from pybel.dsl import (
-    abundance, activity, BaseEntity, ComplexAbundance, degradation, fragment,
-    gene, pmod, protein, rna
+    BaseEntity, ComplexAbundance, abundance, activity, degradation, fragment, gene, pmod, protein, rna,
 )
 from pybel.testing.utils import n
+from pybel.typing import EdgeData
 
 __all__ = [
     'reify_bel_graph',
@@ -69,40 +67,39 @@ class ReifiedConverter(ABC):
 
     @staticmethod
     @abstractmethod
-    def predicate(u: BaseEntity, v: BaseEntity,
-                  key: str, edge_data: Dict) -> bool:
+    def predicate(u: BaseEntity, v: BaseEntity, key: str, edge_data: EdgeData) -> bool:
         """Test if a BEL edge corresponds to the converter."""
 
     @staticmethod
-    def is_causal_increase(edge_data: Dict) -> bool:
+    def is_causal_increase(edge_data: EdgeData) -> bool:
         """Checks if the relation is ->, => or reg"""
 
         return ("relation" in edge_data and
                 edge_data['relation'] in CAUSAL_INCREASE_RELATIONS | {REGULATES})
 
     @staticmethod
-    def is_causal_decrease(edge_data: Dict) -> bool:
+    def is_causal_decrease(edge_data: EdgeData) -> bool:
         """Checks if the relation is -|, =| or reg"""
-
-        return ("relation" in edge_data and
-                edge_data['relation'] in CAUSAL_DECREASE_RELATIONS | {REGULATES})
+        return "relation" in edge_data and edge_data['relation'] in CAUSAL_DECREASE_RELATIONS | {REGULATES}
 
     @classmethod
-    def convert(cls,
-                u: BaseEntity,
-                v: BaseEntity,
-                key: str,
-                edge_data: Dict
-                ) -> Optional[Tuple[BaseEntity, str, bool, bool, BaseEntity]]:
+    def convert(
+            cls,
+            u: BaseEntity,
+            v: BaseEntity,
+            key: str,
+            edge_data: EdgeData
+    ) -> Optional[Tuple[BaseEntity, str, bool, bool, BaseEntity]]:
         """Convert a BEL edge to a reified edge. Increase and decrease
         relations have same label, but different sign (positive and negative
         respectively)."""
-
-        return (u,
-                cls.target_relation,
-                cls.is_causal_increase(edge_data),
-                cls.is_causal_decrease(edge_data),
-                v)
+        return (
+            u,
+            cls.target_relation,
+            cls.is_causal_increase(edge_data),
+            cls.is_causal_decrease(edge_data),
+            v,
+        )
 
 
 class PTMConverter(ReifiedConverter):
@@ -111,8 +108,7 @@ class PTMConverter(ReifiedConverter):
     synonyms = ...
 
     @classmethod
-    def predicate(cls, u: BaseEntity, v: BaseEntity,
-                  key: str, edge_data: Dict) -> bool:
+    def predicate(cls, u: BaseEntity, v: BaseEntity, key: str, edge_data: EdgeData) -> bool:
         return ("relation" in edge_data and
                 edge_data['relation'] in CAUSAL_RELATIONS and
                 "variants" in v and
@@ -129,23 +125,19 @@ class AbundanceConverter(ReifiedConverter):
     target_relation = INCREASES_ABUNDANCE
 
     @classmethod
-    def predicate(cls, u: BaseEntity, v: BaseEntity,
-                  key: str, edge_data: Dict) -> bool:
-        return ("relation" in edge_data and
-                edge_data['relation'] in CAUSAL_RELATIONS)
+    def predicate(cls, u: BaseEntity, v: BaseEntity, key: str, edge_data: EdgeData) -> bool:
+        return "relation" in edge_data and edge_data['relation'] in CAUSAL_RELATIONS
 
 
 class AcetylationConverter(PTMConverter):
-    """Converts BEL statements of the form A B p(C, pmod(Ac)) or
-    synonyms."""
+    """Converts BEL statements of the form A B p(C, pmod(Ac)) or synonyms."""
 
     synonyms = ["Ac", "acetylation"]
     target_relation = ACETYLATION
 
 
 class ADPRibConverter(PTMConverter):
-    """Converts BEL statements of the form A B p(C, pmod(ADPRib)) or
-    synonyms."""
+    """Converts BEL statements of the form A B p(C, pmod(ADPRib)) or synonyms."""
 
     synonyms = [
         "ADPRib", "ADP - ribosylation", "ADP - rybosylation",
@@ -160,13 +152,12 @@ class ActivationConverter(ReifiedConverter):
     target_relation = "activates"
 
     @classmethod
-    def predicate(cls, u: BaseEntity, v: BaseEntity,
-                  key: str, edge_data: Dict) -> bool:
+    def predicate(cls, u: BaseEntity, v: BaseEntity, key: str, edge_data: EdgeData) -> bool:
         return (
-                "relation" in edge_data and
-                edge_data['relation'] in CAUSAL_INCREASE_RELATIONS and
-                edge_data.get(OBJECT) and
-                edge_data.get(OBJECT).get(MODIFIER) == ACTIVITY
+            "relation" in edge_data and
+            edge_data['relation'] in CAUSAL_INCREASE_RELATIONS and
+            edge_data.get(OBJECT) and
+            edge_data.get(OBJECT).get(MODIFIER) == ACTIVITY
         )
 
 
@@ -176,8 +167,7 @@ class ComplexConverter(ReifiedConverter):
     target_relation = "hasComponent"
 
     @classmethod
-    def predicate(cls, u: BaseEntity, v: BaseEntity,
-                  key: str, edge_data: Dict) -> bool:
+    def predicate(cls, u: BaseEntity, v: BaseEntity, key: str, edge_data: EdgeData) -> bool:
         return (
             isinstance(u, ComplexAbundance) and
             "relation" in edge_data and
@@ -186,55 +176,52 @@ class ComplexConverter(ReifiedConverter):
 
 
 class DegradationConverter(ReifiedConverter):
-    """Converts BEL statements of the form A B act(C), when B in
-    {CAUSAL RELATIONS}."""
+    """Converts BEL statements of the form A B act(C), when B in {CAUSAL RELATIONS}."""
 
     target_relation = DEGRADATES
 
     @classmethod
-    def predicate(cls, u: BaseEntity, v: BaseEntity,
-                  key: str, edge_data: Dict) -> bool:
+    def predicate(cls, u: BaseEntity, v: BaseEntity, key: str, edge_data: EdgeData) -> bool:
         return (
-                "relation" in edge_data and
-                edge_data['relation'] in CAUSAL_INCREASE_RELATIONS and
-                edge_data.get(OBJECT) and
-                edge_data.get(OBJECT).get(MODIFIER) == DEGRADATION
+            "relation" in edge_data and
+            edge_data['relation'] in CAUSAL_INCREASE_RELATIONS and
+            edge_data.get(OBJECT) and
+            edge_data.get(OBJECT).get(MODIFIER) == DEGRADATION
         )
 
 
 class FarnesylationConverter(PTMConverter):
-    """Converts BEL statements of the form A B p(C, pmod(Farn)) or
-    synonyms."""
+    """Converts BEL statements of the form A B p(C, pmod(Farn)) or synonyms."""
 
     synonyms = ["Farn", "farnesylation"]
     target_relation = FARNESYLATION
 
 
 class GeranylgeranylationConverter(PTMConverter):
-    """Converts BEL statements of the form A B p(C, pmod(Gerger)) or
-    synonyms."""
+    """Converts BEL statements of the form A B p(C, pmod(Gerger)) or synonyms."""
 
     synonyms = ["Gerger", "geranylgeranylation"]
     target_relation = GERANYLGERANYLATION
 
 
 class HasVariantConverter(ReifiedConverter):
-    """Identifies edges of the form A hasvariant B. Do not convert them to
-    reified edges."""
+    """Identifies edges of the form A hasVariant B.
+
+    Do not convert them to reified edges.
+    """
 
     @classmethod
-    def predicate(cls, u: BaseEntity, v: BaseEntity,
-                  key: str, edge_data: Dict) -> bool:
-        return ("relation" in edge_data and
-                edge_data['relation'] == HAS_VARIANT)
+    def predicate(cls, u: BaseEntity, v: BaseEntity, key: str, edge_data: EdgeData) -> bool:
+        return "relation" in edge_data and edge_data['relation'] == HAS_VARIANT
 
     @classmethod
-    def convert(cls,
-                u: BaseEntity,
-                v: BaseEntity,
-                key: str,
-                edge_data: Dict
-                ) -> Optional[Tuple[BaseEntity, str, bool, bool, BaseEntity]]:
+    def convert(
+            cls,
+            u: BaseEntity,
+            v: BaseEntity,
+            key: str,
+            edge_data: EdgeData,
+    ) -> Optional[Tuple[BaseEntity, str, bool, bool, BaseEntity]]:
         return None
 
 
@@ -244,19 +231,17 @@ class FragmentationConverter(ReifiedConverter):
     target_relation = FRAGMENTS
 
     @classmethod
-    def predicate(cls, u: BaseEntity, v: BaseEntity,
-                  key: str, edge_data: Dict) -> bool:
+    def predicate(cls, u: BaseEntity, v: BaseEntity, key: str, edge_data: EdgeData) -> bool:
         return (
-                "relation" in edge_data and
-                edge_data['relation'] in CAUSAL_RELATIONS and
-                "variants" in v and
-                any([isinstance(var_, fragment) for var_ in v["variants"]])
+            "relation" in edge_data and
+            edge_data['relation'] in CAUSAL_RELATIONS and
+            "variants" in v and
+            any([isinstance(var_, fragment) for var_ in v["variants"]])
         )
 
 
 class GlycosylationConverter(PTMConverter):
-    """Converts BEL statements of the form A B p(C, pmod(Glyco)) or
-    synonyms."""
+    """Converts BEL statements of the form A B p(C, pmod(Glyco)) or synonyms."""
 
     synonyms = [
         "Glyco", "glycosylation", "NGlyco", "N - linked glycosylation",
@@ -266,24 +251,21 @@ class GlycosylationConverter(PTMConverter):
 
 
 class HydroxylationConverter(PTMConverter):
-    """Converts BEL statements of the form A B p(C, pmod(Hy)) or
-    synonyms."""
+    """Converts BEL statements of the form A B p(C, pmod(Hy)) or synonyms."""
 
     synonyms = ["Hy", "hydroxylation"]
     target_relation = HYDROXYLATES
 
 
 class ISGylationConverter(PTMConverter):
-    """Converts BEL statements of the form A B p(C, pmod(ISG)) or
-    synonyms."""
+    """Converts BEL statements of the form A B p(C, pmod(ISG)) or synonyms."""
 
     synonyms = ["ISG", "ISGylation", "ISG15 - protein conjugation"]
     target_relation = ISGYLATION
 
 
 class MethylationConverter(PTMConverter):
-    """Converts BEL statements of the form A B p(C, pmod(Me)) or
-    synonyms."""
+    """Converts BEL statements of the form A B p(C, pmod(Me)) or synonyms."""
 
     synonyms = [
         "Me", "methylation", "Me1", "monomethylation", "mono - methylation",
@@ -294,40 +276,35 @@ class MethylationConverter(PTMConverter):
 
 
 class MyristoylationConverter(PTMConverter):
-    """Converts BEL statements of the form A B p(C, pmod(Myr)) or
-    synonyms."""
+    """Converts BEL statements of the form A B p(C, pmod(Myr)) or synonyms."""
 
     synonyms = ["Myr", "myristoylation"]
     target_relation = MYRISTOYLATION
 
 
 class NeddylationConverter(PTMConverter):
-    """Converts BEL statements of the form A B p(C, pmod(Nedd)) or
-    synonyms."""
+    """Converts BEL statements of the form A B p(C, pmod(Nedd)) or synonyms."""
 
     synonyms = ["Nedd", "neddylation"]
     target_relation = NEDDYLATION
 
 
 class NitrosylationConverter(PTMConverter):
-    """Converts BEL statements of the form A B p(C, pmod(NO)) or
-    synonyms."""
+    """Converts BEL statements of the form A B p(C, pmod(NO)) or synonyms."""
 
     synonyms = ["NO", "Nitrosylation"]
     target_relation = NITROSYLATION
 
 
 class PalmitoylationConverter(PTMConverter):
-    """Converts BEL statements of the form A B p(C, pmod(Palm)) or
-    synonyms."""
+    """Converts BEL statements of the form A B p(C, pmod(Palm)) or synonyms."""
 
     synonyms = ["Palm", "palmitoylation"]
     target_relation = PALMITOYLATION
 
 
 class PhosphorylationConverter(PTMConverter):
-    """Converts BEL statements of the form A B p(C, pmod(Ph)) or
-    synonyms."""
+    """Converts BEL statements of the form A B p(C, pmod(Ph)) or synonyms."""
 
     synonyms = ["Ph", "phosphorylation"]
     target_relation = PHOSPHORYLATES
@@ -339,16 +316,16 @@ class PromotesTranslationConverter(ReifiedConverter):
     target_relation = PROMOTES_TRANSLATION
 
     @classmethod
-    def predicate(cls, u: BaseEntity, v: BaseEntity,
-                  key: str, edge_data: Dict) -> bool:
-        return ("relation" in edge_data and
-                edge_data['relation'] in CAUSAL_RELATIONS and
-                isinstance(v, rna))
+    def predicate(cls, u: BaseEntity, v: BaseEntity, key: str, edge_data: EdgeData) -> bool:
+        return (
+            "relation" in edge_data and
+            edge_data['relation'] in CAUSAL_RELATIONS and
+            isinstance(v, rna)
+        )
 
 
 class SulphationConverter(PTMConverter):
-    """Converts BEL statements of the form A B p(C, pmod(Sulf)) or
-    synonyms."""
+    """Converts BEL statements of the form A B p(C, pmod(Sulf)) or synonyms."""
 
     synonyms = [
         "Sulf", "sulfation", "sulphation", "sulfur addition",
@@ -358,8 +335,7 @@ class SulphationConverter(PTMConverter):
 
 
 class SUMOylationConverter(PTMConverter):
-    """Converts BEL statements of the form A B p(C, pmod(SUMO)) or
-    synonyms."""
+    """Converts BEL statements of the form A B p(C, pmod(SUMO)) or synonyms."""
 
     synonyms = ["Sumo", "SUMOylation"]
     target_relation = SUMOYLATION
@@ -371,12 +347,13 @@ class TranscriptionConverter(ReifiedConverter):
     target_relation = PROMOTES_TRANSLATION
 
     @classmethod
-    def predicate(cls, u: BaseEntity, v: BaseEntity,
-                  key: str, edge_data: Dict) -> bool:
-        return ("relation" in edge_data and
-                edge_data['relation'] in TRANSCRIBED_TO and
-                isinstance(u, gene) and
-                isinstance(v, rna))
+    def predicate(cls, u: BaseEntity, v: BaseEntity, key: str, edge_data: EdgeData) -> bool:
+        return (
+            "relation" in edge_data and
+            edge_data['relation'] in TRANSCRIBED_TO and
+            isinstance(u, gene) and
+            isinstance(v, rna)
+        )
 
 
 class TranslationConverter(ReifiedConverter):
@@ -385,18 +362,17 @@ class TranslationConverter(ReifiedConverter):
     target_relation = PROMOTES_TRANSLATION
 
     @classmethod
-    def predicate(cls, u: BaseEntity, v: BaseEntity,
-                  key: str, edge_data: Dict) -> bool:
-        return ("relation" in edge_data and
-                edge_data['relation'] in TRANSLATED_TO and
-                isinstance(u, rna) and
-                isinstance(v, protein)
-                )
+    def predicate(cls, u: BaseEntity, v: BaseEntity, key: str, edge_data: EdgeData) -> bool:
+        return (
+            "relation" in edge_data and
+            edge_data['relation'] in TRANSLATED_TO and
+            isinstance(u, rna) and
+            isinstance(v, protein)
+        )
 
 
 class UbiquitinationConverter(PTMConverter):
-    """Converts BEL statements of the form A B p(C, pmod(Ub)) or
-    synonyms."""
+    """Converts BEL statements of the form A B p(C, pmod(Ub)) or synonyms."""
 
     synonyms = [
         "Ub", "ubiquitination", "ubiquitinylation", "ubiquitylation", "UbK48",
@@ -406,11 +382,12 @@ class UbiquitinationConverter(PTMConverter):
     target_relation = UBIQUITINATES
 
 
-def reify_edge(u: BaseEntity,
-               v: BaseEntity,
-               key: str,
-               edge_data: Dict
-               ) -> Optional[Tuple[BaseEntity, str, bool, bool, BaseEntity]]:
+def reify_edge(
+        u: BaseEntity,
+        v: BaseEntity,
+        key: str,
+        edge_data: EdgeData
+) -> Optional[Tuple[BaseEntity, str, bool, bool, BaseEntity]]:
     converters = [
         TranslationConverter,
         TranscriptionConverter,
@@ -444,29 +421,18 @@ def reify_edge(u: BaseEntity,
     logging.warning(f"No converter found for {u}, {v}")
     logging.warning(f"  with edge data {edge_data}")
 
-    # No converter found
-    return None
-
 
 def reify_bel_graph(bel_graph: BELGraph) -> nx.DiGraph:
     """Generate a new graph with reified edges."""
     reified_graph = nx.DiGraph()
-    gen = count()
 
-    for edge in bel_graph.edges(keys=True):
-        (u, v, key) = edge
-        data = bel_graph[u][v][key]
+    reified_edges = map(reify_edge, bel_graph.edges(keys=True, data=True))
+    reified_edges = filter(None, reified_edges)
 
-        reified_edge = reify_edge(u, v, key, data)
-        if reified_edge:
-            new_u, reif_edge_label, positive, negative, new_v = reified_edge
-            reif_edge_num = next(gen)
-            causal = (positive, negative)
-            reified_graph.add_node(
-                reif_edge_num, label=reif_edge_label, causal=causal
-            )
-            reified_graph.add_edge(new_u, reif_edge_num, label=REIF_SUBJECT)
-            reified_graph.add_edge(new_v, reif_edge_num, label=REIF_OBJECT)
+    for i, (source, reif_edge_label, positive, negative, target) in enumerate(reified_edges):
+        reified_graph.add_node(i, label=reif_edge_label, causal=(positive, negative))
+        reified_graph.add_edge(source, i, label=REIF_SUBJECT)
+        reified_graph.add_edge(target, i, label=REIF_OBJECT)
 
     return reified_graph
 
@@ -482,6 +448,7 @@ casp8 = protein('HGNC', 'CASP8', 'HGNC:1509')
 # a(CHEBI:oxaliplatin) increases a(MESHC:"Reactive Oxygen Species")
 oxaliplatin = abundance('CHEBI', 'oxaliplatin', 'CHEBI:31941')
 reactive_o_species = abundance('MESHC', 'Reactive Oxygen Species', 'D017382')
+
 
 # p(HGNC:MYC) decreases r(HGNC:CCNB1)
 
