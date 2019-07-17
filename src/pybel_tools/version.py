@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+
+"""Version information for PyBEL-Tools."""
 
 __all__ = [
     'VERSION',
@@ -5,6 +8,7 @@ __all__ = [
 ]
 
 VERSION = '0.7.4-dev'
+
 
 def get_version() -> str:
     """Get the current PyBEL Tools version."""

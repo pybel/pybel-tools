@@ -32,6 +32,7 @@ exclude =
     docs/source/conf.py,
     build,
     dist,
+    src/pybel_tools/analysis/epicom/build.py,
     tests/fixtures/*,
     tests/*,
     *.pyc,

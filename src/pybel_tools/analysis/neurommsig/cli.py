@@ -11,19 +11,18 @@ import os
 import click
 
 from .export import get_nift_values, mesh_alzheimer, mesh_parkinson, preprocess, write_neurommsig_bel
-from .utils import get_bms_base, get_neurommsig_base
 
 log = logging.getLogger(__name__)
 
 
 @click.command()
-def main():
+@click.argument('bms_base')
+@click.argument('neurommsig_base')
+def main(bms_base, neurommsig_base):
     """Convert the Alzheimer's and Parkinson's disease NeuroMMSig excel sheets to BEL."""
     logging.basicConfig(level=logging.INFO)
     log.setLevel(logging.INFO)
 
-    bms_base = get_bms_base()
-    neurommsig_base = get_neurommsig_base()
     neurommsig_excel_dir = os.path.join(neurommsig_base, 'resources', 'excels', 'neurommsig')
 
     nift_values = get_nift_values()

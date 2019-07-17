@@ -4,29 +4,28 @@
 
 from __future__ import annotations
 
-import itertools as itt
+import collections
 import logging
 import os
 from dataclasses import dataclass
-from typing import Counter, List, Mapping, Optional, TextIO, Tuple
+from typing import Counter, List, Mapping, Optional, Set, TextIO, Tuple
 
 from dataclasses_json import dataclass_json
 from jinja2 import Environment, FileSystemLoader
 
 from pybel import BELGraph
-from pybel.constants import IDENTIFIER, NAME, RELATION
-from pybel.dsl import BaseEntity
-from pybel.struct.filters import filter_edges
+from pybel.constants import IDENTIFIER, NAME
+from pybel.dsl import BaseAbundance, BaseEntity
+from pybel.struct.graph import WarningTuple
 from pybel.struct.summary import (
     count_functions, count_namespaces, count_relations, count_variants, get_syntax_errors, get_top_hubs,
     get_top_pathologies, get_unused_namespaces,
 )
 from ...analysis.stability import (
-    get_chaotic_pairs, get_chaotic_triplets, get_contradiction_summary, get_dampened_pairs, get_dampened_triplets,
-    get_decrease_mismatch_triplets, get_increase_mismatch_triplets, get_jens_unstable,
+    get_chaotic_pairs, get_contradiction_summary, get_dampened_pairs, get_decrease_mismatch_triplets,
+    get_increase_mismatch_triplets, get_jens_unstable,
     get_mutually_unstable_correlation_triples, get_regulatory_pairs, get_separate_unstable_correlation_triples,
 )
-from ...filters import has_pathology_causal
 from ...summary import (
     count_authors, count_confidences, count_error_types, get_citation_years, get_modifications_count,
     get_most_common_errors, get_naked_names, get_namespaces_with_incorrect_names, get_undefined_annotations,
@@ -39,14 +38,17 @@ __all__ = [
     'to_html',
     'to_html_file',
     'to_html_path',
-    'get_network_summary_dict',
     'prepare_c3',
 ]
 
 log = logging.getLogger(__name__)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-environment = Environment(autoescape=False, loader=FileSystemLoader(HERE), trim_blocks=False)
+environment = Environment(autoescape=True, loader=FileSystemLoader(HERE), trim_blocks=False)
+environment.globals.update(
+    prepare_c3=prepare_c3,
+    prepare_c3_time_series=prepare_c3_time_series,
+)
 
 
 def to_html_path(graph: BELGraph, path: str) -> None:
@@ -70,50 +72,18 @@ def to_html(graph: BELGraph) -> str:
     >>> with open('html_output.html', 'w') as file:
     ...     print(to_html(sialic_acid_graph), file=file)
     """
-    context = get_network_summary_dict(graph)
-    summary_dict = graph.summary_dict()
+    summary = BELGraphSummary.from_graph(graph)
 
-    citation_years = context['citation_years']
-    function_count = context['function_count']
-    relation_count = context['relation_count']
-    error_count = context['error_count']
-    transformations_count = context['modifications_count']
-    hub_data = context['hub_data']
-    disease_data = context['disease_data']
-    authors_count = context['authors_count']
-    variants_count = context['variants_count']
-    namespaces_count = context['namespaces_count']
-    confidence_count = context['confidence_count']
     confidence_data = [
-        (label, confidence_count.get(label, 0))
+        (label, summary.confidence_count.get(label, 0))
         for label in ('None', 'Very Low', 'Low', 'Medium', 'High', 'Very High')
     ]
 
     template = environment.get_template('index.html')
     return template.render(
         graph=graph,
-        # Node Charts
-        chart_1_data=prepare_c3(function_count, 'Node Count'),
-        chart_6_data=prepare_c3(namespaces_count, 'Node Count'),
-        chart_5_data=prepare_c3(variants_count, 'Node Count'),
-        number_variants=sum(variants_count.values()),
-        number_namespaces=len(namespaces_count),
-        # Edge Charts
-        chart_2_data=prepare_c3(relation_count, 'Edge Count'),
-        chart_4_data=prepare_c3(transformations_count, 'Edge Count') if transformations_count else None,
-        number_transformations=sum(transformations_count.values()),
-        # Error Charts
-        chart_3_data=prepare_c3(error_count, 'Error Type') if error_count else None,
-        # Topology Charts
-        chart_7_data=prepare_c3(hub_data, 'Degree'),
-        chart_9_data=prepare_c3(disease_data, 'Degree') if disease_data else None,
-        # Bibliometrics Charts
-        chart_authors_count=prepare_c3(authors_count.most_common(15), 'Edges Contributed'),
-        chart_10_data=prepare_c3_time_series(citation_years, 'Number of Articles') if citation_years else None,
-        chart_confidence_count=prepare_c3(confidence_data, 'Edge Count'),
-        summary_dict=summary_dict,
-        # Everything else :)
-        **context
+        summary=summary,
+        confidence_data=confidence_data,
     )
 
 
@@ -130,8 +100,21 @@ class BELGraphSummary:
     variants_count: Counter[str]
     namespaces_count: Counter[str]
 
+    # Errors
+    undefined_namespaces: Set[str]
+    undefined_annotations: Set[str]
+    namespaces_with_incorrect_names: Set[str]
+    unused_namespaces: Set[str]
+    unused_annotations: Set[str]
+    unused_list_annotation_values: Mapping[str, Set[str]]
+    naked_names: Set[str]
+    error_count: Counter[str]
+    error_groups: List[Tuple[str, str]]
+    syntax_errors: List[WarningTuple]
+
     # Node counters
-    hubs: Counter[BaseEntity]
+    hub_data: Counter[BaseEntity]
+    disease_data: Counter[BaseEntity]
 
     # Node pairs
     regulatory_pairs: SetOfNodePairs
@@ -146,16 +129,33 @@ class BELGraphSummary:
     increase_mismatch_triplets: SetOfNodeTriples
     decrease_mismatch_triplets: SetOfNodeTriples
 
+    # Bibliometrics
+    citation_years: List[Tuple[int, int]]
+    confidence_count: Counter[str]
+
     @staticmethod
     def from_graph(graph: BELGraph) -> BELGraphSummary:
         """Create a summary of the graph."""
         return BELGraphSummary(
+            # Attribute counters
             function_count=count_functions(graph),
             modifications_count=get_modifications_count(graph),
             relation_count=count_relations(graph),
             authors_count=count_authors(graph),
             variants_count=count_variants(graph),
             namespaces_count=count_namespaces(graph),
+            # Errors
+            undefined_namespaces=get_undefined_namespaces(graph),
+            undefined_annotations=get_undefined_annotations(graph),
+            namespaces_with_incorrect_names=get_namespaces_with_incorrect_names(graph),
+            unused_namespaces=get_unused_namespaces(graph),
+            unused_annotations=get_unused_annotations(graph),
+            unused_list_annotation_values=get_unused_list_annotation_values(graph),
+            naked_names=get_naked_names(graph),
+            error_count=count_error_types(graph),
+            error_groups=get_most_common_errors(graph),
+            syntax_errors=get_syntax_errors(graph),
+            # Node pairs
             regulatory_pairs=get_regulatory_pairs(graph),
             chaotic_pairs=get_chaotic_pairs(graph),
             dampened_pairs=get_dampened_pairs(graph),
@@ -165,78 +165,61 @@ class BELGraphSummary:
             jens_unstable=get_jens_unstable(graph),
             increase_mismatch_triplets=get_increase_mismatch_triplets(graph),
             decrease_mismatch_triplets=get_decrease_mismatch_triplets(graph),
+            # Bibliometrics
+            citation_years=get_citation_years(graph),
+            confidence_count=count_confidences(graph),
+            # Random
+            hub_data=collections.Counter({
+                (
+                    node.name or node.identifier
+                    if NAME in node or IDENTIFIER in node else
+                    str(node)
+                ): degree
+                for node, degree in get_top_hubs(graph, n=15)
+                if isinstance(node, BaseAbundance)
+            }),
+            disease_data=collections.Counter({
+                (
+                    node.name or node.identifier
+                    if NAME in node or IDENTIFIER in node else
+                    str(node)
+                ): count
+                for node, count in get_top_pathologies(graph, n=15)
+                if isinstance(node, BaseAbundance)
+            }),
         )
 
 
-def get_network_summary_dict(graph: BELGraph) -> Mapping:
-    """Create a summary dictionary."""
-    summary = BELGraphSummary.from_graph(graph)
-
-    contradictory_triplets = list(itt.chain(
-        (get_triplet_tuple(a, b, c) + ('Separate',) for a, b, c in summary.separate_unstable_correlation_triples),
-        (get_triplet_tuple(a, b, c) + ('Mutual',) for a, b, c in summary.mutually_unstable_correlation_triples),
-        (get_triplet_tuple(a, b, c) + ('Jens',) for a, b, c in summary.jens_unstable),
-        (get_triplet_tuple(a, b, c) + ('Increase Mismatch',) for a, b, c in summary.increase_mismatch_triplets),
-        (get_triplet_tuple(a, b, c) + ('Decrease Mismatch',) for a, b, c in summary.decrease_mismatch_triplets),
-    )),
-
-    regulatory_pairs = [
-        get_pair_tuple(u, v)
-        for u, v in summary.regulatory_pairs
-    ]
-
-    unstable_pairs = list(itt.chain(
-        (get_pair_tuple(u, v) + ('Chaotic',) for u, v in summary.chaotic_pairs),
-        (get_pair_tuple(u, v) + ('Dampened',) for u, v in get_dampened_pairs(graph)),
-    ))
-
-    contradictory_pairs = [
-        get_pair_tuple(u, v) + (relation,)
-        for u, v, relation in summary.contradictory_pairs
-    ]
-
-    rv = dict(
-        undefined_namespaces=get_undefined_namespaces(graph),
-        undefined_annotations=get_undefined_annotations(graph),
-        namespaces_with_incorrect_names=get_namespaces_with_incorrect_names(graph),
-        unused_namespaces=get_unused_namespaces(graph),
-        unused_annotations=get_unused_annotations(graph),
-        unused_list_annotation_values=get_unused_list_annotation_values(graph),
-        naked_names=get_naked_names(graph),
-        error_count=count_error_types(graph),
-        # Errors
-        error_groups=get_most_common_errors(graph),
-        syntax_errors=get_syntax_errors(graph),
-        # Bibliometrics
-        citation_years=get_citation_years(graph),
-        confidence_count=count_confidences(graph),
-
-        causal_pathologies=sorted({
-            get_pair_tuple(u, v) + (graph[u][v][k][RELATION],)
-            for u, v, k in filter_edges(graph, has_pathology_causal)
-        }),
-    )
-
-    rv['hub_data'] = {
-        (
-            node.name or node.identifier
-            if NAME in node or IDENTIFIER in node else
-            str(node)
-        ): degree
-        for node, degree in get_top_hubs(graph, n=15)
-    }
-    rv['disease_data'] = {
-        (
-            node.name or node.identifier
-            if NAME in node or IDENTIFIER in node else
-            str(node)
-        ): count
-        for node, count in get_top_pathologies(graph, n=15)
-    }
-
-    rv.update(summary.to_dict())
-
-    return rv
+# def get_network_summary_dict(graph: BELGraph) -> Mapping:
+#     """Create a summary dictionary."""
+#     summary = BELGraphSummary.from_graph(graph)
+#
+#     contradictory_triplets = list(itt.chain(
+#         (get_triplet_tuple(a, b, c) + ('Separate',) for a, b, c in summary.separate_unstable_correlation_triples),
+#         (get_triplet_tuple(a, b, c) + ('Mutual',) for a, b, c in summary.mutually_unstable_correlation_triples),
+#         (get_triplet_tuple(a, b, c) + ('Jens',) for a, b, c in summary.jens_unstable),
+#         (get_triplet_tuple(a, b, c) + ('Increase Mismatch',) for a, b, c in summary.increase_mismatch_triplets),
+#         (get_triplet_tuple(a, b, c) + ('Decrease Mismatch',) for a, b, c in summary.decrease_mismatch_triplets),
+#     )),
+#
+#     regulatory_pairs = [
+#         get_pair_tuple(u, v)
+#         for u, v in summary.regulatory_pairs
+#     ]
+#
+#     unstable_pairs = list(itt.chain(
+#         (get_pair_tuple(u, v) + ('Chaotic',) for u, v in summary.chaotic_pairs),
+#         (get_pair_tuple(u, v) + ('Dampened',) for u, v in get_dampened_pairs(graph)),
+#     ))
+#
+#     contradictory_pairs = [
+#         get_pair_tuple(u, v) + (relation,)
+#         for u, v, relation in summary.contradictory_pairs
+#     ]
+#
+#     rv.update(summary.to_dict())
+#
+#     return rv
 
 
 BELPairTuple = Tuple[str, str, str, str]

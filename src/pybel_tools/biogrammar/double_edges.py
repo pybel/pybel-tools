@@ -10,6 +10,7 @@ from pybel.constants import (
 )
 from pybel.dsl import BaseEntity, ComplexAbundance, NamedComplexAbundance
 from pybel.struct.filters import edge_predicate, has_protein_modification, part_has_modifier
+from pybel.typing import EdgeData
 
 
 def self_edge_filter(_: BELGraph, source: BaseEntity, target: BaseEntity, __: str) -> bool:
@@ -29,19 +30,19 @@ def has_protein_modification_increases_activity(
 
 
 @edge_predicate
-def has_degradation_increases_activity(data: Dict) -> bool:
+def has_degradation_increases_activity(edge_data: EdgeData) -> bool:
     """Check if the degradation of source causes activity of target."""
-    return part_has_modifier(data, SUBJECT, DEGRADATION) and part_has_modifier(data, OBJECT, ACTIVITY)
+    return part_has_modifier(edge_data, SUBJECT, DEGRADATION) and part_has_modifier(edge_data, OBJECT, ACTIVITY)
 
 
 @edge_predicate
-def has_translocation_increases_activity(data: Dict) -> bool:
+def has_translocation_increases_activity(edge_data: EdgeData) -> bool:
     """Check if the translocation of source causes activity of target."""
-    return part_has_modifier(data, SUBJECT, TRANSLOCATION) and part_has_modifier(data, OBJECT, ACTIVITY)
+    return part_has_modifier(edge_data, SUBJECT, TRANSLOCATION) and part_has_modifier(edge_data, OBJECT, ACTIVITY)
 
 
 def complex_has_member(graph: BELGraph, complex_node: ComplexAbundance, member_node: BaseEntity) -> bool:
-    """Does the given complex contain the member?"""
+    """Check if the given complex contains the member."""
     return any(  # TODO can't you look in the members of the complex object (if it's enumerated)
         v == member_node
         for _, v, data in graph.out_edges(complex_node, data=True)
@@ -59,6 +60,7 @@ def complex_increases_activity(graph: BELGraph, u: BaseEntity, v: BaseEntity, ke
 
 
 def has_same_subject_object(graph: BELGraph, u: BaseEntity, v: BaseEntity, key: str) -> bool:
+    """Check if the edge has the same subject and object modifiers."""
     data = graph[u][v][key]
     return u == v and data.get(SUBJECT) == data.get(OBJECT)
 
@@ -66,8 +68,9 @@ def has_same_subject_object(graph: BELGraph, u: BaseEntity, v: BaseEntity, key: 
 def get_related_causal_out_edges(
         graph: BELGraph,
         node: BaseEntity,
-        edge_data: Dict,
+        edge_data: EdgeData,
 ) -> Iterable[Tuple[BaseEntity, Dict, str]]:
+    """Get downstream nodes whose activity is modulated by the given node."""
     for _, v, data in graph.out_edges(node, data=True):
         if data[RELATION] in CAUSAL_RELATIONS and data.get(SUBJECT) == edge_data:
             yield v, data, graph.edge_to_bel(node, v, data)
@@ -78,12 +81,20 @@ def get_related_ish_causal_out_edges(
         node: BaseEntity,
         modifier: str,
 ) -> Iterable[Tuple[BaseEntity, Dict, str]]:
+    """Get targets and relations to the given node that are modified."""
     for _, v, data in graph.out_edges(node, data=True):
         if data[RELATION] in CAUSAL_RELATIONS and data.get(SUBJECT, {}).get(MODIFIER) == modifier:
             yield v, data, graph.edge_to_bel(node, v, data)
 
 
 def summarize_completeness(graph: BELGraph) -> Mapping[str, List]:
+    """Summarize the completeness of a BEL graph using several categories.
+
+    1. Protein modifications that result in a change in activity
+    2. Degradations that result in a change in activity
+    3. Transloations that result in a change in activity
+    4. Complex formation that results in a change in activity
+    """
     pmod_activity = []
     deg_activity = []
     tloc_activity = []
@@ -224,6 +235,7 @@ def find_activations(graph: BELGraph):
 
 
 def find_related(graph: BELGraph, v: BaseEntity, data):
+    """Find related edges."""
     for bel in sorted({bel for _, _, bel in get_related_causal_out_edges(graph, v, data)}):
         print('* chained - ', bel)
 

@@ -12,6 +12,8 @@ import logging
 from collections import Counter
 from typing import List, Mapping, Optional
 
+from tqdm import tqdm
+
 from pybel import BELGraph, Pipeline
 from pybel.constants import GENE
 from pybel.dsl import BaseEntity, Gene
@@ -19,8 +21,6 @@ from pybel.struct import (
     collapse_all_variants, collapse_to_genes, enrich_protein_and_rna_origins, get_nodes_by_function,
     get_subgraphs_by_annotation,
 )
-from tqdm import tqdm
-
 from ...utils import calculate_betweenness_centality
 
 __all__ = [
@@ -105,7 +105,7 @@ def get_neurommsig_scores_prestratified(
         use_tqdm: bool = False,
         tqdm_kwargs: Optional[Mapping] = None,
 ) -> Mapping[str, float]:
-    """Takes a graph stratification and runs neurommsig on each
+    """Run NeuroMMSig on a graph strata.
 
     :param subgraphs: A pre-stratified set of graphs
     :param genes: A list of gene nodes
@@ -174,9 +174,9 @@ def get_neurommsig_score(
     topology_score = neurommsig_topology(graph, genes)
 
     weighted_sum = (
-            ora_weight * ora_score +
-            hub_weight * hub_score +
-            topology_weight * topology_score
+        ora_weight * ora_score +
+        hub_weight * hub_score +
+        topology_weight * topology_score
     )
 
     return weighted_sum / total_weight
@@ -184,8 +184,8 @@ def get_neurommsig_score(
 
 def neurommsig_gene_ora(graph: BELGraph, genes: List[Gene]) -> float:
     """Calculate the percentage of target genes mappable to the graph.
-    
-    Assume: graph central dogma inferred, collapsed to genes, collapsed variants 
+
+    Assume: graph central dogma inferred, collapsed to genes, collapsed variants
     """
     graph_genes = set(get_nodes_by_function(graph, GENE))
     return len(graph_genes.intersection(genes)) / len(graph_genes)
@@ -193,9 +193,9 @@ def neurommsig_gene_ora(graph: BELGraph, genes: List[Gene]) -> float:
 
 def neurommsig_hubs(graph: BELGraph, genes: List[Gene], top_percent: Optional[float] = None) -> float:
     """Calculate the percentage of target genes mappable to the graph.
-    
+
     Assume: graph central dogma inferred, collapsed to genes, collapsed variants, graph has more than 20 nodes
-    
+
     :param graph: A BEL graph
     :param genes: A list of nodes
     :param top_percent: The percentage of top genes to use as hubs. Defaults to 5% (0.05).
@@ -229,12 +229,10 @@ def neurommsig_hubs(graph: BELGraph, genes: List[Gene], top_percent: Optional[fl
 
 
 def neurommsig_topology(graph: BELGraph, nodes: List[BaseEntity]) -> float:
-    """Calculate the node neighbor score for a given list of nodes.
-    
-    -  Doesn't consider self loops
+    r"""Calculate the node neighbor score for a given list of nodes without considering self-loops.
 
     .. math::
-        
+
          \frac{\sum_i^n N_G[i]}{n*(n-1)}
     """
     nodes = list(nodes)

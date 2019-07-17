@@ -65,8 +65,7 @@ def overlay_type_data(
         overwrite: bool = False,
         impute: Optional[float] = None,
 ) -> None:
-    """Overlay tabular data on the network for data that comes from an data set with identifiers that lack
-    namespaces.
+    """Overlay tabular data on the network using the given namespace.
 
     For example, if you want to overlay differential gene expression data from a table, that table
     probably has HGNC identifiers, but no specific annotations that they are in the HGNC namespace or

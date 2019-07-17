@@ -98,9 +98,9 @@ def prerender(graph: BELGraph) -> Mapping[str, Mapping[str, Any]]:
     hgnc_manager = bio2bel_hgnc.Manager()
     human_genes = (
         hgnc_manager.session
-            .query(HumanGene.symbol, HumanGene.location)
-            .filter(HumanGene.symbol.in_(hgnc_symbols))
-            .all()
+        .query(HumanGene.symbol, HumanGene.location)
+        .filter(HumanGene.symbol.in_(hgnc_symbols))
+        .all()
     )
     for human_gene in human_genes:
         result[human_gene.symbol] = {

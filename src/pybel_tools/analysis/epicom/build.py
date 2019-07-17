@@ -7,7 +7,7 @@ import time
 from typing import Optional
 
 import pybel
-from .algorithm import epicom_on_graph
+from .algorithm import get_drug_scores
 from .models import Score
 
 logger = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ def build_database(manager: pybel.Manager, annotation_url: Optional[str] = None)
     for network in networks:
         graph = network.as_bel()
 
-        scores = epicom_on_graph(graph, dtis)
+        scores = get_drug_scores(graph, dtis)
 
         for (drug_name, subgraph_name), score in scores.items():
             drug_model = get_drug_model(manager, drug_name)

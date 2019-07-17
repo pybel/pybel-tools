@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
+"""Path selection tools."""
+
 import itertools as itt
 from operator import itemgetter
-from typing import List, Mapping, Optional, Tuple, Any
+from typing import Any, List, Mapping, Optional, Tuple
 
 import networkx as nx
 
@@ -75,14 +77,12 @@ def _get_shortest_path_between_subgraphs_helper(
         a: nx.Graph,
         b: nx.Graph,
 ) -> List[List[Any]]:
-    """Calculate the shortest path that occurs between two disconnected subgraphs A and B going through nodes in
-    the source graph
+    """Calculate the shortest path(s) between disconnected sub-graphs ``a`` and ``b`` through ``graph``.
 
     :param graph: A graph
-    :param a: A subgraph of :code:`graph`, disjoint from :code:`b`
-    :param b: A subgraph of :code:`graph`, disjoint from :code:`a`
-    :return: A list of the shortest paths between the two subgraphs
-    :rtype: list
+    :param a: A sub-graph of :code:`graph`, disjoint from :code:`b`
+    :param b: A sub-graph of :code:`graph`, disjoint from :code:`a`
+    :return: A list of the shortest paths between the two sub-graphs
     """
     if graph.is_directed():
         shortest_paths = [
@@ -107,27 +107,24 @@ def _get_shortest_path_between_subgraphs_helper(
     ]
 
 
-def get_shortest_directed_path_between_subgraphs(graph, a, b):
-    """Calculate the shortest path that occurs between two disconnected subgraphs A and B going through nodes in
-    the source graph
+def get_shortest_directed_path_between_subgraphs(graph: BELGraph, a: BELGraph, b: BELGraph) -> List[List[Any]]:
+    """Calculate the shortest path(s) between disconnected sub-graphs ``a`` and ``b`` through ``graph``.
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param pybel.BELGraph a: A subgraph of :code:`graph`, disjoint from :code:`b`
-    :param pybel.BELGraph b: A subgraph of :code:`graph`, disjoint from :code:`a`
-    :return: A list of the shortest paths between the two subgraphs
-    :rtype: list
+    :param graph: A BEL graph
+    :param a: A sub-graph of :code:`graph`, disjoint from :code:`b`
+    :param b: A sub-graph of :code:`graph`, disjoint from :code:`a`
+    :return: A list of the shortest paths between the two sub-graphs
     """
     return _get_shortest_path_between_subgraphs_helper(graph, a, b)
 
 
-def get_shortest_undirected_path_between_subgraphs(graph, a, b):
-    """Get the shortest path between two disconnected subgraphs A and B, disregarding directionality of edges in graph
+def get_shortest_undirected_path_between_subgraphs(graph: BELGraph, a: BELGraph, b: BELGraph) -> List[List[Any]]:
+    """Calculate the undirected shortest path(s) between disconnected sub-graphs ``a`` and ``b`` through ``graph``.
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param pybel.BELGraph a: A subgraph of :code:`graph`, disjoint from :code:`b`
-    :param pybel.BELGraph b: A subgraph of :code:`graph`, disjoint from :code:`a`
-    :return: A list of the shortest paths between the two subgraphs
-    :rtype: list
+    :param graph: A BEL graph
+    :param a: A sub-graph of :code:`graph`, disjoint from :code:`b`
+    :param b: A sub-graph of :code:`graph`, disjoint from :code:`a`
+    :return: A list of the shortest paths between the two sub-graphs
     """
     ug = graph.to_undirected()
     return _get_shortest_path_between_subgraphs_helper(ug, a, b)

@@ -2,10 +2,11 @@
 
 """Functions for adding highlighting tags to nodes and edges in BEL graphs."""
 
-from typing import Iterable, Optional, Tuple
+from typing import Iterable, Optional
 
 from pybel import BELGraph
 from pybel.dsl import BaseEntity
+from pybel.struct.filters.typing import EdgeIterator
 from pybel.struct.pipeline import in_place_transformation, uni_in_place_transformation
 
 __all__ = [
@@ -28,7 +29,11 @@ EDGE_HIGHLIGHT_DEFAULT_COLOR = 'orange'
 
 
 @in_place_transformation
-def highlight_nodes(graph: BELGraph, nodes: Optional[Iterable[BaseEntity]] = None, color: Optional[str] = None):
+def highlight_nodes(
+        graph: BELGraph,
+        nodes: Optional[Iterable[BaseEntity]] = None,
+        color: Optional[str] = None,
+) -> None:
     """Add a highlight tag to the given nodes.
 
     :param graph: A BEL graph
@@ -63,7 +68,7 @@ def remove_highlight_nodes(
 @in_place_transformation
 def highlight_edges(
         graph: BELGraph,
-        edges: Optional[Iterable[Tuple[BaseEntity, BaseEntity, str]]] = None,
+        edges: Optional[EdgeIterator] = None,
         color: Optional[str] = None,
 ) -> None:
     """Add a highlight tag to the given edges.
@@ -87,7 +92,7 @@ def is_edge_highlighted(graph: BELGraph, u: BaseEntity, v: BaseEntity, k: str) -
 @in_place_transformation
 def remove_highlight_edges(
         graph: BELGraph,
-        edges: Optional[Iterable[Tuple[BaseEntity, BaseEntity, str]]] = None,
+        edges: Optional[EdgeIterator] = None,
 ) -> None:
     """Remove the highlight from the given edges, or all edges if none given.
 

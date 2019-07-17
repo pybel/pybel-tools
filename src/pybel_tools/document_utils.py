@@ -7,6 +7,7 @@ from typing import Iterable, Mapping, Optional, Set, TextIO, Union
 from xml.etree import ElementTree
 
 import requests
+
 from bel_resources import make_knowledge_header
 
 __all__ = [

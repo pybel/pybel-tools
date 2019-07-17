@@ -7,27 +7,32 @@
                  BMC Bioinformatics, 14(1), 340.
 """
 
+from collections import defaultdict
+
 import pandas
 import scipy.stats
-from collections import defaultdict
 from scipy.special import binom
 
-from pybel.constants import CAUSAL_INCREASE_RELATIONS, CAUSAL_DECREASE_RELATIONS, RELATION
+from pybel import BELGraph
+from pybel.constants import CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, RELATION
 
 __all__ = [
     'run_rcr',
 ]
 
 
-def point_probability(k, n, l, p=0.5):
+def _point_probability(k, n, l, p=0.5):
     return binom(n - l, k) * p ** k * (1 - p) ** (n - k - l)
 
 
-def concordance(k, n, m, l, p=0.5):
-    return sum(point_probability(j, n, l, p) for j in range(k, min(n - 1, m)))
+def _concordance(k, n, m, l, p=0.5):
+    return sum(
+        _point_probability(j, n, l, p)
+        for j in range(k, min(n - 1, m))
+    )
 
 
-def run_rcr(graph, tag='dgxp'):
+def run_rcr(graph: BELGraph, tag: str = 'dgxp'):
     """Run the reverse causal reasoning algorithm on a graph.
 
     Steps:
@@ -37,11 +42,10 @@ def run_rcr(graph, tag='dgxp'):
 
     .. note:: Assumes all nodes have been pre-tagged with data
 
-    :param pybel.BELGraph graph:
-    :param str tag: The key for the nodes' data dictionaries that corresponds to the integer value for its differential
-                    expression.
+    :param graph: A BEL graph
+    :param tag: The key for the nodes' data dictionaries that corresponds to the integer value for its differential
+     expression.
     """
-
     # Step 1: Calculate the hypothesis subnetworks (just simple star graphs)
     hypotheses = defaultdict(set)
     increases = defaultdict(set)
@@ -77,15 +81,15 @@ def run_rcr(graph, tag='dgxp'):
                 ambiguous[controller] += 1
 
             elif node in increases[controller]:
-                if graph.node[node][tag] == 1:
+                if graph.nodes[node][tag] == 1:
                     correct[controller] += 1
-                elif graph.node[node][tag] == -1:
+                elif graph.nodes[node][tag] == -1:
                     contra[controller] += 1
 
             elif node in decreases[controller]:
-                if graph.node[node][tag] == 1:
+                if graph.nodes[node][tag] == 1:
                     contra[controller] += 1
-                elif graph.node[node][tag] == -1:
+                elif graph.nodes[node][tag] == -1:
                     correct[controller] += 1
 
             else:
@@ -108,17 +112,17 @@ def run_rcr(graph, tag='dgxp'):
     # TODO
 
     # Calculate the population as the union of all downstream nodes for all controllers
-    population = {
-        node
-        for controller in controllers
-        for node in hypotheses[controller]
-    }
-    population_size = len(population)
+    # population = {
+    #     node
+    #     for controller in controllers
+    #     for node in hypotheses[controller]
+    # }
+    # population_size = len(population)
 
     # Step 6: Export
 
     return pandas.DataFrame({
         'contra': contra,
         'correct': correct,
-        'concordance': concordance_scores
+        'concordance': concordance_scores,
     })

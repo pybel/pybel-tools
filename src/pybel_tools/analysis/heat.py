@@ -56,6 +56,7 @@ brain imaging features, whose experiments often measure their correlation with t
        47 (2), 106–14.
 .. [3] Vasilyev, D. M., *et al.* (2014). `An algorithm for score aggregation over causal biological networks based on
        random walk sampling <https://doi.org/10.1186/1756-0500-7-516>`_. BMC Research Notes, 7, 516.
+
 """
 
 from __future__ import annotations
@@ -370,7 +371,9 @@ class Runner:
                 yield node
 
     def get_random_edge(self):
-        """This function should be run when there are no leaves, but there are still unscored nodes. It will introduce
+        """Get a random edge adjacent to an unscored node based on the in/out ratio.
+
+        This function should be run when there are no leaves, but there are still unscored nodes. It will introduce
         a probabilistic element to the algorithm, where some edges are disregarded randomly to eventually get a score
         for the network. This means that the score can be averaged over many runs for a given graph, and a better
         data structure will have to be later developed that doesn't destroy the graph (instead, annotates which edges
@@ -432,7 +435,9 @@ class Runner:
         return leaves
 
     def run(self) -> None:
-        """Calculate scores for all leaves until there are none, removes edges until there are, and repeats until
+        """Calculate scores for all leaves.
+
+        Calculate scores for all leaves until there are none, removes edges until there are, and repeats until
         all nodes have been scored.
         """
         while not self.done_chomping():
@@ -440,7 +445,9 @@ class Runner:
             self.score_leaves()
 
     def run_with_graph_transformation(self) -> Iterable[BELGraph]:
-        """Calculate scores for all leaves until there are none, removes edges until there are, and repeats until
+        """Calculate scores for all leaves while yielding the graph at each step.
+
+        Continues until there are none, removes edges until there are, and repeats until
         all nodes have been scored. Also, yields the current graph at every step so you can make a cool animation
         of how the graph changes throughout the course of the algorithm
 
@@ -455,11 +462,10 @@ class Runner:
             yield self.get_remaining_graph()
 
     def done_chomping(self) -> bool:
-        """Determine if the algorithm is complete by checking if the target node of this analysis has been scored
-        yet. Because the algorithm removes edges when it gets stuck until it is un-stuck, it is always guaranteed to
-        finish.
+        """Determine if the algorithm is complete.
 
-        :return: Is the algorithm done running?
+        Checking if the target node of this analysis has been scored yet. Because the algorithm removes edges when it
+        gets stuck until it is un-stuck, it is always guaranteed to finish.
         """
         return self.tag in self.graph.nodes[self.target_node]
 
@@ -490,7 +496,9 @@ class Runner:
         return score
 
     def get_remaining_graph(self) -> BELGraph:
-        """Allows for introspection on the algorithm at a given point by returning the sub-graph induced
+        """Get the graph induced over unscored nodes.
+
+        Allows for introspection on the algorithm at a given point by returning the sub-graph induced
         by all unscored nodes
 
         :return: The remaining un-scored BEL graph
@@ -621,10 +629,11 @@ def calculate_average_score_by_annotation(
         runs: Optional[int] = None,
         use_tqdm: bool = False,
 ) -> Mapping[str, float]:
-    """For each sub-graph induced over the edges matching the annotation, calculate the average score
-    for all of the contained biological processes
+    """Calculate the average score for all biological processes for each subgraph.
 
-    Assumes you haven't done anything yet
+    Subgraphs are induced over edges matching the annotation.
+
+    Assumes you haven't done anything yet,
 
     1. Generates biological process upstream candidate mechanistic sub-graphs with
        :func:`generate_bioprocess_mechanisms`

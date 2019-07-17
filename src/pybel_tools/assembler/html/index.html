@@ -68,7 +68,7 @@
 
                         <h2>Summary</h2>
                         <dl class="dl-horizontal" style="columns: 2;">
-                            {% for key, value in summary_dict.items() %}
+                            {% for key, value in graph.summary_dict().items() %}
                                 <dt>{{ key }}</dt>
                                 <dd>{{ value }}</dd>
                             {% endfor %}
@@ -86,7 +86,7 @@
                 <div class="row">
                     <div class="col-lg-6 col-md-6" id="chart-node-types"></div>
                     <div class="col-lg-6 col-md-6" id="chart-namespaces"></div>
-                    {% if chart_5_data %}
+                    {% if summary.variants_count %}
                         <div class="col-lg-6 col-md-6" id="chart-variants"></div>
                     {% endif %}
                 </div>
@@ -94,7 +94,7 @@
                 <h3>Edges</h3>
                 <div class="row">
                     <div class="col-lg-6 col-md-6" id="chart-edge-types"></div>
-                    {% if chart_4_data %}
+                    {% if summary.transformations_count %}
                         <div class="col-lg-6 col-md-6" id="chart-transformations"></div>
                     {% endif %}
                 </div>
@@ -102,7 +102,7 @@
                 <h3>Topology</h3>
                 <div class="row">
                     <div class="col-lg-6 col-md-6" id="chart-node-degrees"></div>
-                    {% if chart_9_data %}
+                    {% if summary.disease_data %}
                         <div class="col-lg-6 col-md-6" id="chart-pathology-degrees"></div>
                     {% endif %}
                 </div>
@@ -410,7 +410,7 @@
             bindto: '#chart-node-types',
             data: {
                 x: 'x',
-                columns: {{ chart_1_data|safe}},
+                columns: {{ prepare_c3(summary.function_count, 'Node Count')|safe}},
                 type: 'bar'
             },
             title: {
@@ -438,7 +438,7 @@
             bindto: '#chart-edge-types',
             data: {
                 x: 'x',
-                columns: {{ chart_2_data|safe}},
+                columns: {{ prepare_c3(summary.relation_count, 'Edge Count')|safe}},
                 type: 'bar'
             },
             title: {
@@ -454,67 +454,64 @@
                 show: false
             }
         });
-
-        {% if chart_4_data %}
-            c3.generate({
-                padding: {
-                    top: 15,
-                    left: 100
-                },
-                size: {
-                    height: 350
-                },
-                bindto: '#chart-transformations',
-                data: {
-                    x: 'x',
-                    columns: {{ chart_4_data|safe}},
-                    type: 'bar'
-                },
-                title: {
-                    text: 'Transformations ({{ number_transformations }})'
-                },
-                axis: {
-                    rotated: true,
-                    x: {
-                        type: 'category'
-                    }
-                },
-                legend: {
-                    show: false
+        {% if summary.transformations_count %}
+        c3.generate({
+            padding: {
+                top: 15,
+                left: 100
+            },
+            size: {
+                height: 350
+            },
+            bindto: '#chart-transformations',
+            data: {
+                x: 'x',
+                columns: {{ prepare_c3(summary.transformations_count, 'Edge Count')|safe}},
+                type: 'bar'
+            },
+            title: {
+                text: 'Transformations ({{ summary.transformations_count.values()|sum }})'
+            },
+            axis: {
+                rotated: true,
+                x: {
+                    type: 'category'
                 }
-            });
+            },
+            legend: {
+                show: false
+            }
+        });
         {% endif %}
-
-        {% if chart_5_data %}
-            c3.generate({
-                padding: {
-                    top: 15,
-                    left: 100
-                },
-                size: {
-                    height: 350
-                },
-                bindto: '#chart-variants',
-                data: {
-                    x: 'x',
-                    columns: {{ chart_5_data|safe}},
-                    type: 'bar'
-                },
-                title: {
-                    text: 'Variants ({{ number_variants }})'
-                },
-                axis: {
-                    rotated: true,
-                    x: {
-                        type: 'category'
-                    }
-                },
-                legend: {
-                    show: false
+        {% if summary.variants_count %}
+        c3.generate({
+            padding: {
+                top: 15,
+                left: 100
+            },
+            size: {
+                height: 350
+            },
+            bindto: '#chart-variants',
+            data: {
+                x: 'x',
+                columns: {{ prepare_c3(summary.variants_count, 'Node Count')|safe}},
+                type: 'bar'
+            },
+            title: {
+                text: 'Variants ({{ summary.variants_count.values()|sum }})'
+            },
+            axis: {
+                rotated: true,
+                x: {
+                    type: 'category'
                 }
-            });
+            },
+            legend: {
+                show: false
+            }
+        });
         {% endif %}
-
         c3.generate({
             padding: {
                 top: 15,
@@ -526,11 +523,11 @@
             bindto: '#chart-namespaces',
             data: {
                 x: 'x',
-                columns: {{ chart_6_data|safe}},
+                columns: {{ prepare_c3(summary.namespaces_count, 'Node Count')|safe}},
                 type: 'bar'
             },
             title: {
-                text: 'Namespaces ({{ number_namespaces }})'
+                text: 'Namespaces ({{ summary.namespaces_count|length }})'
             },
             axis: {
                 rotated: true,
@@ -554,7 +551,7 @@
             bindto: '#chart-node-degrees',
             data: {
                 x: 'x',
-                columns: {{ chart_7_data|safe}},
+                columns: {{ prepare_c3(summary.hub_data, 'Degree')|safe}},
                 type: 'bar'
             },
             title: {
@@ -570,65 +567,64 @@
                 show: false
             }
         });
-
-        {% if chart_9_data %}
-            c3.generate({
-                padding: {
-                    top: 15,
-                    left: 100
-                },
-                size: {
-                    height: 350
-                },
-                bindto: '#chart-pathology-degrees',
-                data: {
-                    x: 'x',
-                    columns: {{ chart_9_data|safe}},
-                    type: 'bar'
-                },
-                title: {
-                    text: 'Pathologies'
-                },
-                axis: {
-                    rotated: true,
-                    x: {
-                        type: 'category'
-                    }
-                },
-                legend: {
-                    show: false
+        {% if summary.disease_data %}
+        c3.generate({
+            padding: {
+                top: 15,
+                left: 100
+            },
+            size: {
+                height: 350
+            },
+            bindto: '#chart-pathology-degrees',
+            data: {
+                x: 'x',
+                columns: {{ prepare_c3(summary.disease_data, 'Degree')|safe}},
+                type: 'bar'
+            },
+            title: {
+                text: 'Pathologies'
+            },
+            axis: {
+                rotated: true,
+                x: {
+                    type: 'category'
                 }
-            });
+            },
+            legend: {
+                show: false
+            }
+        });
         {% endif %}
 
-        {% if chart_10_data %}
-            c3.generate({
-                padding: {
-                    top: 15
-                },
-                size: {
-                    height: 350
-                },
-                data: {
-                    x: 'x',
-                    columns: {{ chart_10_data|safe}}
-                },
-                bindto: '#chart-publication-years',
-                axis: {
-                    x: {
-                        type: 'timeseries',
-                        tick: {
-                            format: '%Y'
-                        }
+        {% if summary.citation_years %}
+        c3.generate({
+            padding: {
+                top: 15
+            },
+            size: {
+                height: 350
+            },
+            data: {
+                x: 'x',
+                columns: {{ prepare_c3_time_series(summary.citation_years, 'Number of Articles')|safe}}
+            },
+            bindto: '#chart-publication-years',
+            axis: {
+                x: {
+                    type: 'timeseries',
+                    tick: {
+                        format: '%Y'
                     }
-                },
-                title: {
-                    text: 'Publication Years'
-                },
-                legend: {
-                    show: false
                 }
-            });
+            },
+            title: {
+                text: 'Publication Years'
+            },
+            legend: {
+                show: false
+            }
+        });
         {% endif %}
 
         c3.generate({
@@ -642,7 +638,7 @@
             bindto: '#chart-author-contributions',
             data: {
                 x: 'x',
-                columns: {{ chart_authors_count|safe}},
+                columns: {{ prepare_c3(summary.authors_count.most_common(15), 'Edges Contributed')|safe}},
                 type: 'bar'
             },
             title: {
@@ -659,34 +655,34 @@
             }
         });
 
-        {% if chart_3_data %}
-            c3.generate({
-                padding: {
-                    top: 15,
-                    left: 100
-                },
-                size: {
-                    height: 350
-                },
-                bindto: '#chart3',
-                data: {
-                    x: 'x',
-                    columns: {{ chart_3_data|safe}},
-                    type: 'bar'
-                },
-                title: {
-                    text: 'Warning Types'
-                },
-                axis: {
-                    rotated: true,
-                    x: {
-                        type: 'category'
-                    }
-                },
-                legend: {
-                    show: false
+        {% if summary.error_count %}
+        c3.generate({
+            padding: {
+                top: 15,
+                left: 100
+            },
+            size: {
+                height: 350
+            },
+            bindto: '#chart3',
+            data: {
+                x: 'x',
+                columns: {{ prepare_c3(summary.error_count, 'Error Type')|safe}},
+                type: 'bar'
+            },
+            title: {
+                text: 'Warning Types'
+            },
+            axis: {
+                rotated: true,
+                x: {
+                    type: 'category'
                 }
-            });
+            },
+            legend: {
+                show: false
+            }
+        });
         {% endif %}
 
         c3.generate({
@@ -700,7 +696,7 @@
             bindto: '#chart-confidence-count',
             data: {
                 x: 'x',
-                columns: {{ chart_confidence_count|safe}},
+                columns: {{ prepare_c3(confidence_data, 'Edge Count')|safe}},
                 type: 'bar'
             },
             title: {

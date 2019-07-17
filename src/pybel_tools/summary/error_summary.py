@@ -3,7 +3,7 @@
 """This module contains functions that provide summaries of the errors encountered while parsing a BEL script."""
 
 from collections import Iterable, defaultdict
-from typing import List, Mapping, Optional, Set
+from typing import Counter, List, Mapping, Optional, Set, Tuple
 
 from pybel import BELGraph
 from pybel.constants import ANNOTATIONS
@@ -149,9 +149,14 @@ def group_errors(graph: BELGraph) -> Mapping[str, List[int]]:
     return dict(warning_summary)
 
 
-def get_most_common_errors(graph: BELGraph, n: Optional[int] = 20):
+def count_errors(graph: BELGraph) -> Counter[str]:
+    """Count the errors in the graph."""
+    return count_dict_values(group_errors(graph))
+
+
+def get_most_common_errors(graph: BELGraph, n: Optional[int] = 20) -> List[Tuple[str, int]]:
     """Get the (n) most common errors in a graph."""
-    return count_dict_values(group_errors(graph)).most_common(n)
+    return count_errors(graph).most_common(n)
 
 
 def get_names_including_errors_by_namespace(graph: BELGraph, namespace: str) -> Set[str]:

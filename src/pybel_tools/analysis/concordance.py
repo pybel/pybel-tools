@@ -67,8 +67,14 @@ class ConcordanceResult:
     ambiguous: int
     unassigned: int
 
+    @classmethod
+    def from_iterable(cls, it) -> ConcordanceResult:
+        """Generate a result package from an iterable."""
+        return cls.from_counter(Counter(it))
+
     @staticmethod
     def from_counter(c: Counter) -> ConcordanceResult:
+        """Generate a result package from a given counter."""
         return ConcordanceResult(
             c[Concordance.correct],
             c[Concordance.incorrect],
@@ -82,24 +88,22 @@ def edge_concords(
         u: BaseEntity,
         v: BaseEntity,
         k: str,
-        d: Mapping[str, Any],
         key: str,
         cutoff: Optional[float] = None,
 ) -> Concordance:
-    """
+    """Calculate the concordance of a given edge with the data in the given key.
 
     :param graph: A BEL graph
     :param u:
     :param v:
     :param k:
-    :param d:
     :param key: The node data dictionary key storing the logFC
     :param cutoff: The optional logFC cutoff for significance
     """
     if key not in graph.nodes[u] or key not in graph.nodes[v]:
         return Concordance.unassigned
 
-    relation = d[RELATION]
+    relation = graph[u][v][k][RELATION]
 
     if relation not in (UP | DOWN | {CAUSES_NO_CHANGE}):
         return Concordance.unassigned
@@ -171,7 +175,7 @@ def calculate_concordance_helper(
         key: str,
         cutoff: Optional[float] = None,
 ) -> ConcordanceResult:
-    """Help calculate network-wide concordance
+    """Help calculate network-wide concordance.
 
     Assumes data already annotated with given key
 
@@ -179,16 +183,9 @@ def calculate_concordance_helper(
     :param key: The node data dictionary key storing the logFC
     :param cutoff: The optional logFC cutoff for significance
     """
-    scores = Counter(
-        edge_concords(graph, u, v, k, d, key, cutoff=cutoff)
+    return ConcordanceResult.from_iterable(
+        edge_concords(graph, u, v, k, key, cutoff=cutoff)
         for u, v, k, d in graph.edges(keys=True, data=True)
-    )
-
-    return ConcordanceResult(
-        scores[Concordance.correct],
-        scores[Concordance.incorrect],
-        scores[Concordance.ambiguous],
-        scores[Concordance.unassigned],
     )
 
 

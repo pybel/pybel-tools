@@ -40,7 +40,7 @@ def group_as_sets(pairs: Iterable[Tuple[X, Y]]) -> Mapping[X, Set[Y]]:
     return dict(rv)
 
 
-def group_as_dict(pairs: Iterable[Tuple[X, Y]]) -> Mapping[X, List[Y]]:
+def group_as_lists(pairs: Iterable[Tuple[X, Y]]) -> Mapping[X, List[Y]]:
     """Group elements in the iterable in a dictionary of lists."""
     rv = defaultdict(list)
     for x, y in pairs:
@@ -100,7 +100,7 @@ def min_tanimoto_set_similarity(x: Iterable[X], y: Iterable[X]) -> float:
     :param set x: A set
     :param set y: Another set
     :return: The similarity between
-        """
+    """
     a, b = set(x), set(y)
 
     if not a or not b:
@@ -269,9 +269,8 @@ def get_circulations(elements: T) -> Iterable[T]:
 
 
 def canonical_circulation(elements: T, key: Optional[Callable[[T], bool]] = None) -> T:
-    """Get get a canonical representation of the ordered collection by finding its minimum circulation with the
-    given sort key
+    """Get the canonical representation of the ordered collection.
+
+    Does this by finding its minimum circulation with the given sort key
     """
     return min(get_circulations(elements), key=key)
-
-

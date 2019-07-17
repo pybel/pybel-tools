@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""This module contains functions to help select data from networks"""
+"""Functions to help select data from networks."""
 
 from . import group_nodes, induce_subgraph, metapaths, paths, search, utils
 from .group_nodes import *

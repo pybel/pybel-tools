@@ -14,7 +14,7 @@ __all__ = [
 ]
 
 
-def build_expand_node_neighborhood_by_hash(manager: Manager) -> Callable[[BELGraph, BELGraph, str], None]:
+def build_expand_node_neighborhood_by_hash(manager: Manager) -> Callable[[BELGraph, BELGraph, str], None]:  # noqa: D202
     """Make an expand function that's bound to the manager."""
 
     @uni_in_place_transformation
@@ -26,7 +26,7 @@ def build_expand_node_neighborhood_by_hash(manager: Manager) -> Callable[[BELGra
     return expand_node_neighborhood_by_hash
 
 
-def build_delete_node_by_hash(manager: Manager) -> Callable[[BELGraph, str], None]:
+def build_delete_node_by_hash(manager: Manager) -> Callable[[BELGraph, str], None]:  # noqa: D202
     """Make a delete function that's bound to the manager."""
 
     @in_place_transformation

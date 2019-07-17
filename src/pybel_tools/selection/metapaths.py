@@ -117,11 +117,12 @@ def match_complex_metapath(graph, node, complex_metapath):
     raise NotImplementedError
 
 
-def convert_complex_walk(graph, complex_walk):
-    """Convert a walk into an alternative sequence of BEL functions and BEL relations, starting and ending
-    with a BEL function
+def convert_complex_walk(graph: BELGraph, complex_walk):
+    """Convert a walk into an alternative sequence of BEL functions and BEL relations.
 
-    :param pybel.BELGraph graph: A BEL graph
+     This result is starting and ending with a BEL function
+
+    :param graph: A BEL graph
     :param iter[tuple] complex_walk: An iterable of alternating BEL nodes and relations
     :return: An alternating list of BEL functions and relations of the walk
     :rtype: list[str]

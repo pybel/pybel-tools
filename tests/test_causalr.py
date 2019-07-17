@@ -3,7 +3,7 @@
 """Tests for the CausalR algorithm."""
 
 from pybel.dsl import gene, protein, rna
-from pybel_tools.analysis.causalr.algorithm import rank_causalr_hypothesis, run_cna
+from pybel_tools.analysis.causalr.causalr import rank_causalr_hypothesis, run_cna
 from tests.constants import ExampleNetworkMixin
 
 HGNC = 'HGNC'

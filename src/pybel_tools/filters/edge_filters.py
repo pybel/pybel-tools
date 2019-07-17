@@ -32,17 +32,15 @@ __all__ = [
 def summarize_edge_filter(graph: BELGraph, edge_predicates: EdgePredicates) -> None:
     """Print a summary of the number of edges passing a given set of filters."""
     passed = count_passed_edge_filter(graph, edge_predicates)
-    print('{}/{} edges passed {}'.format(
-        passed, graph.number_of_edges(),
-        (
-            ', '.join(edge_filter.__name__ for edge_filter in edge_predicates)
-            if isinstance(edge_predicates, Iterable) else
-            edge_predicates.__name__
-        )
-    ))
+    e = (
+        ', '.join(edge_filter.__name__ for edge_filter in edge_predicates)
+        if isinstance(edge_predicates, Iterable) else
+        edge_predicates.__name__
+    )
+    print(f'{passed}/{graph.number_of_edges()} edges passed {e}')
 
 
-def build_edge_data_filter(annotations: Mapping, partial_match: bool = True) -> EdgePredicate: # noqa: D202
+def build_edge_data_filter(annotations: Mapping, partial_match: bool = True) -> EdgePredicate:  # noqa: D202
     """Build a filter that keeps edges whose data dictionaries are super-dictionaries to the given dictionary.
 
     :param annotations: The annotation query dict to match
@@ -51,7 +49,7 @@ def build_edge_data_filter(annotations: Mapping, partial_match: bool = True) -> 
 
     @edge_predicate
     def annotation_dict_filter(data: EdgeData) -> bool:
-        """A filter that matches edges with the given dictionary as a sub-dictionary."""
+        """Match edges with the given dictionary as a sub-dictionary."""
         return subdict_matches(data, annotations, partial_match=partial_match)
 
     return annotation_dict_filter
@@ -59,13 +57,13 @@ def build_edge_data_filter(annotations: Mapping, partial_match: bool = True) -> 
 
 def build_pmid_inclusion_filter(pmids: Strings) -> EdgePredicate:
     """Pass for edges with citations whose references are one of the given PubMed identifiers.
-    
+
     :param pmids: A PubMed identifier or list of PubMed identifiers to filter for
     """
     if isinstance(pmids, str):
         @edge_predicate
         def pmid_inclusion_filter(data: EdgeData) -> bool:
-            """Only passes for edges with PubMed citations matching the contained PubMed identifier
+            """Pass only for edges with PubMed citations matching the contained PubMed identifier.
 
             :return: If the edge has a PubMed citation with the contained PubMed identifier
             """
@@ -122,7 +120,7 @@ def build_pmid_exclusion_filter(pmids: Strings) -> EdgePredicate:
 
 def build_author_inclusion_filter(authors: Strings) -> EdgePredicate:
     """Pass only for edges with author information that matches one of the given authors.
-    
+
     :param authors: The author or list of authors to filter by
     """
     if isinstance(authors, str):
@@ -188,7 +186,7 @@ def build_source_namespace_filter(namespaces: Strings) -> EdgePredicate:
 
 
 def build_target_namespace_filter(namespaces: Strings) -> EdgePredicate:
-    """Only passes for edges whose target nodes have the given namespace or one of the given namespaces
+    """Only passes for edges whose target nodes have the given namespace or one of the given namespaces.
 
     :param namespaces: The namespace or namespaces to filter by
     """

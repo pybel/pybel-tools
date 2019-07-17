@@ -4,7 +4,7 @@
 
 import itertools as itt
 import logging
-from typing import Iterable, Mapping, Set, Tuple
+from typing import Iterable, List, Mapping, Set, Tuple
 
 from networkx import DiGraph, Graph
 
@@ -42,23 +42,20 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
-def get_contradiction_summary(graph: BELGraph) -> Set[Tuple[BaseEntity, BaseEntity, str]]:
-    """Yield triplets of (source node, target node, set of relations) for (source node, target node) pairs
-    that have multiple, contradictory relations.
-    """
+def get_contradiction_summary(graph: BELGraph) -> Set[Tuple[BaseEntity, BaseEntity, Tuple[str]]]:
+    """Yield triplets of source, target, relations when there are contradictions."""
     return set(_iterate_contradictions(graph))
 
 
-def _iterate_contradictions(graph) -> Iterable[Tuple[BaseEntity, BaseEntity, str]]:
+def _iterate_contradictions(graph) -> Iterable[Tuple[BaseEntity, BaseEntity, Tuple[str]]]:
     for u, v in set(graph.edges()):
-        relations = {data[RELATION] for data in graph[u][v].values()}
+        relations = tuple(sorted({data[RELATION] for data in graph[u][v].values()}))
         if relation_set_has_contradictions(relations):
             yield u, v, relations
 
 
 def get_regulatory_pairs(graph: BELGraph) -> SetOfNodePairs:
-    """Find pairs of nodes that have mutual causal edges that are regulating each other such that ``A -> B`` and
-    ``B -| A``.
+    """Find pairs of nodes such that ``A -> B`` and ``B -| A``.
 
     :return: A set of pairs of nodes with mutual causal edges
     """
@@ -77,8 +74,7 @@ def get_regulatory_pairs(graph: BELGraph) -> SetOfNodePairs:
 
 
 def get_chaotic_pairs(graph: BELGraph) -> SetOfNodePairs:
-    """Find pairs of nodes that have mutual causal edges that are increasing each other such that ``A -> B`` and
-    ``B -> A``.
+    """Find pairs of nodes of nodes such that ``A -> B`` and ``B -> A``.
 
     :return: A set of pairs of nodes with mutual causal edges
     """
@@ -97,8 +93,7 @@ def get_chaotic_pairs(graph: BELGraph) -> SetOfNodePairs:
 
 
 def get_dampened_pairs(graph: BELGraph) -> SetOfNodePairs:
-    """Find pairs of nodes that have mutual causal edges that are decreasing each other such that ``A -| B`` and
-    ``B -| A``.
+    """Find pairs of nodes such that ``A -| B`` and ``B -| A``.
 
     :return: A set of pairs of nodes with mutual causal edges
     """
@@ -108,9 +103,9 @@ def get_dampened_pairs(graph: BELGraph) -> SetOfNodePairs:
 
     for u, v, d in cg.edges(data=True):
         if (
-                d[RELATION] in CAUSAL_DECREASE_RELATIONS
-                and cg.has_edge(v, u)
-                and any(dd[RELATION] in CAUSAL_DECREASE_RELATIONS for dd in cg[v][u].values())
+            d[RELATION] in CAUSAL_DECREASE_RELATIONS and
+            cg.has_edge(v, u) and
+            any(dd[RELATION] in CAUSAL_DECREASE_RELATIONS for dd in cg[v][u].values())
         ):
             results.add(tuple(sorted([u, v], key=str)))
 
@@ -291,16 +286,12 @@ def _iterate_mismatch_triplets(graph: BELGraph, relation_set: Set[str]) -> Itera
 
 
 def get_chaotic_triplets(graph: BELGraph) -> SetOfNodeTriples:
-    """Yield triples of nodes (A, B, C) that mutually increase each other, such as when ``A -> B``, ``B -> C``, and
-    ``C -> A``.
-    """
+    """Yield triples of nodes (A, B, C) such that ``A -> B``, ``B -> C``, and ``C -> A``."""
     return set(_iterate_disregulated_triplets(graph, CAUSAL_INCREASE_RELATIONS))
 
 
 def get_dampened_triplets(graph: BELGraph) -> SetOfNodeTriples:
-    """Yield triples of nodes (A, B, C) that mutually decreases each other, such as when ``A -| B``,
-    ``B -| C``, and ``C -| A``.
-    """
+    """Yield triples of nodes (A, B, C) such that ``A -| B``, ``B -| C``, and ``C -| A``."""
     return set(_iterate_disregulated_triplets(graph, CAUSAL_DECREASE_RELATIONS))
 
 
