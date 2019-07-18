@@ -46,7 +46,7 @@ def list_abundance_expansion(graph: BELGraph) -> None:
 
 def list_abundance_cartesian_expansion(graph: BELGraph) -> None:
     """Expand all list abundances to simple subject-predicate-object networks."""
-    for u, v, k, d in list(graph.edges(keys=True, data=True)):
+    for u, v, d in list(graph.edges(data=True)):
         if CITATION not in d:
             continue
 
@@ -89,7 +89,7 @@ def _reaction_cartesion_expansion_unqualified_helper(
         v: BaseEntity,
         d: dict,
 ) -> None:
-    """Help deal with cartension expansion in unqualified edges."""
+    """Help deal with cartesian expansion in unqualified edges."""
     if isinstance(u, Reaction) and isinstance(v, Reaction):
         enzymes = _get_catalysts_in_reaction(u) | _get_catalysts_in_reaction(v)
 
@@ -111,11 +111,9 @@ def _reaction_cartesion_expansion_unqualified_helper(
             )
 
     elif isinstance(u, Reaction):
-
         enzymes = _get_catalysts_in_reaction(u)
 
         for product in u.products:
-
             # Skip create increases edges between enzymes
             if product in enzymes:
                 continue
@@ -132,11 +130,9 @@ def _reaction_cartesion_expansion_unqualified_helper(
                 )
 
     elif isinstance(v, Reaction):
-
         enzymes = _get_catalysts_in_reaction(v)
 
         for reactant in v.reactants:
-
             # Skip create increases edges between enzymes
             if reactant in enzymes:
                 continue

@@ -31,7 +31,7 @@ __all__ = [
     'get_translocated',
     'count_top_centrality',
     'count_top_degrees',
-    'get_modifications_count',
+    'count_modifications',
     'get_node_citations',
 ]
 
@@ -132,7 +132,7 @@ def count_top_centrality(graph: BELGraph, number: Optional[int] = 30) -> Mapping
     return dict(dc.most_common(number))
 
 
-def get_modifications_count(graph: BELGraph) -> Mapping[str, int]:
+def count_modifications(graph: BELGraph) -> Mapping[str, int]:
     """Get a modifications count dictionary."""
     return remove_falsy_values({
         'Translocations': len(get_translocated(graph)),

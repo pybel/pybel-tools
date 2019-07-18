@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""This module contains functions to compare generated subgraphs to canonical subgraphs."""
+"""This module contains functions to compare generated sub-graphs to canonical sub-graphs."""
 
 from typing import Any, Mapping
 

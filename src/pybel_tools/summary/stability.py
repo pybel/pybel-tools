@@ -4,7 +4,7 @@
 
 import itertools as itt
 import logging
-from typing import Iterable, List, Mapping, Set, Tuple
+from typing import Iterable, Mapping, Set, Tuple
 
 from networkx import DiGraph, Graph
 
@@ -15,8 +15,8 @@ from pybel.constants import (
 )
 from pybel.dsl import BaseEntity
 from pybel.struct.utils import update_node_helper
+from .contradictions import relation_set_has_contradictions
 from ..selection import get_causal_subgraph
-from ..summary.contradictions import relation_set_has_contradictions
 from ..typing import NodeTriple, SetOfNodePairs, SetOfNodeTriples
 
 __all__ = [
