@@ -20,8 +20,8 @@ from pybel.constants import (
     IS_A, NEGATIVE_CORRELATION, POSITIVE_CORRELATION, PROGONSTIC_BIOMARKER_FOR, RATE_LIMITING_STEP_OF, REGULATES,
     RELATION, SUBPROCESS_OF, TRANSCRIBED_TO, TRANSLATED_TO,
 )
-from ...summary.contradictions import pair_has_contradiction
-from ...utils import pairwise
+from ..summary.contradictions import pair_has_contradiction
+from ..utils import pairwise
 
 log = logging.getLogger(__name__)
 
