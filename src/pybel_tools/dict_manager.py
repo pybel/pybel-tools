@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from typing import Iterable, List, Optional
 
 from pybel import BELGraph, Manager
-from pybel.manager.models import Network
 
 
 @dataclass

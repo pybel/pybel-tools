@@ -9,7 +9,7 @@ import logging
 from collections import Counter
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, List, Mapping, Optional, Tuple
+from typing import List, Mapping, Optional, Tuple
 
 from pybel import BELGraph, BaseEntity
 from pybel.constants import (

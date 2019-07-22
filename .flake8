@@ -6,12 +6,6 @@
 
 [flake8]
 ignore =
-    # max line length
-    E501
-    F401
-    # star imports
-    F403
-    F405
     # docstring in magic method
     D105
     # Line break after operator

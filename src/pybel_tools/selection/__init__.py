@@ -2,19 +2,9 @@
 
 """Functions to help select data from networks."""
 
-from . import group_nodes, induce_subgraph, metapaths, paths, search, utils
-from .group_nodes import *
-from .induce_subgraph import *
-from .metapaths import *
-from .paths import *
-from .search import *
-from .utils import *
-
-__all__ = (
-    group_nodes.__all__ +
-    induce_subgraph.__all__ +
-    utils.__all__ +
-    paths.__all__ +
-    search.__all__ +
-    metapaths.__all__
-)
+from .group_nodes import *  # noqa: F401,F403
+from .induce_subgraph import *  # noqa: F401,F403
+from .metapaths import *  # noqa: F401,F403
+from .paths import *  # noqa: F401,F403
+from .search import *  # noqa: F401,F403
+from .utils import *  # noqa: F401,F403

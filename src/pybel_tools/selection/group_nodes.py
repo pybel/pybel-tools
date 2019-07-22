@@ -3,11 +3,10 @@
 """Node grouping utilities."""
 
 from collections import defaultdict
-from typing import Callable, Iterable, List, Mapping, Set, TypeVar
+from typing import Callable, Iterable, List, Mapping, Optional, Set, TypeVar
 
-from pybel import BELGraph
-from pybel.constants import *
-from pybel.dsl import BaseEntity
+from pybel import BELGraph, BaseEntity
+from pybel.constants import ANNOTATIONS, HAS_COMPONENT, HAS_MEMBER, HAS_VARIANT, NAME, NAMESPACE, ORTHOLOGOUS, RELATION
 from pybel.struct.filters.edge_predicates import edge_has_annotation
 from pybel.struct.filters.node_filters import concatenate_node_predicates
 from pybel.struct.filters.typing import NodePredicates
@@ -98,7 +97,11 @@ def get_mapped_nodes(
         namespace: str,
         names: Iterable[str],
 ) -> Mapping[BaseEntity, Set[BaseEntity]]:
-    """Return a dict with keys: nodes that match the namespace and in names and values other nodes (complexes, variants, orthologous...) or this node.
+    """Get the nodes mapped to this node's concept.
+
+    Returns a dict with keys: nodes that match the namespace and in
+    names and values other nodes (complexes, variants, orthologous...)
+    or this node.
 
     :param graph: A BEL graph
     :param namespace: The namespace to search
