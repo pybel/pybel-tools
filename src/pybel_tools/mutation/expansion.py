@@ -6,12 +6,12 @@ import itertools as itt
 import logging
 import typing
 from collections import Counter, defaultdict
-from typing import Collection, Iterable, Optional, Tuple, Union
+from typing import Collection, Iterable, Optional, Tuple
 
 from pybel import BELGraph
-from pybel.constants import ANNOTATIONS, GENE, MIRNA, PROTEIN, RELATION, RNA
-from pybel.dsl import BaseEntity, ComplexAbundance, CompositeAbundance, Reaction
-from pybel.struct.filters import and_edge_predicates, concatenate_node_predicates, get_nodes_by_function
+from pybel.constants import ANNOTATIONS, RELATION
+from pybel.dsl import BaseEntity, CentralDogma, ComplexAbundance, CompositeAbundance, Reaction
+from pybel.struct.filters import and_edge_predicates, concatenate_node_predicates
 from pybel.struct.filters.edge_predicates import edge_has_annotation, is_causal_relation
 from pybel.struct.filters.node_predicates import keep_node_permissive
 from pybel.struct.filters.typing import EdgeIterator, EdgePredicates, NodePredicates
@@ -221,7 +221,7 @@ def expand_periphery(
 @uni_in_place_transformation
 def enrich_complexes(graph: BELGraph) -> None:
     """Add all of the members of the complex abundances to the graph."""
-    for u in graph:
+    for u in list(graph):
         if not isinstance(u, ComplexAbundance):
             continue
         for v in u.members:
@@ -231,7 +231,7 @@ def enrich_complexes(graph: BELGraph) -> None:
 @uni_in_place_transformation
 def enrich_composites(graph: BELGraph) -> None:
     """Add all of the members of the composite abundances to the graph."""
-    for u in graph:
+    for u in list(graph):
         if not isinstance(u, CompositeAbundance):
             continue
         for v in u.members:
@@ -241,7 +241,7 @@ def enrich_composites(graph: BELGraph) -> None:
 @uni_in_place_transformation
 def enrich_reactions(graph: BELGraph) -> None:
     """Add all of the reactants and products of reactions to the graph."""
-    for u in graph:
+    for u in list(graph):
         if not isinstance(u, Reaction):
             continue
         for v in u.reactants:
@@ -251,20 +251,13 @@ def enrich_reactions(graph: BELGraph) -> None:
 
 
 @uni_in_place_transformation
-def enrich_variants(graph: BELGraph, func: Union[None, str, Iterable[str]] = None) -> None:
-    """Add the reference nodes for all variants of the given function.
+def enrich_variants(graph: BELGraph) -> None:
+    """Add the reference nodes for all variants of the given function."""
+    for u in list(graph):
+        if not isinstance(u, CentralDogma):
+            continue
 
-    :param graph: The target BEL graph to enrich
-    :param func: The function by which the subject of each triple is filtered. Defaults to the set of protein, rna,
-     mirna, and gene.
-    """
-    if func is None:
-        func = {PROTEIN, RNA, MIRNA, GENE}
-
-    nodes = list(get_nodes_by_function(graph, func))
-    for u in nodes:
         parent = u.get_parent()
-
         if parent is None:
             continue
 
