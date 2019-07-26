@@ -482,14 +482,41 @@ def reify_edge(
     logging.warning(f"  with edge data {edge_data}")
 
 
+def collapse_to_gene(entity: BaseEntity) -> BaseEntity:
+    """Collapse all protein, RNA, and miRNA nodes to their corresponding gene nodes.
+
+    :param entity:
+    :return:
+    """
+    if isinstance(entity, protein):
+        entity = entity.get_rna()
+    if isinstance(entity, (mirna, rna)):
+        entity = entity.get_gene()
+    if isinstance(entity, gene):
+        if 'variants' in entity:
+            del entity['variants']
+    return entity
+
+
 def reify_bel_graph(bel_graph: BELGraph, collapse: str = None) -> nx.DiGraph:
     """Generate a new graph with reified edges."""
     reified_graph = nx.DiGraph()
 
-    reified_edges = map(reify_edge, bel_graph.edges(keys=True, data=True))
+    def map_helper(edge: Tuple) -> Optional[Tuple[BaseEntity, str, bool, bool, BaseEntity]]:
+        """Helper for the map function."""
+        return reify_edge(edge[0], edge[1], edge[2], edge[3])
+
+    reified_edges = map(map_helper, bel_graph.edges(keys=True, data=True))
     reified_edges = filter(None, reified_edges)
 
     for i, (source, reif_edge_label, positive, negative, target) in enumerate(reified_edges):
+        if collapse == 'variants':
+            for entity in [source, target]:
+                if 'variants' in entity:
+                    del entity['variants']
+        elif collapse == 'genes':
+            source = collapse_to_gene(source)
+            target = collapse_to_gene(target)
         reified_graph.add_node(i, label=reif_edge_label, causal=(positive, negative))
         reified_graph.add_edge(source, i, label=REIF_SUBJECT)
         reified_graph.add_edge(target, i, label=REIF_OBJECT)
