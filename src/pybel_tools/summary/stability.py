@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
+"""Functions for assessing the stability of a network."""
+
+import itertools as itt
 import logging
 from typing import Iterable, Mapping, Set, Tuple
 
-import itertools as itt
 from networkx import DiGraph, Graph
 
 from pybel import BELGraph
@@ -13,8 +15,9 @@ from pybel.constants import (
 )
 from pybel.dsl import BaseEntity
 from pybel.struct.utils import update_node_helper
+from .contradictions import relation_set_has_contradictions
 from ..selection import get_causal_subgraph
-from ..summary.contradictions import relation_set_has_contradictions
+from ..typing import NodeTriple, SetOfNodePairs, SetOfNodeTriples
 
 __all__ = [
     'get_contradiction_summary',
@@ -36,28 +39,23 @@ __all__ = [
     'summarize_stability',
 ]
 
-log = logging.getLogger(__name__)
-
-NodePair = Tuple[BaseEntity, BaseEntity]
-NodeTriple = Tuple[BaseEntity, BaseEntity, BaseEntity]
-
-SetOfNodePairs = Set[NodePair]
-SetOfNodeTriples = Set[NodeTriple]
+logger = logging.getLogger(__name__)
 
 
-def get_contradiction_summary(graph: BELGraph) -> Iterable[Tuple[BaseEntity, BaseEntity, str]]:
-    """Yield triplets of (source node, target node, set of relations) for (source node, target node) pairs
-    that have multiple, contradictory relations.
-    """
+def get_contradiction_summary(graph: BELGraph) -> Set[Tuple[BaseEntity, BaseEntity, Tuple[str]]]:
+    """Yield triplets of source, target, relations when there are contradictions."""
+    return set(_iterate_contradictions(graph))
+
+
+def _iterate_contradictions(graph) -> Iterable[Tuple[BaseEntity, BaseEntity, Tuple[str]]]:
     for u, v in set(graph.edges()):
-        relations = {data[RELATION] for data in graph[u][v].values()}
+        relations = tuple(sorted({data[RELATION] for data in graph[u][v].values()}))
         if relation_set_has_contradictions(relations):
             yield u, v, relations
 
 
-def get_regulatory_pairs(graph: BELGraph) -> Set[NodePair]:
-    """Find pairs of nodes that have mutual causal edges that are regulating each other such that ``A -> B`` and
-    ``B -| A``.
+def get_regulatory_pairs(graph: BELGraph) -> SetOfNodePairs:
+    """Find pairs of nodes such that ``A -> B`` and ``B -| A``.
 
     :return: A set of pairs of nodes with mutual causal edges
     """
@@ -76,8 +74,7 @@ def get_regulatory_pairs(graph: BELGraph) -> Set[NodePair]:
 
 
 def get_chaotic_pairs(graph: BELGraph) -> SetOfNodePairs:
-    """Find pairs of nodes that have mutual causal edges that are increasing each other such that ``A -> B`` and
-    ``B -> A``.
+    """Find pairs of nodes of nodes such that ``A -> B`` and ``B -> A``.
 
     :return: A set of pairs of nodes with mutual causal edges
     """
@@ -96,8 +93,7 @@ def get_chaotic_pairs(graph: BELGraph) -> SetOfNodePairs:
 
 
 def get_dampened_pairs(graph: BELGraph) -> SetOfNodePairs:
-    """Find pairs of nodes that have mutual causal edges that are decreasing each other such that ``A -| B`` and
-    ``B -| A``.
+    """Find pairs of nodes such that ``A -| B`` and ``B -| A``.
 
     :return: A set of pairs of nodes with mutual causal edges
     """
@@ -106,10 +102,11 @@ def get_dampened_pairs(graph: BELGraph) -> SetOfNodePairs:
     results = set()
 
     for u, v, d in cg.edges(data=True):
-        if d[RELATION] not in CAUSAL_DECREASE_RELATIONS:
-            continue
-
-        if cg.has_edge(v, u) and any(dd[RELATION] in CAUSAL_DECREASE_RELATIONS for dd in cg[v][u].values()):
+        if (
+            d[RELATION] in CAUSAL_DECREASE_RELATIONS and
+            cg.has_edge(v, u) and
+            any(dd[RELATION] in CAUSAL_DECREASE_RELATIONS for dd in cg[v][u].values())
+        ):
             results.add(tuple(sorted([u, v], key=str)))
 
     return results
@@ -127,7 +124,7 @@ def get_correlation_graph(graph: BELGraph) -> Graph:
             result.add_edge(u, v, **{d[RELATION]: True})
 
         elif d[RELATION] not in result[u][v]:
-            log.log(5, 'broken correlation relation for %s, %s', u, v)
+            logger.log(5, 'broken correlation relation for %s, %s', u, v)
             result[u][v][d[RELATION]] = True
             result[v][u][d[RELATION]] = True
 
@@ -157,13 +154,16 @@ def get_triangles(graph: DiGraph) -> SetOfNodeTriples:
     }
 
 
-def get_separate_unstable_correlation_triples(graph: BELGraph) -> Iterable[NodeTriple]:
+def get_separate_unstable_correlation_triples(graph: BELGraph) -> SetOfNodeTriples:
     """Yield all triples of nodes A, B, C such that ``A pos B``, ``A pos C``, and ``B neg C``.
 
     :return: An iterator over triples of unstable graphs, where the second two are negative
     """
     cg = get_correlation_graph(graph)
+    return set(_iterate_separate_unstable_correlation_triples(cg))
 
+
+def _iterate_separate_unstable_correlation_triples(cg) -> Iterable[NodeTriple]:
     for a, b, c in get_correlation_triangles(cg):
         if POSITIVE_CORRELATION in cg[a][b] and POSITIVE_CORRELATION in cg[b][c] and NEGATIVE_CORRELATION in \
                 cg[a][c]:
@@ -176,10 +176,13 @@ def get_separate_unstable_correlation_triples(graph: BELGraph) -> Iterable[NodeT
             yield c, a, b
 
 
-def get_mutually_unstable_correlation_triples(graph: BELGraph) -> Iterable[NodeTriple]:
+def get_mutually_unstable_correlation_triples(graph: BELGraph) -> SetOfNodeTriples:
     """Yield triples of nodes (A, B, C) such that ``A neg B``, ``B neg C``, and ``C neg A``."""
     cg = get_correlation_graph(graph)
+    return set(_iterate_mutually_unstable_correlation_triples(cg))
 
+
+def _iterate_mutually_unstable_correlation_triples(cg) -> Iterable[NodeTriple]:
     for a, b, c in get_correlation_triangles(cg):
         if all(NEGATIVE_CORRELATION in x for x in (cg[a][b], cg[b][c], cg[a][c])):
             yield a, b, c
@@ -247,7 +250,7 @@ def jens_transformation_beta(graph: BELGraph) -> DiGraph:
     return result
 
 
-def get_jens_unstable(graph: BELGraph) -> Iterable[NodeTriple]:
+def get_jens_unstable(graph: BELGraph) -> SetOfNodeTriples:
     """Yield triples of nodes (A, B, C) where ``A -> B``, ``A -| C``, and ``C positiveCorrelation A``.
 
     Calculated efficiently using the Jens Transformation.
@@ -256,7 +259,17 @@ def get_jens_unstable(graph: BELGraph) -> Iterable[NodeTriple]:
     return get_triangles(r)
 
 
-def _get_mismatch_triplets_helper(graph: BELGraph, relation_set: Set[str]) -> Iterable[NodeTriple]:
+def get_increase_mismatch_triplets(graph: BELGraph) -> SetOfNodeTriples:
+    """Yield triples of nodes (A, B, C) where ``A -> B``, ``A -> C``, and ``C negativeCorrelation A``."""
+    return set(_iterate_mismatch_triplets(graph, CAUSAL_INCREASE_RELATIONS))
+
+
+def get_decrease_mismatch_triplets(graph: BELGraph) -> SetOfNodeTriples:
+    """Yield triples of nodes (A, B, C) where ``A -| B``, ``A -| C``, and ``C negativeCorrelation A``."""
+    return set(_iterate_mismatch_triplets(graph, CAUSAL_DECREASE_RELATIONS))
+
+
+def _iterate_mismatch_triplets(graph: BELGraph, relation_set: Set[str]) -> Iterable[NodeTriple]:
     for node in graph:
         children = {
             target
@@ -272,17 +285,17 @@ def _get_mismatch_triplets_helper(graph: BELGraph, relation_set: Set[str]) -> It
                 yield node, a, b
 
 
-def get_increase_mismatch_triplets(graph: BELGraph) -> Iterable[NodeTriple]:
-    """Yield triples of nodes (A, B, C) where ``A -> B``, ``A -> C``, and ``C negativeCorrelation A``."""
-    return _get_mismatch_triplets_helper(graph, CAUSAL_INCREASE_RELATIONS)
+def get_chaotic_triplets(graph: BELGraph) -> SetOfNodeTriples:
+    """Yield triples of nodes (A, B, C) such that ``A -> B``, ``B -> C``, and ``C -> A``."""
+    return set(_iterate_disregulated_triplets(graph, CAUSAL_INCREASE_RELATIONS))
 
 
-def get_decrease_mismatch_triplets(graph: BELGraph) -> Iterable[NodeTriple]:
-    """Yield triples of nodes (A, B, C) where ``A -| B``, ``A -| C``, and ``C negativeCorrelation A``."""
-    return _get_mismatch_triplets_helper(graph, CAUSAL_DECREASE_RELATIONS)
+def get_dampened_triplets(graph: BELGraph) -> SetOfNodeTriples:
+    """Yield triples of nodes (A, B, C) such that ``A -| B``, ``B -| C``, and ``C -| A``."""
+    return set(_iterate_disregulated_triplets(graph, CAUSAL_DECREASE_RELATIONS))
 
 
-def _get_disregulated_triplets_helper(graph: BELGraph, relation_set: Set[str]) -> Iterable[NodeTriple]:
+def _iterate_disregulated_triplets(graph: BELGraph, relation_set: Set[str]) -> Iterable[NodeTriple]:
     result = DiGraph()
 
     for u, v, d in graph.edges(data=True):
@@ -297,26 +310,12 @@ def _get_disregulated_triplets_helper(graph: BELGraph, relation_set: Set[str]) -
         yield a, b, c
 
 
-def get_chaotic_triplets(graph: BELGraph) -> Iterable[NodeTriple]:
-    """Yield triples of nodes (A, B, C) that mutually increase each other, such as when ``A -> B``, ``B -> C``, and
-    ``C -> A``.
-    """
-    return _get_disregulated_triplets_helper(graph, CAUSAL_INCREASE_RELATIONS)
-
-
-def get_dampened_triplets(graph: BELGraph) -> Iterable[NodeTriple]:
-    """Yield triples of nodes (A, B, C) that mutually decreases each other, such as when ``A -| B``,
-    ``B -| C``, and ``C -| A``.
-    """
-    return _get_disregulated_triplets_helper(graph, CAUSAL_DECREASE_RELATIONS)
-
-
 def summarize_stability(graph: BELGraph) -> Mapping[str, int]:
     """Summarize the stability of the graph."""
     regulatory_pairs = get_regulatory_pairs(graph)
     chaotic_pairs = get_chaotic_pairs(graph)
     dampened_pairs = get_dampened_pairs(graph)
-    contraditory_pairs = get_contradiction_summary(graph)
+    contradictory_pairs = get_contradiction_summary(graph)
     separately_unstable_triples = get_separate_unstable_correlation_triples(graph)
     mutually_unstable_triples = get_mutually_unstable_correlation_triples(graph)
     jens_unstable_triples = get_jens_unstable(graph)
@@ -329,7 +328,7 @@ def summarize_stability(graph: BELGraph) -> Mapping[str, int]:
         'Regulatory Pairs': _count_or_len(regulatory_pairs),
         'Chaotic Pairs': _count_or_len(chaotic_pairs),
         'Dampened Pairs': _count_or_len(dampened_pairs),
-        'Contradictory Pairs': _count_or_len(contraditory_pairs),
+        'Contradictory Pairs': _count_or_len(contradictory_pairs),
         'Separately Unstable Triples': _count_or_len(separately_unstable_triples),
         'Mutually Unstable Triples': _count_or_len(mutually_unstable_triples),
         'Jens Unstable Triples': _count_or_len(jens_unstable_triples),

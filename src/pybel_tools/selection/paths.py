@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 
+"""Path selection tools."""
+
 import itertools as itt
 from operator import itemgetter
+from typing import Any, List, Mapping, Optional, Tuple
 
 import networkx as nx
 
+from pybel import BELGraph, BaseEntity
 from pybel.constants import (
     ANALOGOUS_TO, ASSOCIATION, BIOMARKER_FOR, CAUSES_NO_CHANGE, DECREASES, DIRECTLY_DECREASES, DIRECTLY_INCREASES,
     EQUIVALENT_TO, HAS_COMPONENT, HAS_MEMBER, HAS_PRODUCT, HAS_REACTANT, HAS_VARIANT, INCREASES, IS_A,
@@ -12,6 +16,7 @@ from pybel.constants import (
     SUBPROCESS_OF, TRANSCRIBED_TO, TRANSLATED_TO,
 )
 from pybel.struct.mutation import get_nodes_in_all_shortest_paths
+from ..utils import pairwise
 
 __all__ = [
     'get_nodes_in_all_shortest_paths',
@@ -42,50 +47,57 @@ default_edge_ranking = {
     ANALOGOUS_TO: 0,
     BIOMARKER_FOR: 0,
     PROGONSTIC_BIOMARKER_FOR: 0,
-    EQUIVALENT_TO: 0
+    EQUIVALENT_TO: 0,
 }
 
 
-def pairwise(iterable):
-    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
-    a, b = itt.tee(iterable)
-    next(b, None)
-    return zip(a, b)
+def rank_path(graph: BELGraph, path: List[BaseEntity], edge_ranking: Optional[Mapping[str, int]] = None) -> int:
+    """Score the given path.
 
-
-def rank_path(graph, path, edge_ranking=None):
-    """Takes in a path (a list of nodes in the graph) and calculates a score
-
-    :param pybel.BELGraph graph: A BEL graph
-    :param list[tuple] path: A list of nodes in the path (includes terminal nodes)
-    :param dict edge_ranking: A dictionary of {relationship: score}
+    :param graph: A BEL graph
+    :param path: A list of nodes in the path (includes terminal nodes)
+    :param edge_ranking: A dictionary of {relationship: score}
     :return: The score for the edge
-    :rtype: int
     """
-    edge_ranking = default_edge_ranking if edge_ranking is None else edge_ranking
+    if edge_ranking is None:
+        edge_ranking = default_edge_ranking
 
-    return sum(max(edge_ranking[d[RELATION]] for d in graph.edge[u][v].values()) for u, v in pairwise(path))
+    return sum(
+        max(
+            edge_ranking[data[RELATION]]
+            for data in graph.edges[source][target].values()
+        )
+        for source, target in pairwise(path)
+    )
 
 
 # TODO consider all shortest paths?
-def _get_shortest_path_between_subgraphs_helper(graph, a, b):
-    """Calculate the shortest path that occurs between two disconnected subgraphs A and B going through nodes in
-    the source graph
+def _get_shortest_path_between_subgraphs_helper(
+        graph: nx.Graph,
+        a: nx.Graph,
+        b: nx.Graph,
+) -> List[List[Any]]:
+    """Calculate the shortest path(s) between disconnected sub-graphs ``a`` and ``b`` through ``graph``.
 
-    :param nx.MultiGraph graph: A graph
-    :param nx.MultiGraph a: A subgraph of :code:`graph`, disjoint from :code:`b`
-    :param nx.MultiGraph b: A subgraph of :code:`graph`, disjoint from :code:`a`
-    :return: A list of the shortest paths between the two subgraphs
-    :rtype: list
+    :param graph: A graph
+    :param a: A sub-graph of :code:`graph`, disjoint from :code:`b`
+    :param b: A sub-graph of :code:`graph`, disjoint from :code:`a`
+    :return: A list of the shortest paths between the two sub-graphs
     """
-    shortest_paths = []
-
-    for na, nb in itt.product(a, b):
-        a_b_shortest_path = nx.shortest_path(graph, na, nb)
-        shortest_paths.append(a_b_shortest_path)
-
-        b_a_shortest_path = nx.shortest_path(graph, nb, na)
-        shortest_paths.append(b_a_shortest_path)
+    if graph.is_directed():
+        shortest_paths = [
+            shortest_path
+            for na, nb in itt.product(a, b)
+            for shortest_path in (  # do it going both ways because it's directed
+                nx.shortest_path(graph, na, nb),
+                nx.shortest_path(graph, nb, na),
+            )
+        ]
+    else:
+        shortest_paths = [
+            nx.shortest_path(graph, na, nb)
+            for na, nb in itt.product(a, b)
+        ]
 
     min_len = min(map(len, shortest_paths))
     return [
@@ -95,63 +107,60 @@ def _get_shortest_path_between_subgraphs_helper(graph, a, b):
     ]
 
 
-def get_shortest_directed_path_between_subgraphs(graph, a, b):
-    """Calculate the shortest path that occurs between two disconnected subgraphs A and B going through nodes in
-    the source graph
+def get_shortest_directed_path_between_subgraphs(graph: BELGraph, a: BELGraph, b: BELGraph) -> List[List[Any]]:
+    """Calculate the shortest path(s) between disconnected sub-graphs ``a`` and ``b`` through ``graph``.
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param pybel.BELGraph a: A subgraph of :code:`graph`, disjoint from :code:`b`
-    :param pybel.BELGraph b: A subgraph of :code:`graph`, disjoint from :code:`a`
-    :return: A list of the shortest paths between the two subgraphs
-    :rtype: list
+    :param graph: A BEL graph
+    :param a: A sub-graph of :code:`graph`, disjoint from :code:`b`
+    :param b: A sub-graph of :code:`graph`, disjoint from :code:`a`
+    :return: A list of the shortest paths between the two sub-graphs
     """
     return _get_shortest_path_between_subgraphs_helper(graph, a, b)
 
 
-def get_shortest_undirected_path_between_subgraphs(graph, a, b):
-    """Get the shortest path between two disconnected subgraphs A and B, disregarding directionality of edges in graph
+def get_shortest_undirected_path_between_subgraphs(graph: BELGraph, a: BELGraph, b: BELGraph) -> List[List[Any]]:
+    """Calculate the undirected shortest path(s) between disconnected sub-graphs ``a`` and ``b`` through ``graph``.
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param pybel.BELGraph a: A subgraph of :code:`graph`, disjoint from :code:`b`
-    :param pybel.BELGraph b: A subgraph of :code:`graph`, disjoint from :code:`a`
-    :return: A list of the shortest paths between the two subgraphs
-    :rtype: list
+    :param graph: A BEL graph
+    :param a: A sub-graph of :code:`graph`, disjoint from :code:`b`
+    :param b: A sub-graph of :code:`graph`, disjoint from :code:`a`
+    :return: A list of the shortest paths between the two sub-graphs
     """
     ug = graph.to_undirected()
     return _get_shortest_path_between_subgraphs_helper(ug, a, b)
 
 
-def find_root_in_path(graph, path_nodes):
-    """Find the 'root' of the path -> The node with the lowest out degree, if multiple:
-         root is the one with the highest out degree among those with lowest out degree
-    
-    :param pybel.BELGraph graph: A BEL Graph
-    :param list[tuple] path_nodes: A list of nodes in their order in a path
+def find_root_in_path(graph: BELGraph, path_nodes: List[BaseEntity]) -> Tuple[BELGraph, BaseEntity]:
+    """Find the root of the path.
+
+    This is defined as the node with the lowest out degree, if multiple:
+    the root is the one with the highest out degree among those with lowest out degree
+
+    :param graph: A BEL Graph
+    :param path_nodes: A list of nodes in their order in a path
     :return: A pair of the graph: graph of the path and the root node
-    :rtype: tuple[pybel.BELGraph,tuple]
     """
     path_graph = graph.subgraph(path_nodes)
 
     # node_in_degree_tuple: list of tuples with (node,in_degree_of_node) in ascending order
-    node_in_degree_tuple = sorted([(n, d) for n, d in path_graph.in_degree().items()], key=itemgetter(1))
-    # node_out_degree_tuple: ordered list of tuples with (node,in_degree_of_node) in descending order
-    node_out_degree_tuple = sorted([(n, d) for n, d in path_graph.out_degree().items()], key=itemgetter(1),
-                                   reverse=True)
+    in_degrees = sorted(path_graph.in_degree().items(), key=itemgetter(1))
 
     # In case all have the same in degree it needs to be reference before
     tied_root_index = 0
 
     # Get index where the min in_degree stops (in case they are duplicates)
-    for i in range(0, (len(node_in_degree_tuple) - 1)):
-        if node_in_degree_tuple[i][1] < node_in_degree_tuple[i + 1][1]:
+    for i in range(0, (len(in_degrees) - 1)):
+        if in_degrees[i][1] < in_degrees[i + 1][1]:
             tied_root_index = i
             break
 
     # If there are multiple nodes with minimum in_degree take the one with max out degree
     # (in case multiple have the same out degree pick one random)
     if tied_root_index != 0:
-        root_tuple = max(node_out_degree_tuple[:tied_root_index], key=itemgetter(1))
+        # node_out_degree_tuple: ordered list of tuples with (node,in_degree_of_node) in descending order
+        out_degrees = sorted(path_graph.out_degree().items(), key=itemgetter(1), reverse=True)
+        root_tuple = max(out_degrees[:tied_root_index], key=itemgetter(1))
     else:
-        root_tuple = node_in_degree_tuple[0]
+        root_tuple = in_degrees[0]
 
     return path_graph, root_tuple[0]

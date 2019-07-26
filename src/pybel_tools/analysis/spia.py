@@ -18,6 +18,7 @@ from typing import Dict, Mapping, Set
 
 import click
 import pandas as pd
+
 from pybel import BELGraph
 from pybel.cli import graph_pickle_argument
 from pybel.constants import (

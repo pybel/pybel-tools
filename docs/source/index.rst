@@ -17,7 +17,6 @@ Links
 - Versioned on `GitHub <https://github.com/pybel/pybel-tools>`_
 - Tested on `Travis CI <https://travis-ci.org/pybel/pybel-tools>`_
 - Distributed by PyPI_
-- Chat on `Gitter <https://gitter.im/pybel/Lobby>`_
 
 .. toctree::
    :maxdepth: 2
@@ -25,7 +24,6 @@ Links
    :name: springboard
 
    installation
-   cli
 
 .. toctree::
    :maxdepth: 2
@@ -52,7 +50,6 @@ Links
    :caption: Workflows
    :name: workflows
 
-   stability
    expansion
    generation
    heat

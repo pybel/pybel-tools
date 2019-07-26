@@ -3,11 +3,10 @@
 """Node grouping utilities."""
 
 from collections import defaultdict
-from typing import Callable, Iterable, List, Mapping, Set, TypeVar
+from typing import Callable, Iterable, List, Mapping, Optional, Set, TypeVar
 
-from pybel import BELGraph
-from pybel.constants import *
-from pybel.dsl import BaseEntity
+from pybel import BELGraph, BaseEntity
+from pybel.constants import ANNOTATIONS, HAS_COMPONENT, HAS_MEMBER, HAS_VARIANT, NAME, NAMESPACE, ORTHOLOGOUS, RELATION
 from pybel.struct.filters.edge_predicates import edge_has_annotation
 from pybel.struct.filters.node_filters import concatenate_node_predicates
 from pybel.struct.filters.typing import NodePredicates
@@ -21,7 +20,10 @@ __all__ = [
 X = TypeVar('X')
 
 
-def group_nodes_by_annotation(graph: BELGraph, annotation: str = 'Subgraph') -> Mapping[str, Set[BaseEntity]]:
+def group_nodes_by_annotation(
+        graph: BELGraph,
+        annotation: str = 'Subgraph',
+) -> Mapping[str, Set[BaseEntity]]:
     """Group the nodes occurring in edges by the given annotation."""
     result = defaultdict(set)
 
@@ -41,8 +43,7 @@ def average_node_annotation(
         annotation: str = 'Subgraph',
         aggregator: Optional[Callable[[Iterable[X]], X]] = None,
 ) -> Mapping[str, X]:
-    """Groups graph into subgraphs and assigns each subgraph a score based on the average of all nodes values
-    for the given node key
+    """Group a graph into sub-graphs and calculate an aggregate score for all nodes in each.
 
     :param graph: A BEL graph
     :param key: The key in the node data dictionary representing the experimental data
@@ -91,9 +92,17 @@ def group_nodes_by_annotation_filtered(
     }
 
 
-def get_mapped_nodes(graph: BELGraph, namespace: str, names: Iterable[str]) -> Mapping[BaseEntity, Set[BaseEntity]]:
-    """Return a dict with keys: nodes that match the namespace and in names and values other nodes (complexes, variants, orthologous...) or this node.
-    
+def get_mapped_nodes(
+        graph: BELGraph,
+        namespace: str,
+        names: Iterable[str],
+) -> Mapping[BaseEntity, Set[BaseEntity]]:
+    """Get the nodes mapped to this node's concept.
+
+    Returns a dict with keys: nodes that match the namespace and in
+    names and values other nodes (complexes, variants, orthologous...)
+    or this node.
+
     :param graph: A BEL graph
     :param namespace: The namespace to search
     :param names: List or set of values from which we want to map nodes from

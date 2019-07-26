@@ -2,8 +2,7 @@
 
 """Node filters to supplement :mod:`pybel.struct.filters.node_filters`."""
 
-from collections import defaultdict
-from typing import Iterable, Mapping, Optional, Set
+from typing import Collection, Iterable, Mapping, Optional, Set
 
 import pybel
 from pybel import BELGraph
@@ -14,6 +13,7 @@ from pybel.struct.filters import (
 )
 from pybel.struct.filters.typing import NodePredicate, NodePredicates
 from pybel.typing import Strings
+from ..utils import group_as_sets
 
 __all__ = [
     'summarize_node_filter',
@@ -70,7 +70,7 @@ def node_exclusion_filter_builder(nodes: Iterable[BaseEntity]) -> NodePredicate:
     node_set = set(nodes)
 
     def exclusion_filter(_: BELGraph, node: BaseEntity) -> bool:
-        """Pass only for a node that isn't in the enclosed node list
+        """Pass only for a node that isn't in the enclosed node list.
 
         :return: If the node isn't contained within the enclosed node list
         """
@@ -114,7 +114,7 @@ def function_inclusion_filter_builder(func: Strings) -> NodePredicate:
     elif isinstance(func, Iterable):
         return _collection_function_inclusion_builder(func)
 
-    raise ValueError('Invalid type for argument: {}'.format(func))
+    raise ValueError(f'Invalid type for argument: {func}')
 
 
 def function_exclusion_filter_builder(func: Strings) -> NodePredicate:
@@ -209,8 +209,8 @@ exclude_pathology_filter = function_exclusion_filter_builder(PATHOLOGY)
 # TODO node filter that is false for abundances with no in-edges
 
 
-def namespace_inclusion_builder(namespace) -> NodePredicate:  # noqa: D202
-    """"""
+def namespace_inclusion_builder(namespace: str) -> NodePredicate:  # noqa: D202
+    """Build a function that filters for nods that include a specific namespace."""
 
     def has_namespace(_: BELGraph, node: BaseEntity):
         return node.get(NAMESPACE) == namespace
@@ -223,7 +223,7 @@ def variants_of(
         node: Protein,
         modifications: Optional[Set[str]] = None,
 ) -> Set[Protein]:
-    """Returns all variants of the given node."""
+    """Return all variants of the given node."""
     if modifications:
         return _get_filtered_variants_of(graph, node, modifications)
 
@@ -231,22 +231,26 @@ def variants_of(
         v
         for u, v, key, data in graph.edges(keys=True, data=True)
         if (
-            u == node
-            and data[RELATION] == HAS_VARIANT
-            and pybel.struct.has_protein_modification(v)
+            u == node and
+            data[RELATION] == HAS_VARIANT and
+            pybel.struct.has_protein_modification(v)
         )
     }
 
 
-def _get_filtered_variants_of(graph, node, modifications):
+def _get_filtered_variants_of(
+        graph: BELGraph,
+        node: Protein,
+        modifications: Collection[str],
+) -> Set[Protein]:
     return {
         v
         for u, v, key, data in graph.edges(keys=True, data=True)
         if (
-            u == node
-            and data[RELATION] == HAS_VARIANT
-            and pybel.struct.has_protein_modification(v)
-            and any(
+            u == node and
+            data[RELATION] == HAS_VARIANT and
+            pybel.struct.has_protein_modification(v) and
+            any(
                 variant['identifier']['name'] in modifications
                 for variant in v.variants if 'identifier' in variant
                 if isinstance(variant, ProteinModification)
@@ -261,9 +265,10 @@ def get_variants_to_controllers(
         modifications: Optional[Set[str]] = None,
 ) -> Mapping[Protein, Set[Protein]]:
     """Get a mapping from variants of the given node to all of its upstream controllers."""
-    rv = defaultdict(set)
     variants = variants_of(graph, node, modifications)
-    for controller, variant, data in graph.in_edges(variants, data=True):
-        if data[RELATION] in CAUSAL_RELATIONS:
-            rv[variant].add(controller)
-    return dict(rv)
+
+    return group_as_sets(
+        (variant, controller)
+        for controller, variant, data in graph.in_edges(variants, data=True)
+        if data[RELATION] in CAUSAL_RELATIONS
+    )

@@ -7,6 +7,8 @@ import logging
 from collections import defaultdict
 
 import networkx as nx
+from tqdm import tqdm
+
 from pybel import BELGraph
 from pybel.constants import EQUIVALENT_TO, GENE, HAS_VARIANT, NAME, NAMESPACE, ORTHOLOGOUS, PROTEIN, RELATION
 from pybel.dsl import BaseEntity, Gene, Protein
@@ -15,8 +17,6 @@ from pybel.struct.filters.typing import EdgePredicates
 from pybel.struct.mutation import collapse_nodes, collapse_pair, collapse_to_genes, get_subgraph_by_edge_filter
 from pybel.struct.pipeline import in_place_transformation, transformation
 from pybel.typing import Strings
-from tqdm import tqdm
-
 from ..filters.edge_filters import build_source_namespace_filter, build_target_namespace_filter
 from ..summary.edge_summary import pair_is_consistent
 
@@ -56,10 +56,10 @@ def _collapse_variants_by_function(graph: BELGraph, func: str) -> None:
 
 @in_place_transformation
 def rewire_variants_to_genes(graph: BELGraph) -> None:
-    """Find all protein variants that are pointing to a gene and not a protein and fixes them by changing their
-    function to be :data:`pybel.constants.GENE`, in place
+    """Find all protein variants that are pointing to a gene and not a protein and fixes them.
 
-    A use case is after running :func:`collapse_to_genes`.
+    Does this by changing their function to be :data:`pybel.constants.GENE`, in place. A use case is after running
+    :func:`collapse_to_genes`.
     """
     mapping = {}
 
@@ -83,10 +83,12 @@ def _collapse_edge_passing_predicates(graph: BELGraph, edge_predicates: EdgePred
         collapse_pair(graph, survivor=u, victim=v)
 
 
-def _collapse_edge_by_namespace(graph: BELGraph,
-                                victim_namespaces: Strings,
-                                survivor_namespaces: str,
-                                relations: Strings) -> None:
+def _collapse_edge_by_namespace(
+        graph: BELGraph,
+        victim_namespaces: Strings,
+        survivor_namespaces: str,
+        relations: Strings,
+) -> None:
     """Collapse pairs of nodes with the given namespaces that have the given relationship.
 
     :param graph: A BEL Graph
@@ -110,14 +112,14 @@ def _collapse_edge_by_namespace(graph: BELGraph,
 @in_place_transformation
 def collapse_equivalencies_by_namespace(graph: BELGraph, victim_namespace: Strings, survivor_namespace: str) -> None:
     """Collapse pairs of nodes with the given namespaces that have equivalence relationships.
-    
+
     :param graph: A BEL graph
     :param victim_namespace: The namespace(s) of the node to collapse
     :param survivor_namespace: The namespace of the node to keep
 
     To convert all ChEBI names to InChI keys, assuming there are appropriate equivalence relations between nodes with
     those namespaces:
-    
+
     >>> collapse_equivalencies_by_namespace(graph, 'CHEBI', 'CHEBIID')
     >>> collapse_equivalencies_by_namespace(graph, 'CHEBIID', 'INCHI')
     """
@@ -214,8 +216,8 @@ def collapse_to_protein_interactions(graph: BELGraph) -> BELGraph:
 @in_place_transformation
 def collapse_nodes_with_same_names(graph: BELGraph) -> None:
     """Collapse all nodes with the same name, merging namespaces by picking first alphabetical one."""
-    survivor_mapping = defaultdict(set) # Collapse mapping dict
-    victims = set() # Things already mapped while iterating
+    survivor_mapping = defaultdict(set)  # Collapse mapping dict
+    victims = set()  # Things already mapped while iterating
 
     it = tqdm(itt.combinations(graph, r=2), total=graph.number_of_nodes() * (graph.number_of_nodes() - 1) / 2)
     for a, b in it:

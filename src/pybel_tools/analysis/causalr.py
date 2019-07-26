@@ -1,15 +1,27 @@
 # -*- coding: utf-8 -*-
 
+"""An implementation of the CausalR algorithm described by [Bradley2017]_.
+
+.. [Bradley2017] Bradley, G., & Barrett, S. J. (2017). `CausalR - extracting mechanistic sense from genome scale
+                 data <https://doi.org/10.1093/bioinformatics/btx425>`_. Bioinformatics, (June), 1–3.
+"""
+
+import enum
 import logging
 from functools import reduce
 from operator import itemgetter
 
 import networkx as nx
 
-from pybel.constants import RELATION
-from pybel_tools.summary.contradictions import pair_has_contradiction
-from pybel_tools.utils import pairwise
-from .constants import Effect, causal_effect_dict, default_edge_ranking
+from pybel import BELGraph, BaseEntity
+from pybel.constants import (
+    ANALOGOUS_TO, ASSOCIATION, BIOMARKER_FOR, CAUSES_NO_CHANGE, DECREASES, DIRECTLY_DECREASES,
+    DIRECTLY_INCREASES, EQUIVALENT_TO, HAS_COMPONENT, HAS_MEMBER, HAS_PRODUCT, HAS_REACTANT, HAS_VARIANT, INCREASES,
+    IS_A, NEGATIVE_CORRELATION, POSITIVE_CORRELATION, PROGONSTIC_BIOMARKER_FOR, RATE_LIMITING_STEP_OF, REGULATES,
+    RELATION, SUBPROCESS_OF, TRANSCRIBED_TO, TRANSLATED_TO,
+)
+from ..summary.contradictions import pair_has_contradiction
+from ..utils import pairwise
 
 log = logging.getLogger(__name__)
 
@@ -19,6 +31,50 @@ __all__ = [
     'get_path_effect',
     'rank_edges',
 ]
+
+causal_effect_dict = {
+    INCREASES: 1,
+    DIRECTLY_INCREASES: 1,
+    DECREASES: -1,
+    DIRECTLY_DECREASES: -1,
+    NEGATIVE_CORRELATION: -1,
+    POSITIVE_CORRELATION: 1,
+}
+
+default_edge_ranking = {
+    INCREASES: 3,
+    DIRECTLY_INCREASES: 4,
+    DECREASES: 3,
+    DIRECTLY_DECREASES: 4,
+    RATE_LIMITING_STEP_OF: 0,
+    CAUSES_NO_CHANGE: 0,
+    REGULATES: 0,
+    NEGATIVE_CORRELATION: 2,
+    POSITIVE_CORRELATION: 2,
+    ASSOCIATION: 1,
+    HAS_MEMBER: 0,
+    HAS_PRODUCT: 0,
+    HAS_COMPONENT: 0,
+    HAS_VARIANT: 0,
+    HAS_REACTANT: 0,
+    TRANSLATED_TO: 0,
+    TRANSCRIBED_TO: 0,
+    IS_A: 0,
+    SUBPROCESS_OF: 0,
+    ANALOGOUS_TO: 0,
+    BIOMARKER_FOR: 0,
+    PROGONSTIC_BIOMARKER_FOR: 0,
+    EQUIVALENT_TO: 0
+}
+
+
+class Effect(enum.Enum):
+    """Represents the possible effect of a root node on a target."""
+
+    inhibition = -1
+    no_effect = 0
+    activation = 1
+    ambiguous = None
 
 
 # TODO combine with data integration module so you can give a graph and a path to a data file
@@ -47,7 +103,7 @@ def rank_causalr_hypothesis(graph, node_to_regulation, regulator_node):
     downregulation_hypothesis = {
         'correct': 0,
         'incorrect': 0,
-        'ambiguous': 0
+        'ambiguous': 0,
     }
 
     targets = [
@@ -59,7 +115,6 @@ def rank_causalr_hypothesis(graph, node_to_regulation, regulator_node):
     predicted_regulations = run_cna(graph, regulator_node, targets)  # + signed hypothesis
 
     for _, target_node, predicted_regulation in predicted_regulations:
-
         if (predicted_regulation is Effect.inhibition or predicted_regulation is Effect.activation) and (
                 predicted_regulation.value == node_to_regulation[target_node]):
             upregulation_hypothesis['correct'] += 1
@@ -82,11 +137,11 @@ def rank_causalr_hypothesis(graph, node_to_regulation, regulator_node):
     return upregulation_hypothesis, downregulation_hypothesis
 
 
-def run_cna(graph, root, targets, relationship_dict=None):
-    """ Returns the effect from the root to the target nodes represented as {-1,1}
+def run_cna(graph: BELGraph, root: BaseEntity, targets, relationship_dict=None):
+    """Return the effect from the root to the target nodes represented as {-1, 1}.
 
-    :param pybel.BELGraph graph: A BEL graph
-    :param BaseEntity root: The root node
+    :param graph: A BEL graph
+    :param root: The root node
     :param iter targets: The targets nodes
     :param dict relationship_dict: dictionary with relationship effects
     :return list[tuple]:
@@ -125,13 +180,12 @@ def run_cna(graph, root, targets, relationship_dict=None):
     return causal_effects
 
 
-def get_path_effect(graph, path, relationship_dict):
+def get_path_effect(graph: BELGraph, path, relationship_dict) -> Effect:
     """Calculate the final effect of the root node to the sink node in the path.
 
-    :param pybel.BELGraph graph: A BEL graph
+    :param graph: A BEL graph
     :param list path: Path from root to sink node
     :param dict relationship_dict: dictionary with relationship effects
-    :rtype: Effect
     """
     causal_effect = []
 
@@ -165,11 +219,13 @@ def rank_edges(edges, edge_ranking=None):
     :return: Highest ranked edge
     :rtype: tuple: (edge id, relation, score given ranking)
     """
-    edge_ranking = default_edge_ranking if edge_ranking is None else edge_ranking
+    if edge_ranking is None:
+        edge_ranking = default_edge_ranking
 
-    edges_scores = [
-        (edge_id, edge_data[RELATION], edge_ranking[edge_data[RELATION]])
-        for edge_id, edge_data in edges.items()
-    ]
-
-    return max(edges_scores, key=itemgetter(2))
+    return max(
+        (
+            (edge_id, edge_data[RELATION], edge_ranking[edge_data[RELATION]])
+            for edge_id, edge_data in edges.items()
+        ),
+        key=itemgetter(2),
+    )

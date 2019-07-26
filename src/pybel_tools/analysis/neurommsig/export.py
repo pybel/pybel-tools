@@ -14,6 +14,7 @@ from functools import partial
 from typing import Mapping, TextIO
 
 import pandas as pd
+
 import pybel
 from bel_resources import get_bel_resource
 from pybel import BELGraph
@@ -22,20 +23,20 @@ from pybel.utils import ensure_quotes
 
 log = logging.getLogger(__name__)
 
-HGNCsymbolpattern = re.compile(r"^[A-Z0-9-]+$|^C[0-9XY]+orf[0-9]+$")
+hgnc_symbol_pattern = re.compile(r"^[A-Z0-9-]+$|^C[0-9XY]+orf[0-9]+$")
 
-SNPpattern = re.compile(r"^rs[0-9]+$")
-SNPspatternSpace = re.compile(r"^(rs[0-9]+)\s((rs[0-9]+)\s)*(rs[0-9]+)$")
-SNPspatternComma = re.compile(r"^(rs[0-9]+),((rs[0-9]+),)*(rs[0-9]+)$")
-SNPspatternSpaceComma = re.compile(r"^(rs[0-9]+), ((rs[0-9]+), )*(rs[0-9]+)$")
-Checked_by_Anandhi = re.compile(r"No")
+snp_pattern = re.compile(r"^rs[0-9]+$")
+snps_pattern_space = re.compile(r"^(rs[0-9]+)\s((rs[0-9]+)\s)*(rs[0-9]+)$")
+snps_pattern_comma = re.compile(r"^(rs[0-9]+),((rs[0-9]+),)*(rs[0-9]+)$")
+snps_pattern_space_comma = re.compile(r"^(rs[0-9]+), ((rs[0-9]+), )*(rs[0-9]+)$")
+checked_by_anandhi = re.compile(r"No")
 
-miRNApattern = re.compile(r"^MIR.*$")
-miRNAspattern = re.compile(r"^(MIR.*),((MIR.*$),)*(MIR.*$)$")
+mirna_pattern = re.compile(r"^MIR.*$")
+mirnas_pattern = re.compile(r"^(MIR.*),((MIR.*$),)*(MIR.*$)$")
 
 
 def preprocessing_excel(path: str) -> pd.DataFrame:
-    """Preprocess the excel sheet
+    """Preprocess the excel sheet.
 
     :param path: filepath of the excel data
     :return: df: pandas dataframe with excel data
@@ -74,13 +75,7 @@ def preprocessing_excel(path: str) -> pd.DataFrame:
 
 
 def munge_cell(cell, line=None, validators=None):
-    """
-
-    :param cell:
-    :param line:
-    :param validators:
-    :return:
-    """
+    """Process a cell from the NeuroMMSig excel sheet."""
     if pd.isnull(cell) or isinstance(cell, int):
         return None
 
@@ -102,7 +97,7 @@ def preprocessing_br_projection_excel(path: str) -> pd.DataFrame:
     return pd.read_excel(path, sheetname=0, header=0)
 
 
-munge_snp = partial(munge_cell, validators=[SNPpattern, SNPspatternSpaceComma])
+munge_snp = partial(munge_cell, validators=[snp_pattern, snps_pattern_space_comma])
 
 mesh_alzheimer = "Alzheimer Disease"  # Death to the eponym!
 mesh_parkinson = "Parkinson Disease"
@@ -130,20 +125,24 @@ columns = [
 
 
 def preprocess(path: str) -> pd.DataFrame:
+    """Preprocess a NeuroMMSig excel sheet, specified by a file path."""
     df = preprocessing_excel(path)
     df[snp_from_literature_column] = df[snp_from_literature_column].map(munge_snp)
     df[snp_from_gwas_column] = df[snp_from_gwas_column].map(munge_snp)
     df[snp_from_ld_block_column] = df[snp_from_ld_block_column].map(munge_snp)
     df[clinical_features_column] = df[clinical_features_column].map(munge_cell)
     df[clinical_features_column] = df[clinical_features_column].map(
-        lambda c: None if c is not None and c[0] == 'No' else c)
+        lambda c: None
+        if c is not None and c[0] == 'No' else
+        c
+    )
     df[snp_from_imaging_column] = df[snp_from_imaging_column].map(munge_snp)
     return df
 
 
 def get_nift_values() -> Mapping[str, str]:
     """Map NIFT names that have been normalized to the original names."""
-    r = get_bel_resource(NIFT)
+    r = get_bel_resource('https://arty.scai.fraunhofer.de/artifactory/bel/namespace/nift/NIFT.belns')
     return {
         name.lower(): name
         for name in r['Values']
@@ -174,10 +173,9 @@ def get_neurommsig_bel(
 ) -> BELGraph:
     """Generate the NeuroMMSig BEL graph.
 
-    :param file: a file or file-like that can be writen to
     :param df:
     :param disease:
-    :param nift_values: a dictionary of lowercased to normal names in NIFT
+    :param nift_values: a dictionary of lower-cased to normal names in NIFT
     """
     missing_features = set()
     fixed_caps = set()

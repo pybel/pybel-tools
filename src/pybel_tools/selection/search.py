@@ -7,7 +7,6 @@ from typing import Iterable
 from pybel import BELGraph, BaseEntity
 from pybel.struct.filters import build_node_name_search, filter_nodes
 from pybel.typing import Strings
-
 from ..filters.node_filters import namespace_inclusion_builder
 
 __all__ = [

@@ -7,7 +7,7 @@ import logging
 import typing
 from collections import Counter, defaultdict
 from datetime import datetime
-from typing import Iterable, List, Mapping, Optional, Set, Tuple
+from typing import Iterable, List, Mapping, Optional, Set, Tuple, Union
 
 from pybel import BELGraph
 from pybel.constants import (
@@ -19,7 +19,7 @@ from pybel.struct.filters.edge_predicates import edge_has_annotation
 from pybel.struct.summary import iterate_pubmed_identifiers
 from pybel.typing import Strings
 from ..filters import build_edge_data_filter, build_pmid_inclusion_filter
-from ..utils import count_defaultdict, count_dict_values, group_as_dict
+from ..utils import count_defaultdict, count_dict_values, group_as_lists, group_as_sets
 
 __all__ = [
     'count_pmids',
@@ -100,15 +100,12 @@ def count_citations(graph: BELGraph, **annotations) -> Counter:
     :param dict annotations: The annotation filters to use
     :return: A counter from {(citation type, citation reference): frequency}
     """
-    citations = defaultdict(set)
-
     annotation_dict_filter = build_edge_data_filter(annotations)
 
+    citations = defaultdict(set)
     for u, v, _, d in filter_edges(graph, annotation_dict_filter):
-        if CITATION not in d:
-            continue
-
-        citations[u, v].add((d[CITATION][CITATION_TYPE], d[CITATION][CITATION_REFERENCE].strip()))
+        if CITATION in d:
+            citations[u, v].add((d[CITATION][CITATION_TYPE], d[CITATION][CITATION_REFERENCE].strip()))
 
     return Counter(itt.chain.from_iterable(citations.values()))
 
@@ -129,7 +126,10 @@ def count_citations_by_annotation(graph: BELGraph, annotation: str) -> Mapping[s
 
         citations[k][u, v].add((data[CITATION][CITATION_TYPE], data[CITATION][CITATION_REFERENCE].strip()))
 
-    return {k: Counter(itt.chain.from_iterable(v.values())) for k, v in citations.items()}
+    return {
+        k: Counter(itt.chain.from_iterable(v.values()))
+        for k, v in citations.items()
+    }
 
 
 def count_authors(graph: BELGraph) -> typing.Counter[str]:
@@ -139,7 +139,7 @@ def count_authors(graph: BELGraph) -> typing.Counter[str]:
 
 def count_author_publications(graph: BELGraph) -> typing.Counter[str]:
     """Count the number of publications of each author to the given graph."""
-    authors = group_as_dict(_iter_author_publiations(graph))
+    authors = group_as_lists(_iter_author_publiations(graph))
     return Counter(count_dict_values(count_defaultdict(authors)))
 
 
@@ -193,7 +193,7 @@ def count_authors_by_annotation(graph: BELGraph, annotation: str = 'Subgraph') -
     :param annotation: The annotation to use to group the graph
     :return: A dictionary of Counters {subgraph name: Counter from {author: frequency}}
     """
-    authors = group_as_dict(_iter_authors_by_annotation(graph, annotation=annotation))
+    authors = group_as_lists(_iter_authors_by_annotation(graph, annotation=annotation))
     return count_defaultdict(authors)
 
 
@@ -213,12 +213,10 @@ def get_evidences_by_pmid(graph: BELGraph, pmids: Strings) -> Mapping[str, Set[s
     :return: A dictionary of {pmid: set of all evidence strings}
     :rtype: dict
     """
-    result = defaultdict(set)
-
-    for _, _, _, data in filter_edges(graph, build_pmid_inclusion_filter(pmids)):
-        result[data[CITATION][CITATION_REFERENCE]].add(data[EVIDENCE])
-
-    return dict(result)
+    return group_as_sets(
+        (data[CITATION][CITATION_REFERENCE], data[EVIDENCE])
+        for _, _, _, data in filter_edges(graph, build_pmid_inclusion_filter(pmids))
+    )
 
 
 # TODO date parsing should be handled during either pybel parse-time or during graph loading.
@@ -240,7 +238,7 @@ def count_citation_years(graph: BELGraph) -> typing.Counter[int]:
     return count_dict_values(result)
 
 
-def _ensure_datetime(s):
+def _ensure_datetime(s: Union[datetime, str]) -> datetime:
     if isinstance(s, datetime):
         return s
 

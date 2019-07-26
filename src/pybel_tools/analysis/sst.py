@@ -8,8 +8,10 @@
 
 
 def get_random_walk_spanning_tree(graph):
-    """Generates a spanning tree from the directed graph using the random walk approach proposed independently by
-    by Broder (1989) and Aldous (1990). It simply generates random walks until all nodes have been covered.
+    """Generate a spanning tree from the directed graph using the random walk approach.
+
+    This was proposed independently by by Broder (1989) and Aldous (1990). It simply generates random walks until all
+    nodes have been covered.
 
     Algorithm:
 
