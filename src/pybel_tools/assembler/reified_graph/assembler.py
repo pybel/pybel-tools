@@ -485,8 +485,9 @@ def reify_edge(
 def collapse_to_gene(entity: BaseEntity) -> BaseEntity:
     """Collapse all protein, RNA, and miRNA nodes to their corresponding gene nodes.
 
-    :param entity:
-    :return:
+    :param entity: A node from a BEL graph.
+    :return: A gene, if entity is a protein, rna or mirNA, otherwise it returns the
+    same node without variants.
     """
     if isinstance(entity, protein):
         entity = entity.get_rna()
