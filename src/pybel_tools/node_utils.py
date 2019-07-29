@@ -151,11 +151,8 @@ def _reaction_cartesion_expansion_unqualified_helper(
 
 def _get_catalysts_in_reaction(reaction: Reaction) -> Set[BaseAbundance]:
     """Return nodes that are both in reactants and reactions in a reaction."""
-    return {
-        reactant
-        for reactant in reaction.reactants
-        if reactant in reaction.products
-    }
+    # TODO replace with reaction.get_catalysts()
+    return set(reaction.reactants).intersection(reaction.products)
 
 
 def reaction_cartesian_expansion(graph: BELGraph, accept_unqualified_edges: bool = True) -> None:
@@ -218,9 +215,9 @@ def reaction_cartesian_expansion(graph: BELGraph, accept_unqualified_edges: bool
                     )
 
         elif isinstance(v, Reaction):
-            for reactant in v.reactants:
-                catalysts = _get_catalysts_in_reaction(v)
+            catalysts = _get_catalysts_in_reaction(v)
 
+            for reactant in v.reactants:
                 # Skip create increases edges between enzymes
                 if reactant in catalysts:
                     continue
