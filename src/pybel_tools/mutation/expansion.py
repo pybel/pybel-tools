@@ -9,7 +9,7 @@ from collections import Counter, defaultdict
 from typing import Collection, Iterable, Optional, Tuple
 
 from pybel import BELGraph
-from pybel.constants import ANNOTATIONS, RELATION
+from pybel.constants import ANNOTATIONS
 from pybel.dsl import BaseEntity, CentralDogma, ComplexAbundance, CompositeAbundance, Reaction
 from pybel.struct.filters import and_edge_predicates, concatenate_node_predicates
 from pybel.struct.filters.edge_predicates import edge_has_annotation, is_causal_relation
@@ -295,32 +295,18 @@ def enrich_unqualified(graph: BELGraph) -> None:
     enrich_variants(graph)
 
 
-# TODO should this bother checking multiple relationship types?
 @uni_in_place_transformation
-def expand_internal(universe: BELGraph, graph: BELGraph, edge_predicates: Optional[EdgePredicates] = None) -> None:
+def expand_internal(
+        universe: BELGraph,
+        graph: BELGraph,
+) -> None:
     """Expand on edges between entities in the sub-graph that pass the given filters.
 
     :param universe: The full graph
     :param graph: A sub-graph to find the upstream information
-    :param edge_predicates: Optional list of edge filter functions (graph, node, node, key, data) -> bool
     """
-    edge_filter = and_edge_predicates(edge_predicates)
-
-    for u, v in itt.product(graph, repeat=2):
-        if graph.has_edge(u, v) or not universe.has_edge(u, v):
-            continue
-
-        rs = defaultdict(list)
-        for key, data in universe[u][v].items():
-            if edge_filter(universe, u, v, key):
-                rs[data[RELATION]].append((key, data))
-
-        if 1 == len(rs):
-            relation = list(rs)[0]
-            for key, data in rs[relation]:
-                graph.add_edge(u, v, key=key, **data)
-        else:
-            log.debug('Multiple relationship types found between %s and %s', u, v)
+    for u, v, key, data in _iterate_internal(universe, graph):
+        graph.add_edge(u, v, key=key, **data)
 
 
 @uni_in_place_transformation
@@ -338,4 +324,17 @@ def expand_internal_causal(universe: BELGraph, graph: BELGraph) -> None:
     >>> from pybel.struct.filters.edge_predicates import is_causal_relation
     >>> expand_internal(universe, graph, edge_predicates=is_causal_relation)
     """
-    expand_internal(universe, graph, edge_predicates=is_causal_relation)
+    for u, v, key in _iterate_internal(universe, graph):
+        data = universe.edges[u][v][key]
+        if is_causal_relation(data):
+            graph.add_edge(u, v, key=key, **data)
+
+
+def _iterate_internal(universe: BELGraph, graph: BELGraph) -> EdgeIterator:
+    for u, v in itt.product(graph, repeat=2):
+        if graph.has_edge(u, v):
+            continue
+        if not universe.has_edge(u, v):
+            continue
+        for key in universe[u][v]:
+            yield u, v, key
