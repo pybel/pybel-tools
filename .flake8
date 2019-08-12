@@ -9,6 +9,7 @@ ignore =
     # docstring in magic method
     D105
     # Line break after operator
+    W503
     W504
     # Docstring in __init__
     D107
