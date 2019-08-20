@@ -70,6 +70,7 @@ class PathwayAssigner:
             genes = hgnc_manager.list_human_genes()
             for gene in genes:
                 for rgd_id in gene.rgds:
+                    rgd_id = str(rgd_id)
                     rgd_symbol = rgd_id_to_symbol.get(rgd_id)
                     if rgd_symbol is None:
                         print(f'could not find rgd:{rgd_id}')
