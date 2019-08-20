@@ -155,7 +155,7 @@ class PathwayAssigner:
               f'of {graph.number_of_nodes()} nodes were annotated')
 
         unannotated_nodes = set(graph) - annotated_nodes
-        print(f'There are {len(unannotated_nodes)} unannotated edges')
+        print(f'There are {len(unannotated_nodes)} unannotated nodes')
 
         print('\nExamples of unannotated nodes:\n')
         for node in random.sample(unannotated_nodes, 15):
@@ -337,14 +337,15 @@ class PathwayAssigner:
                     name in symbols
                     for name in mapped_names
                 )
-                do_it = (
-                    (1 == len(mapped_names) and 1 == in_count)  # Other stuff going on, lets do it
-                    or 2 <= in_count  # enough is going on
+                should_annotate_complex = (
+                    (1 == len(mapped_names) and 1 == in_count)  # Other stuff going on, let's do it
+                    or 2 <= in_count  # enough is going on, let's do it
                 )
-
-                if not do_it:
+                if not should_annotate_complex:
                     continue
-
+                # do it
+                # do it
+                # do it
                 for u, v, k, d in graph.edges(node, keys=True, data=True):
                     self.double_annotated[pathway_tuple][node].append((u, v, k, d))
 
