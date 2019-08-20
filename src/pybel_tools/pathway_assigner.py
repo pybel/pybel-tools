@@ -4,12 +4,14 @@
 
 import itertools as itt
 import json
+import os
 import random
 from collections import defaultdict
 from typing import List, Optional
 
 import bio2bel_hgnc
 import bio2bel_mgi
+import bio2bel_rgd
 
 from pybel import BELGraph
 from pybel.dsl import BaseAbundance, ListAbundance
@@ -28,6 +30,7 @@ class PathwayAssigner:
         graph: BELGraph,
         managers: List,
         mgi_cache_path: Optional[str] = None,
+        rgd_cache_path: Optional[str] = None,
     ):
         """Initialize the pathway assigner with several lookup dictionaries.
 
@@ -48,12 +51,39 @@ class PathwayAssigner:
         self.pathway_to_symbols = dict(self.pathway_to_symbols)
         self.symbol_to_pathways = dict(self.symbol_to_pathways)
 
-        # Prepare MGI mappings
+        # Prepare RGD mappings
+        if rgd_cache_path is not None and os.path.exists(rgd_cache_path):
+            with open(rgd_cache_path) as file:
+                self.rgd_symbol_to_hgnc_symbol = json.load(file)
+        else:
+            self.rgd_symbol_to_hgnc_symbol = {}
+            rgd_symbol_to_id = {}
+            rgd_id_to_symbol = {}
 
-        if mgi_cache_path is not None:
+            rgd_manager = bio2bel_rgd.Manager()
+            rat_genes = rgd_manager.list_genes()
+            for rat_gene in rat_genes:
+                rgd_symbol_to_id[rat_gene.symbol] = rat_gene.rgd_id
+                rgd_id_to_symbol[rat_gene.rgd_id] = rat_gene.symbol
+
+            hgnc_manager = bio2bel_hgnc.Manager()
+            genes = hgnc_manager.list_human_genes()
+            for gene in genes:
+                for rgd_id in gene.rgds:
+                    rgd_symbol = rgd_id_to_symbol.get(rgd_id)
+                    if rgd_symbol is None:
+                        print(f'could not find rgd:{rgd_id}')
+                        continue
+                    self.rgd_symbol_to_hgnc_symbol[rgd_symbol] = gene.symbol
+
+            if rgd_cache_path is not None:
+                with open(rgd_cache_path, 'w') as file:
+                    json.dump(self.rgd_symbol_to_hgnc_symbol, file, indent=2)
+
+        # Prepare MGI mappings
+        if mgi_cache_path is not None and os.path.exists(mgi_cache_path):
             with open(mgi_cache_path) as file:
                 self.mgi_symbol_to_hgnc_symbol = json.load(file)
-
         else:
             self.mgi_symbol_to_hgnc_symbol = {}
             mgi_symbol_to_id = {}
@@ -78,6 +108,10 @@ class PathwayAssigner:
                         print(f'could not find {mgi_id}')
                         continue
                     self.mgi_symbol_to_hgnc_symbol[mgi_symbol] = gene.symbol
+
+            if mgi_cache_path is not None:
+                with open(mgi_cache_path, 'w') as file:
+                    json.dump(self.mgi_symbol_to_hgnc_symbol, file, indent=2)
 
         self.pathway_to_key = defaultdict(set)
         self.key_to_pathway = defaultdict(set)
@@ -170,6 +204,9 @@ class PathwayAssigner:
 
         if namespace == 'hgnc':
             return node.name
+
+        if namespace == 'rgd':
+            return self.rgd_symbol_to_hgnc_symbol.get(node.name)
 
         if namespace == 'mgi':
             return self.mgi_symbol_to_hgnc_symbol.get(node.name)
