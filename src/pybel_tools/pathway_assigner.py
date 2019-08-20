@@ -3,8 +3,13 @@
 """Utility for assigning pathways."""
 
 import itertools as itt
+import json
 import random
 from collections import defaultdict
+from typing import List, Optional
+
+import bio2bel_hgnc
+import bio2bel_mgi
 
 from pybel import BELGraph
 from pybel.dsl import BaseAbundance, ListAbundance
@@ -14,17 +19,16 @@ __all__ = [
 ]
 
 
-def is_hgnc(node):
-    try:
-        return node.namespace.lower() == 'hgnc'
-    except AttributeError:
-        return False
-
-
 class PathwayAssigner:
     """A tool for assigning pathways to unannotated BEL edges."""
 
-    def __init__(self, *, graph: BELGraph, managers):
+    def __init__(
+        self,
+        *,
+        graph: BELGraph,
+        managers: List,
+        mgi_cache_path: Optional[str] = None,
+    ):
         """Initialize the pathway assigner with several lookup dictionaries.
 
         :param managers: A ComPath manager or iterable of ComPath managers
@@ -43,6 +47,37 @@ class PathwayAssigner:
         # These won't be loaded more so convert to normal dicts
         self.pathway_to_symbols = dict(self.pathway_to_symbols)
         self.symbol_to_pathways = dict(self.symbol_to_pathways)
+
+        # Prepare MGI mappings
+
+        if mgi_cache_path is not None:
+            with open(mgi_cache_path) as file:
+                self.mgi_symbol_to_hgnc_symbol = json.load(file)
+
+        else:
+            self.mgi_symbol_to_hgnc_symbol = {}
+            mgi_symbol_to_id = {}
+            mgi_id_to_symbol = {}
+            mgi_to_hgnc = {}
+
+            mgi_manager = bio2bel_mgi.Manager()
+            mouse_genes = mgi_manager.get_genes()
+            for mouse_gene in mouse_genes:
+                mgi_symbol_to_id[mouse_gene.symbol] = mouse_gene.mgi_id
+                mgi_id_to_symbol[mouse_gene.mgi_id] = mouse_gene.symbol
+
+            hgnc_manager = bio2bel_hgnc.Manager()
+            genes = hgnc_manager.list_human_genes()
+            for gene in genes:
+                for mgi_id in gene.mgds:
+                    mgi_id = f'MGI:{mgi_id}'
+                    mgi_to_hgnc[mgi_id] = (gene.identifier, gene.symbol)
+
+                    mgi_symbol = mgi_id_to_symbol.get(mgi_id)
+                    if mgi_symbol is None:
+                        print(f'could not find {mgi_id}')
+                        continue
+                    self.mgi_symbol_to_hgnc_symbol[mgi_symbol] = gene.symbol
 
         self.pathway_to_key = defaultdict(set)
         self.key_to_pathway = defaultdict(set)
@@ -126,18 +161,32 @@ class PathwayAssigner:
         for node in random.sample(unannotated_nodes, 15):
             print(node)
 
+    def get_gene(self, node: BaseAbundance) -> Optional[str]:
+        """Get or map the name to HGNC gene symbol of the node, if possible."""
+        try:
+            namespace = node.namespace.lower()
+        except AttributeError:
+            return
+
+        if namespace == 'hgnc':
+            return node.name
+
+        if namespace == 'mgi':
+            return self.mgi_symbol_to_hgnc_symbol.get(node.name)
+
     def annotate_gene_gene(self):
         """Annotate edges between gene or gene product nodes.
 
-        1. `If` the subject and object in an edge are both in a canonical pathway, then the edge gets assigned to the
+        1. Identify if subject and object are both gene nodes. If they are orthologs, try and map them to HGNC.
+        2. `If` the subject and object in an edge are both in a canonical pathway, then the edge gets assigned to the
            pathway.
-        2. `Else if` only one of the subject and the object in the edge have been assigned in the pathway:
+        3. `Else if` only one of the subject and the object in the edge have been assigned in the pathway:
           1. `If` the edge is an ontological edge, than add it to the pathway
           2. `If` there are other edges in the pathway mentioned in the same article, assign the edge to the pathway
           3. `Else` leave for manual curation
-        3. `Else if` neither of the nodes are assigned to the pathway, but both nodes are connected to nodes in the
+        4. `Else if` neither of the nodes are assigned to the pathway, but both nodes are connected to nodes in the
            pathway by directed edges, assign both edge to the pathway as well as incident edges
-        4. `Else` the nodes don't get assigned to the pathway
+        5. `Else` the nodes don't get assigned to the pathway
         """
         graph = self.graph
         c = 0
@@ -146,10 +195,9 @@ class PathwayAssigner:
             if not isinstance(u, BaseAbundance) or not isinstance(v, BaseAbundance):
                 continue
 
-            if not is_hgnc(u) or not is_hgnc(v):
+            u_name, v_name = self.get_gene(u), self.get_gene(v)
+            if u_name is None or v_name is None:
                 continue
-
-            u_name, v_name = u.name, v.name
 
             for pathway_tuple, symbols in self.pathway_to_symbols.items():
                 if u_name not in symbols or v_name not in symbols:
@@ -173,7 +221,8 @@ class PathwayAssigner:
     def annotate_gene_other(self):
         """Annotate edges between gene or gene product nodes and chemicals / biological processes / diseases.
 
-        If an entity is related to a gene in a pathway, then that edge gets annotated to the pathway
+        1. Identify if subject or object are a gene nodes. If they are orthologs, try and map them to HGNC.
+        2. If an entity is related to a gene in a pathway, then that edge gets annotated to the pathway
         """
         graph = self.graph
         c = 0
@@ -182,20 +231,28 @@ class PathwayAssigner:
             if not isinstance(u, BaseAbundance) or not isinstance(v, BaseAbundance):
                 continue
 
-            if is_hgnc(u) and not is_hgnc(v):
-                gene_name = u.name
+            u_name, v_name = self.get_gene(u), self.get_gene(v)
+            if u_name and v_name is None:
+                gene_name = u_name
                 other_name = v.name
-            elif not is_hgnc(u) and is_hgnc(v):
-                gene_name = v.name
+            elif u_name is None and v_name:
+                gene_name = v_name
                 other_name = u.name
             else:
+                continue
+
+            try:
+                ordering = tuple(sorted([gene_name, other_name]))
+            except TypeError:
+                print('Gene', gene_name)
+                print('Other', other_name)
                 continue
 
             for pathway_tuple, symbols in self.pathway_to_symbols.items():
                 if gene_name not in symbols:
                     continue
 
-                self.double_annotated[pathway_tuple][tuple(sorted([gene_name, other_name]))].append((u, v, k, d))
+                self.double_annotated[pathway_tuple][ordering].append((u, v, k, d))
 
                 self.pathway_to_key[pathway_tuple].add(k)
                 self.key_to_pathway[k].add(pathway_tuple)
@@ -227,10 +284,11 @@ class PathwayAssigner:
             reference = citation['reference']
             pathway_tuples = self.pmid_to_pathway[reference]
 
-            if is_hgnc(u) and not is_hgnc(v):
-                gene_name = u.name
-            elif not is_hgnc(u) and is_hgnc(v):
-                gene_name = v.name
+            u_name, v_name = self.get_gene(u), self.get_gene(v)
+            if u_name and v_name is None:
+                gene_name = u_name
+            elif u_name is None and v_name:
+                gene_name = v_name
             else:
                 continue
 
@@ -263,26 +321,25 @@ class PathwayAssigner:
             if not isinstance(node, ListAbundance):
                 continue
 
-            hgnc_count = sum(
-                member.namespace.lower() == 'hgnc'
-                for member in node.members
-                if isinstance(member, BaseAbundance)
-            )
+            mapped_names = []
+            for member in node.members:
+                if not isinstance(member, BaseAbundance):
+                    continue
+                name = self.get_gene(member)
+                if name is not None:
+                    mapped_names.append(name)
 
-            if 0 == hgnc_count:
+            if not mapped_names:
                 continue
 
             for pathway_tuple, symbols in self.pathway_to_symbols.items():
                 in_count = sum(
-                    member.name in symbols
-                    for member in node.members
-                    if isinstance(member, BaseAbundance) and member.namespace.lower() == 'hgnc'
+                    name in symbols
+                    for name in mapped_names
                 )
-
                 do_it = (
-                    (1 == hgnc_count and 1 == in_count)  # Other stuff going on, lets do it
+                    (1 == len(mapped_names) and 1 == in_count)  # Other stuff going on, lets do it
                     or 2 <= in_count  # enough is going on
-
                 )
 
                 if not do_it:
@@ -299,5 +356,4 @@ class PathwayAssigner:
         return c
 
     # TODO add FamPlex hierarchy resolution
-    # TODO add orthology resolution
     # TODO add partOf relationship resolution
