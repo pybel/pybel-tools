@@ -15,7 +15,6 @@ from bio2bel_hgnc.models import HumanGene
 from pybel import BELGraph
 from pybel.dsl import CentralDogma
 
-
 __all__ = [
     'to_html',
     'to_html_file',
@@ -80,7 +79,6 @@ def _generate_id() -> str:
 
 def prerender(graph: BELGraph, hgnc_manager=None) -> Mapping[str, Mapping[str, Any]]:
     """Generate the annotations JSON for Ideogram."""
-
     if hgnc_manager is None:
         hgnc_manager = bio2bel_hgnc.Manager()
 
@@ -93,8 +91,8 @@ def prerender(graph: BELGraph, hgnc_manager=None) -> Mapping[str, Mapping[str, A
     refseq_df = get_human_refseq_slim_df()
 
     result = {
-        symbol: dict(name=symbol, start=start, stop=stop)
-        for gene_id, symbol, start, stop in refseq_df[refseq_df['Symbol'].isin(hgnc_symbols)].values
+        hgnc_symbol: dict(name=hgnc_symbol, start=start, stop=stop)
+        for _, hgnc_symbol, start, stop in refseq_df[refseq_df['Symbol'].isin(hgnc_symbols)].values
     }
 
     human_genes = (
@@ -104,6 +102,8 @@ def prerender(graph: BELGraph, hgnc_manager=None) -> Mapping[str, Mapping[str, A
         .all()
     )
     for human_gene in human_genes:
+        if human_gene.symbol not in result:
+            continue  # something doesn't have a mapping in HGNC
         result[human_gene.symbol]['chr'] = (
             human_gene.location.split('q')[0]
             if 'q' in human_gene.location else
