@@ -39,8 +39,15 @@ max-line-length = 120
 import-order-style = pycharm
 application-import-names =
     pybel_tools
+    tests
+    # BEL
     pybel_jupyter
     pybel
     bel_resources
-    tests
+    # Bio2BEL
+    bio2bel_hgnc
+    bio2bel_entrez
+    bio2bel_mgi
+    bio2bel_rgd
+
 format = ${cyan}%(path)s${reset}:${yellow_bold}%(row)d${reset}:${green_bold}%(col)d${reset}: ${red_bold}%(code)s${reset} %(text)s
