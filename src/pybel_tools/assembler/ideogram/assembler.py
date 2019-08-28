@@ -4,17 +4,17 @@
 
 import os
 import random
-from typing import Any, Mapping, Optional, Set, TextIO
+from typing import Any, Mapping, Optional, TextIO
 
-import pandas as pd
 from IPython.display import Javascript
 from jinja2 import Template
 
+import bio2bel_hgnc
+from bio2bel_entrez.parser import get_human_refseq_slim_df
+from bio2bel_hgnc.models import HumanGene
 from pybel import BELGraph
-from pybel.constants import GENE
-from pybel.dsl import Gene
-from pybel.struct import get_nodes_by_function
-from pybel.struct.mutation import collapse_all_variants, enrich_protein_and_rna_origins
+from pybel.dsl import CentralDogma
+
 
 __all__ = [
     'to_html',
@@ -78,24 +78,25 @@ def _generate_id() -> str:
     return ''.join(random.sample('abcdefghjkmopqrstuvqxyz', 16))
 
 
-def prerender(graph: BELGraph) -> Mapping[str, Mapping[str, Any]]:
+def prerender(graph: BELGraph, hgnc_manager=None) -> Mapping[str, Mapping[str, Any]]:
     """Generate the annotations JSON for Ideogram."""
-    import bio2bel_hgnc
-    from bio2bel_hgnc.models import HumanGene
 
-    graph: BELGraph = graph.copy()
-    enrich_protein_and_rna_origins(graph)
-    collapse_all_variants(graph)
-    genes: Set[Gene] = get_nodes_by_function(graph, GENE)
+    if hgnc_manager is None:
+        hgnc_manager = bio2bel_hgnc.Manager()
+
     hgnc_symbols = {
-        gene.name
-        for gene in genes
-        if gene.namespace.lower() == 'hgnc'
+        node.name
+        for node in graph
+        if isinstance(node, CentralDogma) and node.namespace.lower() == 'hgnc'
     }
 
-    result = {}
+    refseq_df = get_human_refseq_slim_df()
 
-    hgnc_manager = bio2bel_hgnc.Manager()
+    result = {
+        symbol: dict(name=symbol, start=start, stop=stop)
+        for gene_id, symbol, start, stop in refseq_df[refseq_df['Symbol'].isin(hgnc_symbols)].values
+    }
+
     human_genes = (
         hgnc_manager.session
         .query(HumanGene.symbol, HumanGene.location)
@@ -103,24 +104,10 @@ def prerender(graph: BELGraph) -> Mapping[str, Mapping[str, Any]]:
         .all()
     )
     for human_gene in human_genes:
-        result[human_gene.symbol] = {
-            'name': human_gene.symbol,
-            'chr': (
-                human_gene.location.split('q')[0]
-                if 'q' in human_gene.location else
-                human_gene.location.split('p')[0]
-            ),
-        }
-
-    refseq_df = get_refseq_df()
-
-    for _, (gene_id, symbol, start, stop) in refseq_df[refseq_df['Symbol'].isin(hgnc_symbols)].iterrows():
-        result[symbol]['start'] = start
-        result[symbol]['stop'] = stop
+        result[human_gene.symbol]['chr'] = (
+            human_gene.location.split('q')[0]
+            if 'q' in human_gene.location else
+            human_gene.location.split('p')[0]
+        )
 
     return result
-
-
-def get_refseq_df() -> pd.DataFrame:
-    """Get RefSeq information as a dataframe."""
-    return pd.read_csv(os.path.join(HERE, 'refseq_human.csv'))
