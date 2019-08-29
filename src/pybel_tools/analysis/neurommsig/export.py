@@ -45,7 +45,7 @@ def preprocessing_excel(path: str) -> pd.DataFrame:
         raise ValueError("Error: %s file not found" % path)
 
     # Import Models from Excel sheet, independent for AD and PD
-    df = pd.read_excel(path, sheetname=0, header=0)
+    df = pd.read_excel(path, sheet_name=0, header=0)
 
     # Indexes and column name
     # [log.info(str(x)+': '+str((df.columns.values[x]))) for x in range (0,len(df.columns.values))]
@@ -53,19 +53,20 @@ def preprocessing_excel(path: str) -> pd.DataFrame:
     # Starting from 4: Pathway Name
 
     # Fill Pathway cells that are merged and are 'NaN' after deleting rows where there is no genes
-    df.iloc[:, 0] = pd.Series(df.iloc[:, 0]).fillna(method='ffill')
+    for column_idx in (0, 1):  # identifiers column then names columns
+        df.iloc[:, column_idx] = pd.Series(df.iloc[:, column_idx]).fillna(method='ffill')
 
-    # Number of gaps
+        # Number of gaps
     # log.info(df.ix[:,6].isnull().sum())
 
-    df = df[df.ix[:, 1].notnull()]
+    df = df[df.iloc[:, 1].notnull()]
     df = df.reset_index(drop=True)
 
-    # Fill NaN to ceros in PubmedID column
-    df.ix[:, 2].fillna(0, inplace=True)
+    # Fill NaN to zeros in PubMed identifier column
+    df.iloc[:, 2].fillna(0, inplace=True)
 
     # Number of gaps in the gene column should be already zero
-    if (df.ix[:, 1].isnull().sum()) != 0:
+    if (df.iloc[:, 1].isnull().sum()) != 0:
         raise ValueError("Error: Empty cells in the gene column")
 
     # Check current state
@@ -104,8 +105,9 @@ mesh_parkinson = "Parkinson Disease"
 CANNED_EVIDENCE = 'Serialized from NeuroMMSigDB'
 CANNED_CITATION = '28651363'
 
-pathway_column = 'Subgraph Name'
-genes_column = 'Genes'
+PATHWAY_ID_COLUMN_NAME = 'NeuroMMSig identifier'
+PATHWAY_COLUMN_NAME = 'Subgraph Name'
+GENE_COLUMN_NAME = 'Genes'
 pmids_column = 'PMIDs'
 snp_from_literature_column = 'SNPs from Literature (Aybuge)'
 snp_from_gwas_column = 'Genome wide associated SNPs (Mufassra)'
@@ -114,7 +116,7 @@ clinical_features_column = 'Imaging Features (Anandhi)'
 snp_from_imaging_column = 'SNP_Image Feature (Mufassra & Anandhi)'
 
 columns = [
-    genes_column,
+    GENE_COLUMN_NAME,
     pmids_column,
     snp_from_literature_column,
     snp_from_gwas_column,
@@ -150,10 +152,10 @@ def get_nift_values() -> Mapping[str, str]:
 
 
 def write_neurommsig_bel(
-        file: TextIO,
-        df: pd.DataFrame,
-        disease: str,
-        nift_values: Mapping[str, str],
+    file: TextIO,
+    df: pd.DataFrame,
+    disease: str,
+    nift_values: Mapping[str, str],
 ) -> None:
     """Write the NeuroMMSigDB excel sheet to BEL.
 
@@ -167,9 +169,9 @@ def write_neurommsig_bel(
 
 
 def get_neurommsig_bel(
-        df: pd.DataFrame,
-        disease: str,
-        nift_values: Mapping[str, str],
+    df: pd.DataFrame,
+    disease: str,
+    nift_values: Mapping[str, str],
 ) -> BELGraph:
     """Generate the NeuroMMSig BEL graph.
 
@@ -189,8 +191,8 @@ def get_neurommsig_bel(
         version=time.strftime('%Y%m%d'),
     )
 
-    for pathway, pathway_df in df.groupby(pathway_column):
-        sorted_pathway_df = pathway_df.sort_values(genes_column)
+    for pathway, pathway_df in df.groupby(PATHWAY_COLUMN_NAME):
+        sorted_pathway_df = pathway_df.sort_values(GENE_COLUMN_NAME)
         sliced_df = sorted_pathway_df[columns].itertuples()
 
         for _, gene, pubmeds, lit_snps, gwas_snps, ld_block_snps, clinical_features, clinical_snps in sliced_df:
