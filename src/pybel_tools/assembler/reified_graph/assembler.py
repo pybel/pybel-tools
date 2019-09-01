@@ -520,6 +520,6 @@ def reify_bel_graph(bel_graph: BELGraph, collapse: str = None) -> nx.DiGraph:
             target = collapse_to_gene(target)
         reified_graph.add_node(i, label=reif_edge_label, causal=(positive, negative))
         reified_graph.add_edge(source, i, label=REIF_SUBJECT)
-        reified_graph.add_edge(target, i, label=REIF_OBJECT)
+        reified_graph.add_edge(i, target, label=REIF_OBJECT)
 
     return reified_graph

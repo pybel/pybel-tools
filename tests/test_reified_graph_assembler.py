@@ -159,7 +159,8 @@ class TestAssembleReifiedGraph(unittest.TestCase):
         self.help_test_graphs_equal(expected_reified_graph, reified_graph)
 
     def test_convert_increases_abundance(self):
-        """Test the conversion of a bel statement like A -> B, when A and B don't fall in any special case (activity, pmod, ...)."""
+        """Test the conversion of a bel statement like A -> B, when A and B don't
+        fall in any special case (activity, pmod, ...)."""
         bel_graph = BELGraph()
         bel_graph.add_increases(
             oxaliplatin,
