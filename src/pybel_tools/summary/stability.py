@@ -335,7 +335,7 @@ def summarize_stability(graph: BELGraph) -> Mapping[str, int]:
         'Increase Mismatch Triples': _count_or_len(increase_mismatch_triples),
         'Decrease Mismatch Triples': _count_or_len(decrease_mismatch_triples),
         'Chaotic Triples': _count_or_len(chaotic_triples),
-        'Dampened Triples': _count_or_len(dampened_triples)
+        'Dampened Triples': _count_or_len(dampened_triples),
     }
 
 

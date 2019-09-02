@@ -71,8 +71,8 @@ def count_dict_values(dict_of_counters: Mapping[X, Sized]) -> typing.Counter[X]:
 def set_percentage(x: Iterable[X], y: Iterable[X]) -> float:
     """Return what percentage of x is contained within y.
 
-    :param set x: A set
-    :param set y: Another set
+    :param x: A set
+    :param y: Another set
     :return: The percentage of x contained within y
     """
     a, b = set(x), set(y)
@@ -97,8 +97,8 @@ def tanimoto_set_similarity(x: Iterable[X], y: Iterable[X]) -> float:
 def min_tanimoto_set_similarity(x: Iterable[X], y: Iterable[X]) -> float:
     """Calculate the tanimoto set similarity using the minimum size.
 
-    :param set x: A set
-    :param set y: Another set
+    :param x: A set
+    :param y: Another set
     :return: The similarity between
     """
     a, b = set(x), set(y)
@@ -110,8 +110,8 @@ def min_tanimoto_set_similarity(x: Iterable[X], y: Iterable[X]) -> float:
 
 
 def calculate_single_tanimoto_set_distances(
-        target: Iterable[X],
-        dict_of_sets: Mapping[Y, Set[X]],
+    target: Iterable[X],
+    dict_of_sets: Mapping[Y, Set[X]],
 ) -> Mapping[Y, float]:
     """Return a dictionary of distances keyed by the keys in the given dict.
 
@@ -119,7 +119,7 @@ def calculate_single_tanimoto_set_distances(
 
     :param target: A set
     :param dict_of_sets: A dict of {x: set of y}
-    :return: A similarity dicationary based on the set overlap (tanimoto) score between the target set and the sets in
+    :return: A similarity dictionary based on the set overlap (tanimoto) score between the target set and the sets in
             dos
     """
     target_set = set(target)
@@ -130,7 +130,9 @@ def calculate_single_tanimoto_set_distances(
     }
 
 
-def calculate_tanimoto_set_distances(dict_of_sets: Mapping[X, Set]) -> Mapping[X, Mapping[X, float]]:
+def calculate_tanimoto_set_distances(
+    dict_of_sets: Mapping[X, Set],
+) -> Mapping[X, Mapping[X, float]]:
     """Return a distance matrix keyed by the keys in the given dict.
 
     Distances are calculated based on pairwise tanimoto similarity of the sets contained.
@@ -195,9 +197,9 @@ def barv(d, plt, title=None, rotation='vertical'):
 
 
 def prepare_c3(
-        data: Union[List[Tuple[str, int]], Mapping[str, int]],
-        y_axis_label: str = 'y',
-        x_axis_label: str = 'x',
+    data: Union[List[Tuple[str, int]], Mapping[str, int]],
+    y_axis_label: str = 'y',
+    x_axis_label: str = 'x',
 ) -> str:
     """Prepare a C3 JSON for making a bar chart from a Counter.
 

@@ -45,7 +45,6 @@ Links
 - Versioned on `GitHub <https://github.com/pybel/pybel-tools>`_
 - Tested on `Travis CI <https://travis-ci.org/pybel/pybel-tools>`_
 - Distributed by PyPI_
-- Chat on `Gitter <https://gitter.im/pybel/Lobby>`_
 
 .. _PyPI: https://pypi.python.org/pypi/pybel_tools
 
