@@ -2,7 +2,7 @@
 
 """Functions for identifying contradictions."""
 
-from typing import Set
+from typing import Collection
 
 from pybel import BELGraph
 from pybel.constants import CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, CAUSES_NO_CHANGE, RELATION
@@ -23,7 +23,8 @@ def pair_has_contradiction(graph: BELGraph, u: BaseEntity, v: BaseEntity) -> boo
     return relation_set_has_contradictions(relations)
 
 
-def relation_set_has_contradictions(relations: Set[str]) -> bool:
+# TODO should this consider correlations?
+def relation_set_has_contradictions(relations: Collection[str]) -> bool:
     """Return if the set of BEL relations contains a contradiction."""
     has_increases = any(relation in CAUSAL_INCREASE_RELATIONS for relation in relations)
     has_decreases = any(relation in CAUSAL_DECREASE_RELATIONS for relation in relations)

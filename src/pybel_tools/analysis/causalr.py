@@ -6,10 +6,13 @@
                  data <https://doi.org/10.1093/bioinformatics/btx425>`_. Bioinformatics, (June), 1–3.
 """
 
+from __future__ import annotations
+
 import enum
 import logging
 from functools import reduce
 from operator import itemgetter
+from typing import Dict, Mapping, Tuple
 
 import networkx as nx
 
@@ -20,6 +23,7 @@ from pybel.constants import (
     IS_A, NEGATIVE_CORRELATION, POSITIVE_CORRELATION, PROGONSTIC_BIOMARKER_FOR, RATE_LIMITING_STEP_OF, REGULATES,
     RELATION, SUBPROCESS_OF, TRANSCRIBED_TO, TRANSLATED_TO,
 )
+from pybel.typing import EdgeData
 from ..summary.contradictions import pair_has_contradiction
 from ..utils import pairwise
 
@@ -64,7 +68,7 @@ default_edge_ranking = {
     ANALOGOUS_TO: 0,
     BIOMARKER_FOR: 0,
     PROGONSTIC_BIOMARKER_FOR: 0,
-    EQUIVALENT_TO: 0
+    EQUIVALENT_TO: 0,
 }
 
 
@@ -76,10 +80,22 @@ class Effect(enum.Enum):
     activation = 1
     ambiguous = None
 
+    @classmethod
+    def is_causal(cls, effect: Effect) -> bool:
+        """Check if the effect is either inhibition or activation."""
+        return effect is cls.inhibition or effect is cls.activation
+
 
 # TODO combine with data integration module so you can give a graph and a path to a data file
 
-def rank_causalr_hypothesis(graph, node_to_regulation, regulator_node):
+HypothesisMapping = Dict[str, int]
+
+
+def rank_causalr_hypothesis(
+    graph: BELGraph,
+    node_to_regulation: Mapping[BaseEntity, int],
+    regulator_node: BaseEntity,
+) -> Tuple[HypothesisMapping, HypothesisMapping]:
     """Test the regulator hypothesis of the given node on the input data using the algorithm.
 
     Note: this method returns both +/- signed hypotheses evaluated
@@ -90,17 +106,17 @@ def rank_causalr_hypothesis(graph, node_to_regulation, regulator_node):
     2. Calculate the concordance of the causal network and the observed regulation when there is path
        between target node and regulator node
 
-    :param networkx.DiGraph graph: A causal graph
-    :param dict node_to_regulation: Nodes to score (1,-1,0)
+    :param graph: A causal graph
+    :param node_to_regulation: Nodes to score (1,-1,0)
+    :param regulator_node:
     :return Dictionaries with hypothesis results (keys: score, correct, incorrect, ambiguous)
-    :rtype: dict
     """
-    upregulation_hypothesis = {
+    upregulation_hypothesis: HypothesisMapping = {
         'correct': 0,
         'incorrect': 0,
-        'ambiguous': 0
+        'ambiguous': 0,
     }
-    downregulation_hypothesis = {
+    downregulation_hypothesis: HypothesisMapping = {
         'correct': 0,
         'incorrect': 0,
         'ambiguous': 0,
@@ -115,8 +131,7 @@ def rank_causalr_hypothesis(graph, node_to_regulation, regulator_node):
     predicted_regulations = run_cna(graph, regulator_node, targets)  # + signed hypothesis
 
     for _, target_node, predicted_regulation in predicted_regulations:
-        if (predicted_regulation is Effect.inhibition or predicted_regulation is Effect.activation) and (
-                predicted_regulation.value == node_to_regulation[target_node]):
+        if Effect.is_causal(predicted_regulation) and predicted_regulation.value == node_to_regulation[target_node]:
             upregulation_hypothesis['correct'] += 1
             downregulation_hypothesis['incorrect'] += 1
 
@@ -190,7 +205,6 @@ def get_path_effect(graph: BELGraph, path, relationship_dict) -> Effect:
     causal_effect = []
 
     for predecessor, successor in pairwise(path):
-
         if pair_has_contradiction(graph, predecessor, successor):
             return Effect.ambiguous
 
@@ -211,10 +225,10 @@ def get_path_effect(graph: BELGraph, path, relationship_dict) -> Effect:
     return Effect.activation if final_effect == 1 else Effect.inhibition
 
 
-def rank_edges(edges, edge_ranking=None):
+def rank_edges(edges: Mapping[str, EdgeData], edge_ranking=None):
     """Return the highest ranked edge from a multiedge.
 
-    :param dict edges: dictionary with all edges between two nodes
+    :param edges: dictionary with all edges between two nodes
     :param dict edge_ranking: A dictionary of {relationship: score}
     :return: Highest ranked edge
     :rtype: tuple: (edge id, relation, score given ranking)

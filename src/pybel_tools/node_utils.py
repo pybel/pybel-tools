@@ -5,7 +5,7 @@
 import itertools as itt
 import logging
 from itertools import chain
-from typing import Set, Type
+from typing import Set, Tuple, Type, Union
 
 from networkx import relabel_nodes
 
@@ -83,11 +83,11 @@ def list_abundance_cartesian_expansion(graph: BELGraph) -> None:
     _remove_list_abundance_nodes(graph)
 
 
-def _reaction_cartesion_expansion_unqualified_helper(
-        graph: BELGraph,
-        u: BaseEntity,
-        v: BaseEntity,
-        d: dict,
+def _reaction_cartesian_expansion_unqualified_helper(
+    graph: BELGraph,
+    u: BaseEntity,
+    v: BaseEntity,
+    d: dict,
 ) -> None:
     """Help deal with cartesian expansion in unqualified edges."""
     if isinstance(u, Reaction) and isinstance(v, Reaction):
@@ -101,8 +101,8 @@ def _reaction_cartesion_expansion_unqualified_helper(
             graph.add_unqualified_edge(
                 reactant, product, INCREASES
             )
-        for product, reactant in itt.product(u.products, u.reactants):
 
+        for product, reactant in itt.product(u.products, u.reactants):
             if reactant in enzymes or product in enzymes:
                 continue
 
@@ -160,7 +160,7 @@ def reaction_cartesian_expansion(graph: BELGraph, accept_unqualified_edges: bool
     for u, v, d in list(graph.edges(data=True)):
         # Deal with unqualified edges
         if CITATION not in d and accept_unqualified_edges:
-            _reaction_cartesion_expansion_unqualified_helper(graph, u, v, d)
+            _reaction_cartesian_expansion_unqualified_helper(graph, u, v, d)
             continue
 
         if isinstance(u, Reaction) and isinstance(v, Reaction):
@@ -256,9 +256,12 @@ def _remove_reaction_nodes(graph: BELGraph):
     _remove_typed_nodes(graph, Reaction)
 
 
-def _remove_typed_nodes(graph: BELGraph, cls: Type[BaseEntity]):
+def _remove_typed_nodes(
+    graph: BELGraph,
+    cls: Union[Type[BaseEntity], Tuple[Type[BaseEntity], ...]],
+) -> None:
     graph.remove_nodes_from({
         node
-        for node in graph.nodes()
+        for node in graph
         if isinstance(node, cls)
     })
