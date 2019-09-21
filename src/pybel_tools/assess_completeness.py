@@ -8,7 +8,7 @@ Run on CONIB with ``python -m pybel_tools.assess_completeness [PMID]``.
 import logging
 import math
 from dataclasses import dataclass
-from typing import Iterable, List, Optional, Set, Tuple, Union
+from typing import Iterable, List, Optional, Set, TextIO, Tuple, Union
 
 import click
 from indra.sources.indra_db_rest.api import get_statements_for_paper
@@ -31,15 +31,20 @@ class CompletenessSummary:
     indra_nodes: Set[BaseEntity]
 
     @property
-    def novel_nodes(self) -> Set[BaseEntity]:
+    def novel_nodes(self) -> Set[BaseEntity]:  # noqa: D401
+        """The nodes INDRA found that weren't in the reference."""
         return self.indra_nodes - self.reference_nodes
 
     def summary_str(self) -> str:
+        """Make a summary of the findings."""
         ids_pretty = ', '.join(f'{x}:{y}' for x, y in self.documents)
 
         indra_novel = len(self.novel_nodes) / len(self.indra_nodes)
         reference_novel = len(self.novel_nodes) / len(self.reference_nodes)
-        score_novel = len(self.novel_nodes) / math.sqrt(len(self.indra_nodes) * len(self.reference_nodes))
+
+        # normalize by the number of nodes and the number of documents
+        score_novel = len(self.novel_nodes) / math.sqrt(len(self.indra_nodes) * len(self.reference_nodes)) / len(
+            self.documents)
 
         return f"""
 Novelty check for {ids_pretty}:
@@ -49,7 +54,8 @@ Novelty check for {ids_pretty}:
     Score: {score_novel:.2%}
 """
 
-    def summarize(self, file=None) -> None:
+    def summarize(self, file: Optional[TextIO] = None) -> None:
+        """Print the summary of the findings."""
         print(self.summary_str(), file=file)
 
 
@@ -96,7 +102,7 @@ def assess_completeness(
 
 
 @click.command()
-@click.argument('pmid')
+@click.argument('pmids', nargs=-1)
 @click.option(
     '-g', '--graph',
     metavar='path',
@@ -105,7 +111,7 @@ def assess_completeness(
     help='Path to BEL file. Loads CONIB as an example if none given',
 )
 @click.option('-v', '--verbose', is_flag=True)
-def main(pmid: str, graph: Optional[BELGraph], verbose: bool) -> None:
+def main(pmids: str, graph: Optional[BELGraph], verbose: bool) -> None:
     """Check a BEL graph for added value of a given article.
 
     Example: 30606258 for paper entitled "A pathogenic tau fragment compromises microtubules,
@@ -115,7 +121,9 @@ def main(pmid: str, graph: Optional[BELGraph], verbose: bool) -> None:
         import hbp_knowledge
         graph = hbp_knowledge.get_graph()
 
-    s = assess_completeness(('pmid', pmid), graph, verbose_indra_logger=verbose)
+    pmids = [('pmid', pmid) for pmid in pmids]
+
+    s = assess_completeness(pmids, graph, verbose_indra_logger=verbose)
     s.summarize()
 
 
