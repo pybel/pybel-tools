@@ -76,7 +76,10 @@ def assess_completeness(
         indra_logger.setLevel(logging.WARNING)
 
     if isinstance(ids, str):
-        ids = [ids.split(':')]
+        _ids = ids.split(':')
+        if len(_ids) != 2:
+            raise ValueError(f'String should be given as CURIE: {ids}')
+        ids = [_ids]
     elif isinstance(ids, tuple):
         ids = [ids]
 
