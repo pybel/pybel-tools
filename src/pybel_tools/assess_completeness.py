@@ -19,6 +19,7 @@ from pybel.cli import _from_pickle_callback
 
 __all__ = [
     'assess_completeness',
+    'CompletenessSummary',
 ]
 
 
@@ -35,10 +36,12 @@ class CompletenessSummary:
         """The nodes INDRA found that weren't in the reference."""
         return self.indra_nodes - self.reference_nodes
 
-    def summary_str(self) -> str:
-        """Make a summary of the findings."""
-        ids_pretty = ', '.join(f'{x}:{y}' for x, y in self.documents)
-
+    def summary_dict(self):
+        """Summarize the findings in a tuple."""
+        curies = [
+            f'{x}:{y}'
+            for x, y in self.documents
+        ]
         indra_novel = len(self.novel_nodes) / len(self.indra_nodes)
         reference_novel = len(self.novel_nodes) / len(self.reference_nodes)
 
@@ -46,12 +49,25 @@ class CompletenessSummary:
         score_novel = len(self.novel_nodes) / math.sqrt(len(self.indra_nodes) * len(self.reference_nodes)) / len(
             self.documents)
 
+        return dict(
+            curies=curies,
+            indra_count=len(self.indra_nodes),
+            indra_novel=indra_novel,
+            reference_count=len(self.reference_nodes),
+            reference_novel=reference_novel,
+            nodel_count=len(self.novel_nodes),
+            score_novel=score_novel,
+        )
+
+    def summary_str(self) -> str:
+        """Summarize the findings in a string."""
+        d = self.summary_dict()
         return f"""
-Novelty check for {ids_pretty}:
-    Reference had: {len(self.reference_nodes)} nodes
-    INDRA found: {len(self.indra_nodes)} nodes ({len(self.novel_nodes)} new, {indra_novel:.2%})
-    Curation novelty: {reference_novel:.2%}
-    Score: {score_novel:.2%}
+Novelty check for {', '.join(d['curies'])}:
+    Reference had: {d['reference_count']} nodes
+    INDRA found: {d['indra_count']} nodes ({d['novel_count']} new, {d['indra_novel']:.2%})
+    Curation novelty: {d['reference_novel']:.2%}
+    Score: {d['score_novel']:.2%}
 """
 
     def summarize(self, file: Optional[TextIO] = None) -> None:
