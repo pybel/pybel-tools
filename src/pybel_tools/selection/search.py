@@ -24,13 +24,13 @@ def search_node_names(graph: BELGraph, query: Strings) -> Iterable[BaseEntity]:
     :return: An iterator over nodes whose names match the search query
 
     Example:
-
     .. code-block:: python
 
         >>> from pybel.examples import sialic_acid_graph
         >>> from pybel_tools.selection import search_node_names
         >>> list(search_node_names(sialic_acid_graph, 'CD33'))
         [('Protein', 'HGNC', 'CD33'), ('Protein', 'HGNC', 'CD33', ('pmod', ('bel', 'Ph')))]
+
     """
     return filter_nodes(graph, build_node_name_search(query))
 
