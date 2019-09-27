@@ -130,12 +130,12 @@ def make_graph_3() -> BELGraph:
         contact='charles.hoyt@scai.fraunhofer.de',
     )
 
-    graph.add_increases(protein_a, protein_b, n(), n())
-    graph.add_decreases(protein_b, gene_c, n(), n())
-    graph.add_decreases(rna_d, gene_f, n(), n())
-    graph.add_increases(protein_e, gene_f, n(), n())
-    graph.add_increases(gene_f, gene_c, n(), n())
-    graph.add_association(gene_c, protein_g, n(), n())
+    graph.add_increases(protein_a, protein_b, citation=n(), evidence=n())
+    graph.add_decreases(protein_b, gene_c, citation=n(), evidence=n())
+    graph.add_decreases(rna_d, gene_f, citation=n(), evidence=n())
+    graph.add_increases(protein_e, gene_f, citation=n(), evidence=n())
+    graph.add_increases(gene_f, gene_c, citation=n(), evidence=n())
+    graph.add_association(gene_c, protein_g, citation=n(), evidence=n())
 
     return graph
 
@@ -164,16 +164,16 @@ def make_graph_4() -> BELGraph:
         contact='charles.hoyt@scai.fraunhofer.de',
     )
 
-    graph.add_increases(protein_a, protein_b, n(), n())
-    graph.add_decreases(protein_b, gene_c, n(), n())
-    graph.add_decreases(protein_b, rna_d, n(), n())
-    graph.add_decreases(protein_b, protein_e, n(), n())
-    graph.add_decreases(protein_b, gene_f, n(), n())
-    graph.add_increases(protein_b, protein_g, n(), n())
-    graph.add_decreases(protein_b, protein_h, n(), n())
-    graph.add_increases(protein_b, protein_h, n(), n())
-    graph.add_increases(protein_b, protein_i, n(), n())
-    graph.add_association(protein_b, protein_j, n(), n())
+    graph.add_increases(protein_a, protein_b, citation=n(), evidence=n())
+    graph.add_decreases(protein_b, gene_c, citation=n(), evidence=n())
+    graph.add_decreases(protein_b, rna_d, citation=n(), evidence=n())
+    graph.add_decreases(protein_b, protein_e, citation=n(), evidence=n())
+    graph.add_decreases(protein_b, gene_f, citation=n(), evidence=n())
+    graph.add_increases(protein_b, protein_g, citation=n(), evidence=n())
+    graph.add_decreases(protein_b, protein_h, citation=n(), evidence=n())
+    graph.add_increases(protein_b, protein_h, citation=n(), evidence=n())
+    graph.add_increases(protein_b, protein_i, citation=n(), evidence=n())
+    graph.add_association(protein_b, protein_j, citation=n(), evidence=n())
 
     return graph
 

@@ -1,20 +1,23 @@
 import unittest
 
 from pybel import BELGraph
-from pybel.constants import *
-from pybel.dsl import protein
-from pybel_tools.analysis.stability import *
+from pybel.constants import DECREASES, INCREASES, NEGATIVE_CORRELATION, POSITIVE_CORRELATION, RELATION
+from pybel.dsl import Protein
 from pybel_tools.mutation.inference import infer_missing_two_way_edges
+from pybel_tools.summary import (
+    get_correlation_graph, get_correlation_triangles, get_mutually_unstable_correlation_triples,
+    get_separate_unstable_correlation_triples,
+)
 
 
 class TestUnstableTriplets(unittest.TestCase):
     def test_separate_unstable(self):
         graph = BELGraph()
 
-        a_data = protein('HGNC', 'A')
-        b_data = protein('HGNC', 'B')
-        c_data = protein('HGNC', 'C')
-        d_data = protein('HGNC', 'D')
+        a_data = Protein('HGNC', 'A')
+        b_data = Protein('HGNC', 'B')
+        c_data = Protein('HGNC', 'C')
+        d_data = Protein('HGNC', 'D')
 
         a = graph.add_node_from_data(a_data)
         b = graph.add_node_from_data(b_data)
@@ -51,10 +54,10 @@ class TestUnstableTriplets(unittest.TestCase):
     def test_mutually_unstable(self):
         graph = BELGraph()
 
-        a_data = protein('HGNC', 'A')
-        b_data = protein('HGNC', 'B')
-        c_data = protein('HGNC', 'C')
-        d_data = protein('HGNC', 'D')
+        a_data = Protein('HGNC', 'A')
+        b_data = Protein('HGNC', 'B')
+        c_data = Protein('HGNC', 'C')
+        d_data = Protein('HGNC', 'D')
 
         a = graph.add_node_from_data(a_data)
         b = graph.add_node_from_data(b_data)
@@ -76,11 +79,11 @@ class TestUnstableTriplets(unittest.TestCase):
     def test_jens_alpha(self):
         graph = BELGraph()
 
-        a_data = protein('HGNC', 'A')
-        b_data = protein('HGNC', 'B')
-        c_data = protein('HGNC', 'C')
-        d_data = protein('HGNC', 'D')
-        e_data = protein('HGNC', 'e')
+        a_data = Protein('HGNC', 'A')
+        b_data = Protein('HGNC', 'B')
+        c_data = Protein('HGNC', 'C')
+        d_data = Protein('HGNC', 'D')
+        e_data = Protein('HGNC', 'e')
 
         a = graph.add_node_from_data(a_data)
         b = graph.add_node_from_data(b_data)

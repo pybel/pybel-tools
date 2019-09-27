@@ -25,10 +25,6 @@ __all__ = [
     'namespace_inclusion_builder',
     'data_contains_key_builder',
     'data_missing_key_builder',
-    'node_has_label',
-    'node_missing_label',
-    'include_pathology_filter',
-    'exclude_pathology_filter',
     'build_node_data_search',
     'build_node_key_search',
     'variants_of',
@@ -212,10 +208,10 @@ exclude_pathology_filter = function_exclusion_filter_builder(PATHOLOGY)
 def namespace_inclusion_builder(namespace: str) -> NodePredicate:  # noqa: D202
     """Build a function that filters for nods that include a specific namespace."""
 
-    def has_namespace(_: BELGraph, node: BaseEntity):
+    def _has_namespace(_: BELGraph, node: BaseEntity) -> bool:
         return node.get(NAMESPACE) == namespace
 
-    return has_namespace
+    return _has_namespace
 
 
 def variants_of(

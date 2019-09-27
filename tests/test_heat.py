@@ -28,10 +28,10 @@ class TestGenerate(unittest.TestCase):
         graph.nodes[b][key] = -1
         graph.nodes[c][key] = 1
 
-        graph.add_increases(a, b, n(), n())
-        graph.add_decreases(b, d, n(), n())
-        graph.add_increases(a, c, n(), n())
-        graph.add_increases(c, d, n(), n())
+        graph.add_increases(a, b, citation=n(), evidence=n())
+        graph.add_decreases(b, d, citation=n(), evidence=n())
+        graph.add_increases(a, c, citation=n(), evidence=n())
+        graph.add_increases(c, d, citation=n(), evidence=n())
 
         candidate_mechanisms = generate_bioprocess_mechanisms(graph, key)
 

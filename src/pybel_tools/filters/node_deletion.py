@@ -6,7 +6,6 @@ from pybel import BELGraph
 from pybel.struct.filters.node_predicate_builders import function_inclusion_filter_builder
 from pybel.struct.mutation import remove_filtered_nodes
 from pybel.struct.pipeline import in_place_transformation
-from pybel.struct.pipeline.decorators import register_deprecated
 from pybel.typing import Strings
 from .node_filters import function_namespace_inclusion_builder, namespace_inclusion_builder
 
@@ -36,14 +35,12 @@ def remove_nodes_by_namespace(graph: BELGraph, namespace: Strings) -> None:
     remove_filtered_nodes(graph, namespace_inclusion_builder(namespace))
 
 
-@register_deprecated('remove_mgi_nodes')
 @in_place_transformation
 def remove_mouse_nodes(graph: BELGraph) -> None:
     """Remove nodes using the MGI and MGIID namespaces."""
     remove_nodes_by_namespace(graph, ['MGI', 'MGIID'])
 
 
-@register_deprecated('remove_rgd_nodes')
 @in_place_transformation
 def remove_rat_nodes(graph: BELGraph) -> None:
     """Remove nodes using the RGD and RGDID namespaces."""

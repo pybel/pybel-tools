@@ -5,13 +5,12 @@
 from __future__ import annotations
 
 import logging
-import os
 from typing import Optional, TextIO, Tuple
-
-from jinja2 import Environment, FileSystemLoader
 
 from pybel import BELGraph
 from pybel.dsl import BaseEntity
+
+from ..jinja_utils import build_template_renderer
 from ...summary import BELGraphSummary
 from ...utils import prepare_c3, prepare_c3_time_series
 
@@ -24,9 +23,10 @@ __all__ = [
 
 log = logging.getLogger(__name__)
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-environment = Environment(autoescape=True, loader=FileSystemLoader(HERE), trim_blocks=False)
-environment.globals.update(
+CONFIDENCES = 'None', 'Very Low', 'Low', 'Medium', 'High', 'Very High'
+
+render_template = build_template_renderer(__file__)
+render_template.environment.globals.update(
     prepare_c3=prepare_c3,
     prepare_c3_time_series=prepare_c3_time_series,
 )
@@ -57,11 +57,11 @@ def to_html(graph: BELGraph) -> str:
 
     confidence_data = [
         (label, summary.confidence_count.get(label, 0))
-        for label in ('None', 'Very Low', 'Low', 'Medium', 'High', 'Very High')
+        for label in CONFIDENCES
     ]
 
-    template = environment.get_template('index.html')
-    return template.render(
+    return render_template(
+        'index.html',
         graph=graph,
         summary=summary,
         confidence_data=confidence_data,
