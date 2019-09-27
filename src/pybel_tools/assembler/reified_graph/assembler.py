@@ -15,7 +15,7 @@ from pybel.constants import (
     OBJECT, REGULATES, TRANSCRIBED_TO, TRANSLATED_TO, TWO_WAY_RELATIONS,
     BIOMARKER_FOR, CAUSES_NO_CHANGE, HAS_MEMBER
 )
-from pybel.dsl import BaseEntity, ComplexAbundance, fragment, gene, mirna, pmod, protein, rna
+from pybel.dsl import BaseEntity, BiologicalProcess, ComplexAbundance, fragment, gene, mirna, pmod, protein, rna
 from pybel.typing import EdgeData
 
 __all__ = [
@@ -178,6 +178,20 @@ class ActivationConverter(ReifiedConverter):
         )
 
 
+class BioProcessConverter(ReifiedConverter):
+    """Converts BEL statements of the form A B bp(C)."""
+
+    target_relation = "regulatesBioProcess"
+
+    @classmethod
+    def predicate(cls, u: BaseEntity, v: BaseEntity, key: str, edge_data: EdgeData) -> bool:
+        return (
+            "relation" in edge_data and
+            edge_data['relation'] in CAUSAL_RELATIONS and
+            isinstance(v, BiologicalProcess)
+        )
+
+
 class ComplexConverter(ReifiedConverter):
     """Converts BEL statements of the form complex(A [, **B]])."""
 
@@ -193,7 +207,7 @@ class ComplexConverter(ReifiedConverter):
 
 
 class DegradationConverter(ReifiedConverter):
-    """Converts BEL statements of the form A B act(C), when B in {CAUSAL RELATIONS}."""
+    """Converts BEL statements of the form A B deg(C), when B in {CAUSAL RELATIONS}."""
 
     target_relation = DEGRADATES
 
@@ -282,7 +296,7 @@ class NonReifiableRelationshipsConverter(ReifiedConverter):
 
 
 class FragmentationConverter(ReifiedConverter):
-    """Converts BEL statements of the form A B p(C, pmod(Hy))."""
+    """Converts BEL statements of the form A B p(C, frag(*))."""
 
     target_relation = FRAGMENTS
 
@@ -520,6 +534,6 @@ def reify_bel_graph(bel_graph: BELGraph, collapse: str = None) -> nx.DiGraph:
             target = collapse_to_gene(target)
         reified_graph.add_node(i, label=reif_edge_label, causal=(positive, negative))
         reified_graph.add_edge(source, i, label=REIF_SUBJECT)
-        reified_graph.add_edge(i, target, label=REIF_OBJECT)
+        reified_graph.add_edge(target, i, label=REIF_OBJECT)
 
     return reified_graph
