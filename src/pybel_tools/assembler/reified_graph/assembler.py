@@ -4,7 +4,9 @@
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional, Tuple
+from collections import defaultdict
+from itertools import product
+from typing import Dict, List, Optional, Set, Tuple
 
 import networkx as nx
 
@@ -16,11 +18,16 @@ from pybel.constants import (
     BIOMARKER_FOR, CAUSES_NO_CHANGE, HAS_MEMBER
 )
 from pybel.dsl import BaseEntity, BiologicalProcess, ComplexAbundance, fragment, gene, mirna, pmod, protein, rna
+from pybel.struct.filters.edge_predicate_builders import build_relation_predicate
+from pybel.struct.filters import filter_edges
+from pybel.struct.mutation.collapse.protein_rna_origins import _build_collapse_to_gene_dict
 from pybel.typing import EdgeData
 
 __all__ = [
     'reify_bel_graph',
 ]
+
+logger = logging.getLogger(__name__)
 
 REIF_SUBJECT = 'subject'
 REIF_OBJECT = 'object'
@@ -481,6 +488,7 @@ def reify_edge(
         HydroxylationConverter,
         ActivationConverter,
         DegradationConverter,
+        BioProcessConverter,
         PromotesTranslationConverter,
         AbundanceConverter,
         HasVariantConverter,
@@ -492,25 +500,54 @@ def reify_edge(
         if converter.predicate(u, v, key, edge_data):
             return converter.convert(u, v, key, edge_data)
 
-    logging.warning(f"No converter found for {u}, {v}")
-    logging.warning(f"  with edge data {edge_data}")
+    logger.warning(f"No converter found for {u}, {v}")
+    logger.warning(f"  with edge data {edge_data}")
 
 
-def collapse_to_gene(entity: BaseEntity) -> BaseEntity:
-    """Collapse all protein, RNA, and miRNA nodes to their corresponding gene nodes.
+def _get_entity_collapser(bel_graph: BELGraph, collapse: str) -> Dict[BaseEntity, Set[BaseEntity]]:
+    """Creates a mapping to collapsed entities from a BEL graph.
 
-    :param entity: A node from a BEL graph.
-    :return: A gene, if entity is a protein, rna or mirNA, otherwise it returns the
-    same node without variants.
+    :param bel_graph: The BEL graph.
+    :param collapse: How to collapse the entities: ``variants`` to remove the variants, ``genes`` to collapse protein,
+     RNA, and miRNA nodes to their corresponding gene nodes or None to maintain the graph as is.
+    :return: A mapping from the original entity to the collapsed entity.
     """
-    if isinstance(entity, protein):
-        entity = entity.get_rna()
-    if isinstance(entity, (mirna, rna)):
-        entity = entity.get_gene()
-    if isinstance(entity, gene):
-        if 'variants' in entity:
-            del entity['variants']
-    return entity
+    if collapse == 'variants':
+        has_variant_predicate = build_relation_predicate(HAS_VARIANT)
+        edges = filter_edges(bel_graph, has_variant_predicate)
+        collapse_dict = defaultdict(set)
+        for orig, vari, _ in edges:
+            collapse_dict[vari].add(orig)
+        return collapse_dict
+    elif collapse == 'genes':
+        collapse_dict = _build_collapse_to_gene_dict(bel_graph)
+        return collapse_dict
+    else:
+        return dict()
+
+
+def _collapse_edges(
+        edges: List[Tuple[BaseEntity, str, bool, bool, BaseEntity]],
+        collapser: Dict[BaseEntity, Set[BaseEntity]]
+) -> Set[Tuple[BaseEntity, str, bool, bool, BaseEntity]]:
+    """Collapses the entities in a list with edge components and remove duplicate relationships.
+
+    :param edges: A list of edges, which are represented in a tuple containing: the origin node, the predicate,
+    positive causal relationship flag, negative causal relationship flag and the target node.
+    :param collapser: A mapping directing the collapse.
+    :return: A set of edges with collapsed entities.
+    """
+    collapsed_edges = set()
+    for source_node, reif_edge_label, positive, negative, target_node in edges:
+        if {source_node, target_node}.intersection(collapser):
+            source_set = collapser[source_node] if source_node in collapser else [source_node]
+            target_set = collapser[target_node] if target_node in collapser else [target_node]
+            collapsed_edges = collapsed_edges.union(
+                product(source_set, [reif_edge_label], [positive], [negative], target_set)
+            )
+        else:
+            collapsed_edges.add((source_node, reif_edge_label, positive, negative, target_node))
+    return collapsed_edges
 
 
 def reify_bel_graph(bel_graph: BELGraph, collapse: str = None) -> nx.DiGraph:
@@ -522,18 +559,14 @@ def reify_bel_graph(bel_graph: BELGraph, collapse: str = None) -> nx.DiGraph:
         return reify_edge(edge[0], edge[1], edge[2], edge[3])
 
     reified_edges = map(map_helper, bel_graph.edges(keys=True, data=True))
-    reified_edges = filter(None, reified_edges)
+    reified_edges = list(filter(None, reified_edges))
 
-    for i, (source, reif_edge_label, positive, negative, target) in enumerate(reified_edges):
-        if collapse == 'variants':
-            for entity in [source, target]:
-                if 'variants' in entity:
-                    del entity['variants']
-        elif collapse == 'genes':
-            source = collapse_to_gene(source)
-            target = collapse_to_gene(target)
+    collapser = _get_entity_collapser(bel_graph, collapse)
+    collapsed_edges = _collapse_edges(reified_edges, collapser)
+
+    for i, (source, reif_edge_label, positive, negative, target) in enumerate(collapsed_edges):
         reified_graph.add_node(i, label=reif_edge_label, causal=(positive, negative))
         reified_graph.add_edge(source, i, label=REIF_SUBJECT)
-        reified_graph.add_edge(target, i, label=REIF_OBJECT)
+        reified_graph.add_edge(i, target, label=REIF_OBJECT)
 
     return reified_graph

@@ -11,7 +11,7 @@ from pybel_tools.assembler.reified_graph.assembler import (
 )
 
 from pybel import BELGraph
-from pybel.dsl import abundance, activity, degradation, fragment, pmod, protein, rna
+from pybel.dsl import abundance, activity, degradation, fragment, gene, pmod, protein, rna
 from pybel.testing.utils import n
 
 cdk5 = protein('HGNC', 'CDK5', 'HGNC:1774')
@@ -52,13 +52,29 @@ class TestAssembleReifiedGraph(unittest.TestCase):
         for node in expected:
             self.assertIn(node, actual)
 
-        actual_edges_list = [
+        actual_subjects = {
             (u_, actual.nodes[v_]['label'], actual.nodes[v_]['causal'])
-            for u_, v_ in actual.edges
-        ]
+            for u_, v_ in actual.edges()
+            if actual.edges[u_, v_] == REIF_SUBJECT
+        }
+        expected_subjects = {
+            (u_, expected.nodes[v_]['label'], expected.nodes[v_]['causal'])
+            for u_, v_ in expected.edges()
+            if expected.edges[u_, v_] == REIF_SUBJECT
+        }
+        self.assertSetEqual(actual_subjects, expected_subjects)
 
-        for u, v in expected.edges():
-            self.assertIn((u, expected.nodes[v]['label'], expected.nodes[v]['causal']), actual_edges_list)
+        actual_objects = {
+            (v_, actual.nodes[u_]['label'], actual.nodes[u_]['causal'])
+            for u_, v_ in actual.edges()
+            if actual.edges[u_, v_] == REIF_OBJECT
+        }
+        expected_objects = {
+            (v_, expected.nodes[u_]['label'], expected.nodes[u_]['causal'])
+            for u_, v_ in expected.edges()
+            if expected.edges[u_, v_] == REIF_OBJECT
+        }
+        self.assertSetEqual(actual_objects, expected_objects)
 
     def test_convert_dephosphorylates(self):
         """Test the conversion of a BEL statement like ``act(p(X)) -| p(Y, pmod(Ph))."""
@@ -211,20 +227,20 @@ class TestAssembleReifiedGraph(unittest.TestCase):
         """Test the conversion of a bel statement like A -> p(B, frag(?))."""
 
         casp3 = abundance('HGNC', 'CASP3', 'MeSH:D017628')
-        tau = protein('HGNC', 'MAPT', 'HGNC:6893', variants=fragment())
+        tau_frag = protein('HGNC', 'MAPT', 'HGNC:6893', variants=fragment())
 
         # act(p(HGNC:CASP3), ma(pep)) increases p(HGNC:MAPT, frag("?"))
         bel_graph = BELGraph()
         bel_graph.add_increases(
             casp3,
-            tau,
+            tau_frag,
             evidence='10.1038/s41586-018-0368-8',
             citation='PubMed:30046111'
         )
 
         expected_reified_graph = self.help_make_simple_expected_graph(
             casp3,
-            tau,
+            tau_frag,
             FRAGMENTS,
             0,
             self.help_causal_increases
@@ -259,6 +275,55 @@ class TestAssembleReifiedGraph(unittest.TestCase):
         )
         reified_graph = reify_bel_graph(bel_graph)
 
+        self.help_test_graphs_equal(expected_reified_graph, reified_graph)
+
+    def test_convert_collapsing_to_variants(self):
+        """Test the assembly of a graph, while collapsing the variants in the BaseEntities."""
+        tau_g = gene('HGNC', 'MAPT', 'HGNC:6893')
+        cdk5_g = gene('HGNC', 'CDK5', 'HGNC:1774')
+        bel_graph = BELGraph()
+        bel_graph.add_directly_increases(
+            cdk5,
+            p_tau,
+            evidence=n(),
+            citation=n(),
+            subject_modifier=activity('kin'),
+        )
+
+        r_edge = 0
+        expected_reified_graph = self.help_make_simple_expected_graph(
+            cdk5_g,
+            tau_g,
+            PHOSPHORYLATES,
+            r_edge,
+            self.help_causal_increases
+        )
+
+        reified_graph = reify_bel_graph(bel_graph, collapse='genes')
+        self.help_test_graphs_equal(expected_reified_graph, reified_graph)
+
+    def test_convert_collapsing_to_genes(self):
+        """Test the assembly of a graph, while collapsing the BaseEntities to their corresponding gene."""
+        tau = protein('HGNC', 'MAPT', 'HGNC:6893')
+        bel_graph = BELGraph()
+        bel_graph.add_directly_increases(
+            cdk5,
+            p_tau,
+            evidence=n(),
+            citation=n(),
+            subject_modifier=activity('kin'),
+        )
+
+        r_edge = 0
+        expected_reified_graph = self.help_make_simple_expected_graph(
+            cdk5,
+            tau,
+            PHOSPHORYLATES,
+            r_edge,
+            self.help_causal_increases
+        )
+
+        reified_graph = reify_bel_graph(bel_graph, collapse='variants')
         self.help_test_graphs_equal(expected_reified_graph, reified_graph)
 
     def test_convert_increases_abundance_then_phosphorylates(self):
