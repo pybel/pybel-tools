@@ -19,7 +19,7 @@ def build_template_environment(here: str) -> Environment:
     """
     loader = FileSystemLoader(os.path.join(here, 'templates'))
     environment = Environment(
-        autoescape=False,
+        autoescape=True,
         loader=loader,
         trim_blocks=False,
     )

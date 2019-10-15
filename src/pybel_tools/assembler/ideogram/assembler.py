@@ -5,14 +5,14 @@
 import random
 from typing import Any, Mapping, Optional, TextIO
 
-import bio2bel_hgnc
 from IPython.display import Javascript
+
+import bio2bel_hgnc
 from bio2bel_entrez.parser import get_human_refseq_slim_df
 from bio2bel_hgnc.models import HumanGene
 from pybel import BELGraph
 from pybel.dsl import CentralDogma
-
-from ..jinja_utils import build_template_renderer, build_template_environment
+from ..jinja_utils import build_template_renderer
 
 __all__ = [
     'to_html',

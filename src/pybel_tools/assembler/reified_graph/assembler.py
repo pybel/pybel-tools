@@ -8,6 +8,7 @@ from itertools import starmap
 from typing import Optional, Tuple
 
 import networkx as nx
+
 from pybel import BELGraph
 from pybel.constants import (
     ACTIVITY, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, CAUSAL_RELATIONS, DEGRADATION, HAS_COMPONENT,
@@ -107,10 +108,10 @@ class PTMConverter(ReifiedConverter):
             and edge_data['relation'] in CAUSAL_RELATIONS
             and "variants" in v
             and any(
-            var_['identifier']['name'] in cls.synonyms
-            for var_ in v["variants"]
-            if isinstance(var_, pmod)
-        )
+                var_['identifier']['name'] in cls.synonyms
+                for var_ in v["variants"]
+                if isinstance(var_, pmod)
+            )
         )
 
 
@@ -237,9 +238,9 @@ class FragmentationConverter(ReifiedConverter):
             and edge_data['relation'] in CAUSAL_RELATIONS
             and "variants" in v
             and any(
-            isinstance(var_, fragment)
-            for var_ in v["variants"]
-        )
+                isinstance(var_, fragment)
+                for var_ in v["variants"]
+            )
         )
 
 
