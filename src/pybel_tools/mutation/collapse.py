@@ -214,12 +214,14 @@ def collapse_to_protein_interactions(graph: BELGraph) -> BELGraph:
 
 
 @in_place_transformation
-def collapse_nodes_with_same_names(graph: BELGraph) -> None:
+def collapse_nodes_with_same_names(graph: BELGraph, use_tqdm: bool = False) -> None:
     """Collapse all nodes with the same name, merging namespaces by picking first alphabetical one."""
     survivor_mapping = defaultdict(set)  # Collapse mapping dict
     victims = set()  # Things already mapped while iterating
 
-    it = tqdm(itt.combinations(graph, r=2), total=graph.number_of_nodes() * (graph.number_of_nodes() - 1) / 2)
+    it = itt.combinations(graph, r=2)
+    if use_tqdm:
+        it = tqdm(use_tqdm, total=graph.number_of_nodes() * (graph.number_of_nodes() - 1) / 2)
     for a, b in it:
         if b in victims:
             continue
@@ -235,6 +237,9 @@ def collapse_nodes_with_same_names(graph: BELGraph) -> None:
         for k in set(a.keys()) - {NAME, NAMESPACE}:
             if a[k] != b[k]:  # something different
                 continue
+
+        if a.namespace < b.namespace:
+            a, b = b, a
 
         survivor_mapping[a].add(b)
         # Keep track of things that has been already mapped

@@ -10,13 +10,14 @@ from typing import Counter, List, Mapping, Set, Tuple
 
 from dataclasses_json import dataclass_json
 
-from pybel import (
-    BELGraph, BaseAbundance, BaseEntity, count_error_types, count_functions, count_namespaces, count_relations,
-    count_variants, get_naked_names, get_syntax_errors, get_top_hubs, get_top_pathologies, get_unused_annotations,
-    get_unused_list_annotation_values, get_unused_namespaces,
-)
+from pybel import BELGraph, BaseAbundance, BaseEntity
 from pybel.constants import IDENTIFIER, NAME
 from pybel.struct.graph import WarningTuple
+from pybel.struct.summary import (
+    count_error_types, count_functions, count_namespaces, count_relations, count_variants, get_naked_names,
+    get_syntax_errors, get_top_hubs, get_top_pathologies, get_unused_annotations, get_unused_list_annotation_values,
+    get_unused_namespaces,
+)
 from .error_summary import (
     get_most_common_errors, get_namespaces_with_incorrect_names, get_undefined_annotations,
     get_undefined_namespaces,

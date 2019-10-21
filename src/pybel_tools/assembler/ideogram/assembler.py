@@ -2,18 +2,17 @@
 
 """Assemble a BEL graph as an `ideogram <https://github.com/eweitz/ideogram>`_ chart in HTML.."""
 
-import os
 import random
 from typing import Any, Mapping, Optional, TextIO
 
 from IPython.display import Javascript
-from jinja2 import Template
 
 import bio2bel_hgnc
 from bio2bel_entrez.parser import get_human_refseq_slim_df
 from bio2bel_hgnc.models import HumanGene
 from pybel import BELGraph
 from pybel.dsl import CentralDogma
+from ..jinja_utils import build_template_renderer
 
 __all__ = [
     'to_html',
@@ -22,19 +21,20 @@ __all__ = [
     'to_jupyter',
 ]
 
-HERE = os.path.abspath(os.path.dirname(__file__))
 COLUMNS = [
     'start_position_on_the_genomic_accession',
     'end_position_on_the_genomic_accession',
 ]
 
 
+render_template = build_template_renderer(__file__)
+
+
 def to_jupyter(graph: BELGraph, chart: Optional[str] = None) -> Javascript:
     """Render the graph as JavaScript in a Jupyter Notebook."""
-    with open(os.path.join(HERE, 'render_with_javascript.js'), 'rt') as f:
-        js_template = Template(f.read())
-
-    return Javascript(js_template.render(**_get_context(graph, chart=chart)))
+    context = _get_context(graph, chart=chart)
+    javascript_str = render_template('render_with_javascript.js', **context)
+    return Javascript(javascript_str)
 
 
 def to_html(graph: BELGraph, chart: Optional[str] = None) -> str:
@@ -46,10 +46,8 @@ def to_html(graph: BELGraph, chart: Optional[str] = None) -> str:
     >>> with open('ideogram_output.html', 'w') as file:
     ...     print(to_html(sialic_acid_graph), file=file)
     """
-    with open(os.path.join(HERE, 'index.html'), 'rt') as f:
-        html_template = Template(f.read())
-
-    return html_template.render(**_get_context(graph, chart=chart))
+    context = _get_context(graph, chart=chart)
+    return render_template('index.html', **context)
 
 
 def to_html_file(graph: BELGraph, file: Optional[TextIO] = None, chart: Optional[str] = None) -> None:

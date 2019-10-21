@@ -8,31 +8,32 @@ from pybel import BELGraph
 from pybel.constants import (
     ASSOCIATION, DECREASES, DIRECTLY_INCREASES, INCREASES, POSITIVE_CORRELATION,
 )
-from pybel.dsl import abundance, gene, mirna, pathology, protein, rna
+from pybel.dsl import Gene, Protein, abundance, mirna, pathology, rna
 from pybel.testing.utils import n
+
 from pybel_tools.mutation.collapse import collapse_to_protein_interactions
 
 HGNC = 'HGNC'
-GOBP = 'GOBP'
+GO = 'GO'
 CHEBI = 'CHEBI'
 
-g1 = gene(HGNC, '1')
+g1 = Gene(HGNC, '1')
 r1 = rna(HGNC, '1')
-p1_data = protein(HGNC, '1')
+p1_data = Protein(HGNC, '1')
 
-g2 = gene(HGNC, '2')
+g2 = Gene(HGNC, '2')
 r2 = rna(HGNC, '2')
-p2_data = protein(HGNC, '2')
+p2_data = Protein(HGNC, '2')
 
-g3 = gene(HGNC, '3')
+g3 = Gene(HGNC, '3')
 r3 = rna(HGNC, '3')
-p3 = protein(HGNC, '3')
+p3 = Protein(HGNC, '3')
 
-g4 = gene(HGNC, '4')
+g4 = Gene(HGNC, '4')
 m4 = mirna(HGNC, '4')
 
 a5_data = abundance(CHEBI, '5')
-p5_data = pathology(GOBP, '5')
+p5_data = pathology(GO, '5')
 
 
 class TestCollapseProteinInteractions(unittest.TestCase):
@@ -44,11 +45,11 @@ class TestCollapseProteinInteractions(unittest.TestCase):
         a5 = graph.add_node_from_data(a5_data)
         p5 = graph.add_node_from_data(p5_data)
 
-        graph.add_qualified_edge(p1, p2, POSITIVE_CORRELATION, n(), n())
+        graph.add_qualified_edge(p1, p2, relation=POSITIVE_CORRELATION, citation=n(), evidence=n())
 
-        graph.add_qualified_edge(p1, p2, INCREASES, n(), n())
-        graph.add_qualified_edge(a5, p5, DIRECTLY_INCREASES, n(), n())
-        graph.add_qualified_edge(p1, a5, DECREASES, n(), n())
+        graph.add_qualified_edge(p1, p2, relation=INCREASES, citation=n(), evidence=n())
+        graph.add_qualified_edge(a5, p5, relation=DIRECTLY_INCREASES, citation=n(), evidence=n())
+        graph.add_qualified_edge(p1, a5, relation=DECREASES, citation=n(), evidence=n())
 
         collapsed_graph = collapse_to_protein_interactions(graph)
 
@@ -65,10 +66,10 @@ class TestCollapseProteinInteractions(unittest.TestCase):
         a5 = graph.add_node_from_data(a5_data)
         p5 = graph.add_node_from_data(p5_data)
 
-        graph.add_qualified_edge(p1, p2, POSITIVE_CORRELATION, n(), n())
-        graph.add_qualified_edge(p1, p2, ASSOCIATION, n(), n())
-        graph.add_qualified_edge(a5, p5, DIRECTLY_INCREASES, n(), n())
-        graph.add_qualified_edge(p1, a5, DECREASES, n(), n())
+        graph.add_qualified_edge(p1, p2, relation=POSITIVE_CORRELATION, citation=n(), evidence=n())
+        graph.add_qualified_edge(p1, p2, relation=ASSOCIATION, citation=n(), evidence=n())
+        graph.add_qualified_edge(a5, p5, relation=DIRECTLY_INCREASES, citation=n(), evidence=n())
+        graph.add_qualified_edge(p1, a5, relation=DECREASES, citation=n(), evidence=n())
 
         collapsed_graph = collapse_to_protein_interactions(graph)
 

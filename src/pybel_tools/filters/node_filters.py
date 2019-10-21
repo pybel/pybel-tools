@@ -2,7 +2,7 @@
 
 """Node filters to supplement :mod:`pybel.struct.filters.node_filters`."""
 
-from typing import Collection, Iterable, Mapping, Optional, Set
+from typing import Collection, Iterable, Mapping, Optional, Set, Union
 
 import pybel
 from pybel import BELGraph
@@ -25,10 +25,6 @@ __all__ = [
     'namespace_inclusion_builder',
     'data_contains_key_builder',
     'data_missing_key_builder',
-    'node_has_label',
-    'node_missing_label',
-    'include_pathology_filter',
-    'exclude_pathology_filter',
     'build_node_data_search',
     'build_node_key_search',
     'variants_of',
@@ -212,16 +208,16 @@ exclude_pathology_filter = function_exclusion_filter_builder(PATHOLOGY)
 def namespace_inclusion_builder(namespace: str) -> NodePredicate:  # noqa: D202
     """Build a function that filters for nods that include a specific namespace."""
 
-    def has_namespace(_: BELGraph, node: BaseEntity):
+    def _has_namespace(_: BELGraph, node: BaseEntity) -> bool:
         return node.get(NAMESPACE) == namespace
 
-    return has_namespace
+    return _has_namespace
 
 
 def variants_of(
-        graph: BELGraph,
-        node: Protein,
-        modifications: Optional[Set[str]] = None,
+    graph: BELGraph,
+    node: Protein,
+    modifications: Optional[Set[str]] = None,
 ) -> Set[Protein]:
     """Return all variants of the given node."""
     if modifications:
@@ -239,9 +235,9 @@ def variants_of(
 
 
 def _get_filtered_variants_of(
-        graph: BELGraph,
-        node: Protein,
-        modifications: Collection[str],
+    graph: BELGraph,
+    node: Protein,
+    modifications: Collection[str],
 ) -> Set[Protein]:
     return {
         v
@@ -260,15 +256,21 @@ def _get_filtered_variants_of(
 
 
 def get_variants_to_controllers(
-        graph: BELGraph,
-        node: Protein,
-        modifications: Optional[Set[str]] = None,
+    graph: BELGraph,
+    node: Protein,
+    modifications: Optional[Set[str]] = None,
+    relations: Union[None, str, Set[str]] = None,
 ) -> Mapping[Protein, Set[Protein]]:
     """Get a mapping from variants of the given node to all of its upstream controllers."""
     variants = variants_of(graph, node, modifications)
 
+    if relations is None:
+        relations = CAUSAL_RELATIONS
+    elif isinstance(relations, str):
+        relations = {relations}
+
     return group_as_sets(
         (variant, controller)
         for controller, variant, data in graph.in_edges(variants, data=True)
-        if data[RELATION] in CAUSAL_RELATIONS
+        if data[RELATION] in relations
     )

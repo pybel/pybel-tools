@@ -114,7 +114,7 @@ class TestNodeUtils(unittest.TestCase):
 
     def test_merge_nodes_by_name(self):
         graph = BELGraph()
-        a_hgnc, a_entrez = [Protein(namespace, 'a') for namespace in ('HGNC', 'ncbigene')]
+        a_hgnc, a_entrez = [Protein(namespace, 'a') for namespace in ('hgnc', 'ncbigene')]
         b = Protein('ncbigene', 'b')
         graph.add_increases(a_hgnc, b, citation=n(), evidence=n())
         graph.add_increases(a_entrez, b, citation=n(), evidence=n())
@@ -123,6 +123,6 @@ class TestNodeUtils(unittest.TestCase):
         collapse_nodes_with_same_names(graph)
         self.assertEqual(2, graph.number_of_nodes(), msg='Wrong number remaining nodes')
         self.assertEqual(2, graph.number_of_edges(), msg=f'Wrong number remaining edges: {graph.edges()}')
-        self.assertIn(a_entrez, graph)
+        self.assertIn(a_entrez, graph, msg=f'Nodes: {list(graph)}')
         self.assertIn(b, graph)
         self.assertNotIn(a_hgnc, graph)
