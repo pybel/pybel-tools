@@ -44,8 +44,8 @@ class TestBoundMutation(unittest.TestCase):
         self.assertIn(nfkb_complex, self.graph, msg='Graph missing NFKB complex')
         self.assertIn(rela, self.graph, msg='Graph missing RELA')
 
-        self.assertIn(nfkb_complex.sha512, self.manager.hash_to_node, msg='NFKB is unindexed')
-        self.assertIn(rela.sha512, self.manager.hash_to_node, msg='RELA is unindexed')
+        self.assertIn(nfkb_complex.md5, self.manager.hash_to_node, msg='NFKB is unindexed')
+        self.assertIn(rela.md5, self.manager.hash_to_node, msg='RELA is unindexed')
 
         self.assertIn(nfkb_complex, self.manager.hash_to_node.values(), msg='NFKB is unindexed')
         self.assertIn(rela, self.manager.hash_to_node.values(), msg='RELA is unindexed')
@@ -53,8 +53,8 @@ class TestBoundMutation(unittest.TestCase):
     def test_bound_mutation(self):
         """Test when a node is deleted then re-expanded."""
         pipeline = Pipeline()
-        pipeline.append('delete_node_by_hash', nfkb_complex.sha512)
-        pipeline.append('expand_node_neighborhood_by_hash', rela.sha512)
+        pipeline.append('delete_node_by_hash', nfkb_complex.md5)
+        pipeline.append('expand_node_neighborhood_by_hash', rela.md5)
         result = pipeline.run(self.graph)
 
         self.check_original_unchanged()

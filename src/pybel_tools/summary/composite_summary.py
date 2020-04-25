@@ -30,6 +30,7 @@ from .stability import (
     get_separate_unstable_correlation_triples,
 )
 from ..typing import SetOfNodePairs, SetOfNodeTriples
+from ..utils import prepare_c3, prepare_c3_time_series
 
 __all__ = [
     'BELGraphSummary',
@@ -121,6 +122,47 @@ class BELGraphSummary:
             hub_data=_count_top_hubs(graph),
             disease_data=_count_top_diseases(graph),
         )
+
+    def prepare_c3_for_function_count(self):
+        """Prepare C3 JSON for function counts."""
+        return prepare_c3(self.function_count, 'Entity Type')
+
+    def prepare_c3_for_relation_count(self):
+        """Prepare C3 JSON for relation counts."""
+        return prepare_c3(self.relation_count, 'Relationship Type')
+
+    def prepare_c3_for_error_count(self):
+        """Prepare C3 JSON for error counts."""
+        if self.error_count is not None:
+            return prepare_c3(self.error_count, 'Error Type')
+
+    def prepare_c3_for_transformations(self):
+        """Prepare C3 JSON for transformation counts."""
+        if self.modifications_count is not None:
+            return prepare_c3(self.modifications_count, 'Edge Variants')
+
+    def prepare_c3_for_variants(self):
+        """Prepare C3 JSON for variant counts."""
+        if self.variants_count is not None:
+            return prepare_c3(self.variants_count, 'Node Variants')
+
+    def prepare_c3_for_namespace_count(self):
+        """Prepare C3 JSON for namespace counts."""
+        return prepare_c3(self.namespaces_count, 'Namespaces')
+
+    def prepare_c3_for_citation_years(self):
+        """Prepare C3 JSON for citation year counts."""
+        if self.citation_years is not None:
+            return prepare_c3_time_series(self.citation_years, 'Number of articles')
+
+    def prepare_c3_for_hub_data(self):
+        """Prepare C3 JSON for hub counts."""
+        return prepare_c3(self.hub_data, 'Top Hubs')
+
+    def prepare_c3_for_pathology_count(self):
+        """Prepare C3 JSON for pathology counts."""
+        if self.disease_data is not None:
+            return prepare_c3(self.disease_data, 'Pathologies')
 
 
 def _count_top_hubs(graph, n: int = 15):

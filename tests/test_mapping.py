@@ -3,25 +3,25 @@
 import unittest
 
 from pybel import BELGraph
-from pybel.dsl import complex_abundance, fragment, protein
+from pybel.dsl import ComplexAbundance, Fragment, Protein
 from pybel.dsl.namespaces import hgnc
 from pybel_tools.selection.group_nodes import get_mapped_nodes
 
 ccl2 = hgnc('CCL2')
 ccr2 = hgnc('CCR2')
-ccl2_mgi = protein('MGI', 'Ccl2')
-ccl2_ccr2_complex = complex_abundance([ccl2, ccr2])
-chemokine_family = protein('FPLX', 'chemokine protein family')
+ccl2_mgi = Protein('MGI', 'Ccl2')
+ccl2_ccr2_complex = ComplexAbundance([ccl2, ccr2])
+chemokine_family = Protein('FPLX', 'chemokine protein family')
 
-HGNC = 'HGNC'
+HGNC = 'hgnc'
 
 
 class TestMapping(unittest.TestCase):
     def test_variants_mapping(self):
         graph = BELGraph()
 
-        app = protein(HGNC, 'APP')
-        app_fragment = app.with_variants(fragment('1_49'))
+        app = Protein(HGNC, 'APP')
+        app_fragment = app.with_variants(Fragment('1_49'))
         graph.add_node_from_data(app_fragment)
 
         mapped_nodes = get_mapped_nodes(graph, HGNC, {'APP'})
@@ -32,16 +32,10 @@ class TestMapping(unittest.TestCase):
 
     def test_complexes_composites_mapping(self):
         g = BELGraph()
-        g.add_node_from_data(ccl2)
-        g.add_node_from_data(ccr2)
-        g.add_node_from_data(ccl2_ccr2_complex)
-        g.add_node_from_data(chemokine_family)
-
-        g.add_has_member(chemokine_family, ccl2)
-        g.add_has_member(chemokine_family, ccr2)
-
-        g.add_has_component(ccl2_ccr2_complex, ccl2)
-        g.add_has_component(ccl2_ccr2_complex, ccr2)
+        g.add_is_a(ccl2, chemokine_family)
+        g.add_is_a(ccr2, chemokine_family)
+        g.add_part_of(ccl2, ccl2_ccr2_complex)
+        g.add_part_of(ccr2, ccl2_ccr2_complex)
 
         mapped_nodes = get_mapped_nodes(g, 'HGNC', {ccl2.name, ccr2.name})
 

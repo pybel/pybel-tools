@@ -10,7 +10,8 @@ from rdkit import Chem, DataStructs
 from rdkit.Chem import MACCSkeys
 from tqdm import tqdm
 
-from pybel import Abundance, BELGraph, BaseAbundance
+from pybel import BELGraph, BaseAbundance
+from pybel.dsl import Abundance
 
 __all__ = [
     'add_chemical_similarities',

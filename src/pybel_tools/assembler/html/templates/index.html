@@ -455,62 +455,62 @@
             }
         });
         {% if summary.transformations_count %}
-        c3.generate({
-            padding: {
-                top: 15,
-                left: 100
-            },
-            size: {
-                height: 350
-            },
-            bindto: '#chart-transformations',
-            data: {
-                x: 'x',
-                columns: {{ prepare_c3(summary.transformations_count, 'Edge Count')|safe}},
-                type: 'bar'
-            },
-            title: {
-                text: 'Transformations ({{ summary.transformations_count.values()|sum }})'
-            },
-            axis: {
-                rotated: true,
-                x: {
-                    type: 'category'
+            c3.generate({
+                padding: {
+                    top: 15,
+                    left: 100
+                },
+                size: {
+                    height: 350
+                },
+                bindto: '#chart-transformations',
+                data: {
+                    x: 'x',
+                    columns: {{ prepare_c3(summary.transformations_count, 'Edge Count')|safe}},
+                    type: 'bar'
+                },
+                title: {
+                    text: 'Transformations ({{ summary.transformations_count.values()|sum }})'
+                },
+                axis: {
+                    rotated: true,
+                    x: {
+                        type: 'category'
+                    }
+                },
+                legend: {
+                    show: false
                 }
-            },
-            legend: {
-                show: false
-            }
-        });
+            });
         {% endif %}
         {% if summary.variants_count %}
-        c3.generate({
-            padding: {
-                top: 15,
-                left: 100
-            },
-            size: {
-                height: 350
-            },
-            bindto: '#chart-variants',
-            data: {
-                x: 'x',
-                columns: {{ prepare_c3(summary.variants_count, 'Node Count')|safe}},
-                type: 'bar'
-            },
-            title: {
-                text: 'Variants ({{ summary.variants_count.values()|sum }})'
-            },
-            axis: {
-                rotated: true,
-                x: {
-                    type: 'category'
+            c3.generate({
+                padding: {
+                    top: 15,
+                    left: 100
+                },
+                size: {
+                    height: 350
+                },
+                bindto: '#chart-variants',
+                data: {
+                    x: 'x',
+                    columns: {{ prepare_c3(summary.variants_count, 'Node Count')|safe}},
+                    type: 'bar'
+                },
+                title: {
+                    text: 'Variants ({{ summary.variants_count.values()|sum }})'
+                },
+                axis: {
+                    rotated: true,
+                    x: {
+                        type: 'category'
+                    }
+                },
+                legend: {
+                    show: false
                 }
-            },
-            legend: {
-                show: false
-            }
-        });
+            });
         {% endif %}
         c3.generate({
             padding: {
@@ -568,63 +568,63 @@
             }
         });
         {% if summary.disease_data %}
-        c3.generate({
-            padding: {
-                top: 15,
-                left: 100
-            },
-            size: {
-                height: 350
-            },
-            bindto: '#chart-pathology-degrees',
-            data: {
-                x: 'x',
-                columns: {{ prepare_c3(summary.disease_data, 'Degree')|safe}},
-                type: 'bar'
-            },
-            title: {
-                text: 'Pathologies'
-            },
-            axis: {
-                rotated: true,
-                x: {
-                    type: 'category'
+            c3.generate({
+                padding: {
+                    top: 15,
+                    left: 100
+                },
+                size: {
+                    height: 350
+                },
+                bindto: '#chart-pathology-degrees',
+                data: {
+                    x: 'x',
+                    columns: {{ prepare_c3(summary.disease_data, 'Degree')|safe}},
+                    type: 'bar'
+                },
+                title: {
+                    text: 'Pathologies'
+                },
+                axis: {
+                    rotated: true,
+                    x: {
+                        type: 'category'
+                    }
+                },
+                legend: {
+                    show: false
                 }
-            },
-            legend: {
-                show: false
-            }
-        });
+            });
         {% endif %}
 
         {% if summary.citation_years %}
-        c3.generate({
-            padding: {
-                top: 15
-            },
-            size: {
-                height: 350
-            },
-            data: {
-                x: 'x',
-                columns: {{ prepare_c3_time_series(summary.citation_years, 'Number of Articles')|safe}}
-            },
-            bindto: '#chart-publication-years',
-            axis: {
-                x: {
-                    type: 'timeseries',
-                    tick: {
-                        format: '%Y'
+            c3.generate({
+                padding: {
+                    top: 15
+                },
+                size: {
+                    height: 350
+                },
+                data: {
+                    x: 'x',
+                    columns: {{ prepare_c3_time_series(summary.citation_years, 'Number of Articles')|safe}}
+                },
+                bindto: '#chart-publication-years',
+                axis: {
+                    x: {
+                        type: 'timeseries',
+                        tick: {
+                            format: '%Y'
+                        }
                     }
+                },
+                title: {
+                    text: 'Publication Years'
+                },
+                legend: {
+                    show: false
                 }
-            },
-            title: {
-                text: 'Publication Years'
-            },
-            legend: {
-                show: false
-            }
-        });
+            });
         {% endif %}
 
         c3.generate({
@@ -656,33 +656,33 @@
         });
 
         {% if summary.error_count %}
-        c3.generate({
-            padding: {
-                top: 15,
-                left: 100
-            },
-            size: {
-                height: 350
-            },
-            bindto: '#chart3',
-            data: {
-                x: 'x',
-                columns: {{ prepare_c3(summary.error_count, 'Error Type')|safe}},
-                type: 'bar'
-            },
-            title: {
-                text: 'Warning Types'
-            },
-            axis: {
-                rotated: true,
-                x: {
-                    type: 'category'
+            c3.generate({
+                padding: {
+                    top: 15,
+                    left: 100
+                },
+                size: {
+                    height: 350
+                },
+                bindto: '#chart3',
+                data: {
+                    x: 'x',
+                    columns: {{ prepare_c3(summary.error_count, 'Error Type')|safe}},
+                    type: 'bar'
+                },
+                title: {
+                    text: 'Warning Types'
+                },
+                axis: {
+                    rotated: true,
+                    x: {
+                        type: 'category'
+                    }
+                },
+                legend: {
+                    show: false
                 }
-            },
-            legend: {
-                show: false
-            }
-        });
+            });
         {% endif %}
 
         c3.generate({

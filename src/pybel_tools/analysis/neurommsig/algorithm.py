@@ -39,16 +39,16 @@ neurommsig_graph_preprocessor = Pipeline.from_functions([
 
 
 def get_neurommsig_scores(
-        graph: BELGraph,
-        genes: List[Gene],
-        annotation: str = 'Subgraph',
-        ora_weight: Optional[float] = None,
-        hub_weight: Optional[float] = None,
-        top_percent: Optional[float] = None,
-        topology_weight: Optional[float] = None,
-        preprocess: bool = False,
-        use_tqdm: bool = False,
-        tqdm_kwargs: Optional[Mapping] = None,
+    graph: BELGraph,
+    genes: List[Gene],
+    annotation: str = 'Subgraph',
+    ora_weight: Optional[float] = None,
+    hub_weight: Optional[float] = None,
+    top_percent: Optional[float] = None,
+    topology_weight: Optional[float] = None,
+    preprocess: bool = False,
+    use_tqdm: bool = False,
+    tqdm_kwargs: Optional[Mapping] = None,
 ) -> Optional[Mapping[str, float]]:
     """Preprocess the graph, stratify by the given annotation, then run the NeuroMMSig algorithm on each.
 
@@ -96,14 +96,14 @@ def get_neurommsig_scores(
 
 
 def get_neurommsig_scores_prestratified(
-        subgraphs: Mapping[str, BELGraph],
-        genes: List[Gene],
-        ora_weight: Optional[float] = None,
-        hub_weight: Optional[float] = None,
-        top_percent: Optional[float] = None,
-        topology_weight: Optional[float] = None,
-        use_tqdm: bool = False,
-        tqdm_kwargs: Optional[Mapping] = None,
+    subgraphs: Mapping[str, BELGraph],
+    genes: List[Gene],
+    ora_weight: Optional[float] = None,
+    hub_weight: Optional[float] = None,
+    top_percent: Optional[float] = None,
+    topology_weight: Optional[float] = None,
+    use_tqdm: bool = False,
+    tqdm_kwargs: Optional[Mapping] = None,
 ) -> Mapping[str, float]:
     """Run NeuroMMSig on a graph strata.
 
@@ -142,12 +142,12 @@ def get_neurommsig_scores_prestratified(
 
 
 def get_neurommsig_score(
-        graph: BELGraph,
-        genes: List[Gene],
-        ora_weight: Optional[float] = None,
-        hub_weight: Optional[float] = None,
-        top_percent: Optional[float] = None,
-        topology_weight: Optional[float] = None,
+    graph: BELGraph,
+    genes: List[Gene],
+    ora_weight: Optional[float] = None,
+    hub_weight: Optional[float] = None,
+    top_percent: Optional[float] = None,
+    topology_weight: Optional[float] = None,
 ) -> float:
     """Calculate the composite NeuroMMSig Score for a given list of genes.
 

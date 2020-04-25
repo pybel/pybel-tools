@@ -30,7 +30,7 @@ __all__ = [
     'calculate_concordance_probability_by_annotation',
 ]
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 UP = CAUSAL_INCREASE_RELATIONS | {POSITIVE_CORRELATION}
 DOWN = CAUSAL_DECREASE_RELATIONS | {NEGATIVE_CORRELATION}
@@ -84,12 +84,12 @@ class ConcordanceResult:
 
 
 def edge_concords(
-        graph: BELGraph,
-        u: BaseEntity,
-        v: BaseEntity,
-        k: str,
-        key: str,
-        cutoff: Optional[float] = None,
+    graph: BELGraph,
+    u: BaseEntity,
+    v: BaseEntity,
+    k: str,
+    key: str,
+    cutoff: Optional[float] = None,
 ) -> Concordance:
     """Calculate the concordance of a given edge with the data in the given key.
 
@@ -134,7 +134,7 @@ def edge_concords(
             return Concordance.incorrect
 
         else:
-            log.warning('%s %s %s %s %s', u, source_regulation, relation, v, target_regulation)
+            logger.warning('%s %s %s %s %s', u, source_regulation, relation, v, target_regulation)
             return Concordance.ambiguous
 
     elif source_regulation == -1:
@@ -160,7 +160,7 @@ def edge_concords(
             return Concordance.incorrect
 
         else:
-            log.warning('%s %s %s %s %s', u, source_regulation, relation, v, target_regulation)
+            logger.warning('%s %s %s %s %s', u, source_regulation, relation, v, target_regulation)
             return Concordance.ambiguous
 
     else:  # source_regulation == 0
@@ -171,9 +171,9 @@ def edge_concords(
 
 
 def calculate_concordance_helper(
-        graph: BELGraph,
-        key: str,
-        cutoff: Optional[float] = None,
+    graph: BELGraph,
+    key: str,
+    cutoff: Optional[float] = None,
 ) -> ConcordanceResult:
     """Help calculate network-wide concordance.
 
@@ -190,10 +190,10 @@ def calculate_concordance_helper(
 
 
 def calculate_concordance(
-        graph: BELGraph,
-        key: str,
-        cutoff: Optional[float] = None,
-        use_ambiguous: bool = False,
+    graph: BELGraph,
+    key: str,
+    cutoff: Optional[float] = None,
+    use_ambiguous: bool = False,
 ) -> float:
     """Calculate the network-wide concordance.
 
@@ -222,13 +222,13 @@ ConcordanceTest = Tuple[float, List[float], float]
 
 
 def calculate_concordance_probability(
-        graph: BELGraph,
-        key: str,
-        cutoff: Optional[float] = None,
-        permutations: Optional[int] = None,
-        percentage: Optional[float] = None,
-        use_ambiguous: bool = False,
-        permute_type: Optional[str] = None,
+    graph: BELGraph,
+    key: str,
+    cutoff: Optional[float] = None,
+    permutations: Optional[int] = None,
+    percentage: Optional[float] = None,
+    use_ambiguous: bool = False,
+    permute_type: Optional[str] = None,
 ) -> ConcordanceTest:
     """Calculate a graph's concordance as well as its statistical probability.
 
@@ -272,10 +272,10 @@ def calculate_concordance_probability(
 
 
 def calculate_concordance_by_annotation(
-        graph: BELGraph,
-        annotation: str,
-        key: str,
-        cutoff: Optional[float] = None,
+    graph: BELGraph,
+    annotation: str,
+    key: str,
+    cutoff: Optional[float] = None,
 ) -> Mapping[str, float]:
     """Return the concordance scores for each stratified graph based on the given annotation.
 
@@ -297,13 +297,13 @@ def calculate_concordance_by_annotation(
 
 # TODO multithread this
 def calculate_concordance_probability_by_annotation(
-        graph: BELGraph,
-        annotation: str,
-        key: str,
-        cutoff: Optional[float] = None,
-        permutations: Optional[int] = None,
-        percentage: Optional[float] = None,
-        use_ambiguous: bool = False,
+    graph: BELGraph,
+    annotation: str,
+    key: str,
+    cutoff: Optional[float] = None,
+    permutations: Optional[int] = None,
+    percentage: Optional[float] = None,
+    use_ambiguous: bool = False,
 ) -> Mapping[str, ConcordanceTest]:
     """Return the results of concordance analysis on each subgraph, stratified by the given annotation.
 

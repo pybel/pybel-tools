@@ -17,18 +17,17 @@ class TestCitations(ManagerMixin):
         self.graph.add_increases(a, b, evidence=n(), citation=self.pmid)
 
     def test_enrich_overwrite(self):
-        citation = self.manager.get_or_create_citation(type=CITATION_TYPE_PUBMED, reference=self.pmid)
+        citation = self.manager.get_or_create_citation(db=CITATION_TYPE_PUBMED, db_id=self.pmid)
         self.manager.session.commit()
         self.assertIsNone(citation.date)
-        self.assertIsNone(citation.name)
+        self.assertIsNone(citation.title)
 
         enrich_pubmed_citations(self.graph, manager=self.manager)
 
         _, _, d = list(self.graph.edges(data=True))[0]
         citation_dict = d[CITATION]
 
-        self.assertIn(CITATION_NAME, citation_dict)
-
+        self.assertIn(CITATION_JOURNAL, citation_dict)
         self.assertIn(CITATION_DATE, citation_dict)
         self.assertEqual('1998-05-01', citation_dict[CITATION_DATE])
 
@@ -44,7 +43,7 @@ class TestCitations(ManagerMixin):
         _, _, d = list(self.graph.edges(data=True))[0]
         citation_dict = d[CITATION]
 
-        self.assertIn(CITATION_NAME, citation_dict)
+        self.assertIn(CITATION_JOURNAL, citation_dict)
 
         self.assertIn(CITATION_DATE, citation_dict)
         self.assertEqual('1998-05-01', citation_dict[CITATION_DATE])

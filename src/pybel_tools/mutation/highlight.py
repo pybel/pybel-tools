@@ -30,9 +30,9 @@ EDGE_HIGHLIGHT_DEFAULT_COLOR = 'orange'
 
 @in_place_transformation
 def highlight_nodes(
-        graph: BELGraph,
-        nodes: Optional[Iterable[BaseEntity]] = None,
-        color: Optional[str] = None,
+    graph: BELGraph,
+    nodes: Optional[Iterable[BaseEntity]] = None,
+    color: Optional[str] = None,
 ) -> None:
     """Add a highlight tag to the given nodes.
 
@@ -52,8 +52,8 @@ def is_node_highlighted(graph: BELGraph, node: BaseEntity) -> bool:
 
 @in_place_transformation
 def remove_highlight_nodes(
-        graph: BELGraph,
-        nodes: Optional[Iterable[BaseEntity]] = None,
+    graph: BELGraph,
+    nodes: Optional[Iterable[BaseEntity]] = None,
 ) -> None:
     """Remove the highlight from the given nodes, or all nodes if none given.
 
@@ -67,9 +67,9 @@ def remove_highlight_nodes(
 
 @in_place_transformation
 def highlight_edges(
-        graph: BELGraph,
-        edges: Optional[EdgeIterator] = None,
-        color: Optional[str] = None,
+    graph: BELGraph,
+    edges: Optional[EdgeIterator] = None,
+    color: Optional[str] = None,
 ) -> None:
     """Add a highlight tag to the given edges.
 
@@ -91,8 +91,8 @@ def is_edge_highlighted(graph: BELGraph, u: BaseEntity, v: BaseEntity, k: str) -
 
 @in_place_transformation
 def remove_highlight_edges(
-        graph: BELGraph,
-        edges: Optional[EdgeIterator] = None,
+    graph: BELGraph,
+    edges: Optional[EdgeIterator] = None,
 ) -> None:
     """Remove the highlight from the given edges, or all edges if none given.
 

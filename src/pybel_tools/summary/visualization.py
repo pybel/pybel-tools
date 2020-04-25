@@ -18,7 +18,7 @@ __all__ = [
     'plot_summary',
 ]
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def plot_summary_axes(graph: BELGraph, lax, rax, logx: bool = True):

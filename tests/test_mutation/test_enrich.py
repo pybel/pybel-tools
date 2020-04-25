@@ -37,7 +37,8 @@ class TestEnrich(unittest.TestCase):
         self.assertEqual(4, self.single_composite_graph.number_of_nodes())
         self.assertEqual(3, self.single_composite_graph.number_of_edges())
 
-        self.single_composite_graph.remove_edge(composite_example, hk1)
+        # this is a partOf edge
+        self.single_composite_graph.remove_edge(hk1, composite_example)
 
         self.assertEqual(4, self.single_composite_graph.number_of_nodes())
         self.assertEqual(2, self.single_composite_graph.number_of_edges())
@@ -52,7 +53,8 @@ class TestEnrich(unittest.TestCase):
         self.assertEqual(4, self.single_complex_graph.number_of_nodes())
         self.assertEqual(3, self.single_complex_graph.number_of_edges())
 
-        self.single_complex_graph.remove_edge(complex_example, hk1)
+        # this is a partOf edge
+        self.single_complex_graph.remove_edge(hk1, complex_example)
 
         self.assertEqual(4, self.single_complex_graph.number_of_nodes())
         self.assertEqual(2, self.single_complex_graph.number_of_edges())

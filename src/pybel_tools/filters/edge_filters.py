@@ -5,7 +5,7 @@
 from typing import Iterable, Mapping, Set
 
 from pybel import BELGraph
-from pybel.constants import CITATION, CITATION_AUTHORS, CITATION_REFERENCE, NAMESPACE
+from pybel.constants import CITATION, CITATION_AUTHORS, CITATION_IDENTIFIER, NAMESPACE
 from pybel.dsl import BaseEntity
 from pybel.struct.filters import (
     build_annotation_dict_all_filter, build_annotation_dict_any_filter, count_passed_edge_filter,
@@ -67,7 +67,7 @@ def build_pmid_inclusion_filter(pmids: Strings) -> EdgePredicate:
 
             :return: If the edge has a PubMed citation with the contained PubMed identifier
             """
-            return has_pubmed(data) and data[CITATION][CITATION_REFERENCE] == pmids
+            return has_pubmed(data) and data[CITATION][CITATION_IDENTIFIER] == pmids
 
     elif isinstance(pmids, Iterable):
         pmids = set(pmids)
@@ -79,7 +79,7 @@ def build_pmid_inclusion_filter(pmids: Strings) -> EdgePredicate:
             :param data: The edge data dictionary
             :return: If the edge has a PubMed citation with one of the contained PubMed identifiers
             """
-            return has_pubmed(data) and data[CITATION][CITATION_REFERENCE] in pmids
+            return has_pubmed(data) and data[CITATION][CITATION_IDENTIFIER] in pmids
 
     else:
         raise TypeError
@@ -99,7 +99,7 @@ def build_pmid_exclusion_filter(pmids: Strings) -> EdgePredicate:
 
             :return: If the edge has a PubMed citation with the contained PubMed identifier
             """
-            return has_pubmed(data) and data[CITATION][CITATION_REFERENCE] != pmids
+            return has_pubmed(data) and data[CITATION][CITATION_IDENTIFIER] != pmids
 
     elif isinstance(pmids, Iterable):
         pmids = set(pmids)
@@ -110,7 +110,7 @@ def build_pmid_exclusion_filter(pmids: Strings) -> EdgePredicate:
 
             :return: If the edge has a PubMed citation with one of the contained PubMed identifiers
             """
-            return has_pubmed(data) and data[CITATION][CITATION_REFERENCE] not in pmids
+            return has_pubmed(data) and data[CITATION][CITATION_IDENTIFIER] not in pmids
 
     else:
         raise TypeError

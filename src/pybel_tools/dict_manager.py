@@ -3,9 +3,9 @@
 """This class contains an alternate implementation of the PyBEL database manager that only stores graphs in memory."""
 
 from dataclasses import dataclass
-from typing import Iterable, List, Optional
+from typing import Iterable, List
 
-from pybel import BELGraph, Manager
+from pybel import BELGraph
 
 
 @dataclass
@@ -13,12 +13,10 @@ class _Namespace:
     id: int
 
 
-class DictManager(Manager):
+class DictManager:
     """A dictionary-based implementation of the PyBEL Manager."""
 
-    def __init__(self, connection: Optional[str] = None):
-        super().__init__(connection=connection)
-
+    def __init__(self):
         self.universe = None
         self.networks = {}
         self.disease_to_id = {}

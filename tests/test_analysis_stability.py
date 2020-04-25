@@ -14,15 +14,15 @@ class TestUnstableTriplets(unittest.TestCase):
     def test_separate_unstable(self):
         graph = BELGraph()
 
-        a_data = Protein('HGNC', 'A')
-        b_data = Protein('HGNC', 'B')
-        c_data = Protein('HGNC', 'C')
-        d_data = Protein('HGNC', 'D')
+        a = Protein('HGNC', 'A')
+        b = Protein('HGNC', 'B')
+        c = Protein('HGNC', 'C')
+        d = Protein('HGNC', 'D')
 
-        a = graph.add_node_from_data(a_data)
-        b = graph.add_node_from_data(b_data)
-        c = graph.add_node_from_data(c_data)
-        d = graph.add_node_from_data(d_data)
+        graph.add_node_from_data(a)
+        graph.add_node_from_data(b)
+        graph.add_node_from_data(c)
+        graph.add_node_from_data(d)
 
         graph.add_edge(a, b, **{RELATION: POSITIVE_CORRELATION})
         graph.add_edge(a, c, **{RELATION: POSITIVE_CORRELATION})
@@ -54,15 +54,15 @@ class TestUnstableTriplets(unittest.TestCase):
     def test_mutually_unstable(self):
         graph = BELGraph()
 
-        a_data = Protein('HGNC', 'A')
-        b_data = Protein('HGNC', 'B')
-        c_data = Protein('HGNC', 'C')
-        d_data = Protein('HGNC', 'D')
+        a = Protein('HGNC', 'A')
+        b = Protein('HGNC', 'B')
+        c = Protein('HGNC', 'C')
+        d = Protein('HGNC', 'D')
 
-        a = graph.add_node_from_data(a_data)
-        b = graph.add_node_from_data(b_data)
-        c = graph.add_node_from_data(c_data)
-        d = graph.add_node_from_data(d_data)
+        graph.add_node_from_data(a)
+        graph.add_node_from_data(b)
+        graph.add_node_from_data(c)
+        graph.add_node_from_data(d)
 
         graph.add_edge(a, b, **{RELATION: NEGATIVE_CORRELATION})
         graph.add_edge(a, c, **{RELATION: NEGATIVE_CORRELATION})
@@ -79,17 +79,17 @@ class TestUnstableTriplets(unittest.TestCase):
     def test_jens_alpha(self):
         graph = BELGraph()
 
-        a_data = Protein('HGNC', 'A')
-        b_data = Protein('HGNC', 'B')
-        c_data = Protein('HGNC', 'C')
-        d_data = Protein('HGNC', 'D')
-        e_data = Protein('HGNC', 'e')
+        a = Protein('HGNC', 'A')
+        b = Protein('HGNC', 'B')
+        c = Protein('HGNC', 'C')
+        d = Protein('HGNC', 'D')
+        e = Protein('HGNC', 'e')
 
-        a = graph.add_node_from_data(a_data)
-        b = graph.add_node_from_data(b_data)
-        c = graph.add_node_from_data(c_data)
-        d = graph.add_node_from_data(d_data)
-        e = graph.add_node_from_data(e_data)
+        graph.add_node_from_data(a)
+        graph.add_node_from_data(b)
+        graph.add_node_from_data(c)
+        graph.add_node_from_data(d)
+        graph.add_node_from_data(e)
 
         graph.add_edge(a, b, **{RELATION: INCREASES})
         graph.add_edge(a, c, **{RELATION: DECREASES})

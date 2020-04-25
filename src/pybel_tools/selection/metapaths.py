@@ -57,9 +57,9 @@ def yield_walks_exhaustive(graph, node, length: int) -> Iterable[Tuple]:
 
 
 def iterate_simple_metapaths(
-        graph: BELGraph,
-        node: BaseEntity,
-        simple_metapath: List[str],
+    graph: BELGraph,
+    node: BaseEntity,
+    simple_metapath: List[str],
 ) -> Iterable[Tuple[BaseEntity, ...]]:
     """Match a simple metapath starting at the given node.
 

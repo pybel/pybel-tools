@@ -5,14 +5,14 @@
 import unittest
 
 import networkx as nx
-from pybel_tools.assembler.reified_graph.assembler import (
-    ACTIVATES, DEGRADATES, FRAGMENTS, INCREASES_ABUNDANCE, PHOSPHORYLATES, PROMOTES_TRANSLATION, REIF_OBJECT,
-    REIF_SUBJECT, reify_bel_graph,
-)
 
 from pybel import BELGraph
 from pybel.dsl import abundance, activity, degradation, fragment, pmod, protein, rna
 from pybel.testing.utils import n
+from pybel_tools.assembler.reified_graph.assembler import (
+    ACTIVATES, DEGRADATES, FRAGMENTS, INCREASES_ABUNDANCE, PHOSPHORYLATES, PROMOTES_TRANSLATION, REIF_OBJECT,
+    REIF_SUBJECT, reify_bel_graph,
+)
 
 cdk5 = protein('HGNC', 'CDK5', 'HGNC:1774')
 gsk3b = protein('HGNC', 'GSK3B', 'HGNC:4617')
@@ -39,9 +39,9 @@ class TestAssembleReifiedGraph(unittest.TestCase):
     help_causal_regulates = (True, True)
 
     def help_test_graphs_equal(
-            self,
-            expected: nx.DiGraph,
-            actual: nx.DiGraph
+        self,
+        expected: nx.DiGraph,
+        actual: nx.DiGraph
     ) -> None:
         """Test that two DiGraphs are equal."""
         self.assertIsNotNone(actual)
@@ -236,8 +236,8 @@ class TestAssembleReifiedGraph(unittest.TestCase):
         """Test the conversion of a bel statement like A -> r(B)"""
         # example from Colorectal Cancer Model v2.0.6 @ scai
         # act(p(HGNC:CTNNB1), ma(tscript)) increases r(HGNC:BIRC5)
-        ctnnb1 = protein('HGNC', 'CTNNB1', '')
-        birc5 = rna('HGNC', 'BIRC5', '')
+        ctnnb1 = protein('HGNC', name='CTNNB1')
+        birc5 = rna('HGNC', name='BIRC5')
 
         # a(MESH:Microglia) reg deg(a(CHEBI:"amyloid-beta"))
         bel_graph = BELGraph()
@@ -245,7 +245,7 @@ class TestAssembleReifiedGraph(unittest.TestCase):
             ctnnb1,
             birc5,
             evidence='10.1038/s41586-018-0368-8',
-            citation='PMID:18075512',
+            citation='18075512',
             subject_modifier=activity('tscript')
         )
 
@@ -267,13 +267,13 @@ class TestAssembleReifiedGraph(unittest.TestCase):
             oxaliplatin,
             reactive_o_species,
             evidence='10.1093/jnci/djv394',
-            citation='PubMed:26719345'
+            citation='26719345',
         )
         bel_graph.add_directly_increases(
             reactive_o_species,
             p_tau,
             evidence=n(),
-            citation=n()
+            citation=n(),
         )
 
         re1, re2 = 1, 0
