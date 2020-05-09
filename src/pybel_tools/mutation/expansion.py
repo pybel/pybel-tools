@@ -300,13 +300,13 @@ def expand_internal(
     universe: BELGraph,
     graph: BELGraph,
 ) -> None:
-    """Expand on edges between entities in the sub-graph that pass the given filters.
+    """Expand on edges between entities in the sub-graph that pass the given filters, in place.
 
     :param universe: The full graph
     :param graph: A sub-graph to find the upstream information
     """
-    for u, v, key, data in _iterate_internal(universe, graph):
-        graph.add_edge(u, v, key=key, **data)
+    for u, v, key in iterate_internal(universe, graph):
+        graph.add_edge(u, v, key=key, **universe[u][v][key])
 
 
 @uni_in_place_transformation
@@ -324,13 +324,14 @@ def expand_internal_causal(universe: BELGraph, graph: BELGraph) -> None:
     >>> from pybel.struct.filters.edge_predicates import is_causal_relation
     >>> expand_internal(universe, graph, edge_predicates=is_causal_relation)
     """
-    for u, v, key in _iterate_internal(universe, graph):
+    for u, v, key in iterate_internal(universe, graph):
         data = universe.edges[u][v][key]
         if is_causal_relation(data):
             graph.add_edge(u, v, key=key, **data)
 
 
-def _iterate_internal(universe: BELGraph, graph: BELGraph) -> EdgeIterator:
+def iterate_internal(universe: BELGraph, graph: BELGraph) -> EdgeIterator:
+    """Iterate over edges that are in the universe but not the target graph."""
     for u, v in itt.product(graph, repeat=2):
         if graph.has_edge(u, v):
             continue
