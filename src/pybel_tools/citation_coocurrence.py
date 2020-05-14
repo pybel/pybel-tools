@@ -2,17 +2,17 @@
 
 """Build a network of citations connected by co-occurrence of entities."""
 
-import itertools as itt
 from collections import Counter, defaultdict
-from typing import TextIO
 
 import click
+import itertools as itt
 import networkx as nx
 from tqdm import tqdm
+from typing import TextIO
 
 from pybel import BELGraph, Manager
 from pybel.cli import connection_option, graph_pickle_argument
-from pybel.constants import CITATION, CITATION_REFERENCE, CITATION_TITLE, CITATION_TYPE, CITATION_TYPE_PUBMED
+from pybel.constants import CITATION, CITATION_DB, CITATION_DB_NAME, CITATION_IDENTIFIER, CITATION_TYPE_PUBMED
 from pybel.manager.citation_utils import enrich_pubmed_citations
 
 
@@ -44,11 +44,11 @@ def make_citation_network(bel_graph: BELGraph, threshold: int = 0) -> nx.Graph:
     names = {}
     for u, v, k, d in bel_graph.edges(keys=True, data=True):
         citation = d.get(CITATION)
-        if citation is None or citation[CITATION_TYPE] != CITATION_TYPE_PUBMED:
+        if citation is None or citation[CITATION_DB] != CITATION_TYPE_PUBMED:
             continue
-        reference = citation[CITATION_REFERENCE]
+        reference = citation[CITATION_IDENTIFIER]
         dd[reference].update((u, v))
-        names[reference] = citation.get(CITATION_TITLE)
+        names[reference] = citation.get(CITATION_DB_NAME)
 
     all_nodes = set(itt.chain.from_iterable(dd.values()))
 
