@@ -6,7 +6,7 @@ import itertools as itt
 import logging
 from typing import Iterable, Mapping, Set, Tuple
 
-from networkx import DiGraph, Graph
+import networkx as nx
 
 from pybel import BELGraph
 from pybel.constants import (
@@ -14,9 +14,8 @@ from pybel.constants import (
     NEGATIVE_CORRELATION, POSITIVE_CORRELATION, RELATION,
 )
 from pybel.dsl import BaseEntity
-from pybel.struct.utils import update_node_helper
+from pybel.struct import get_causal_subgraph
 from .contradictions import relation_set_has_contradictions
-from ..selection import get_causal_subgraph
 from ..typing import NodeTriple, SetOfNodePairs, SetOfNodeTriples
 
 __all__ = [
@@ -112,9 +111,9 @@ def get_dampened_pairs(graph: BELGraph) -> SetOfNodePairs:
     return results
 
 
-def get_correlation_graph(graph: BELGraph) -> Graph:
+def get_correlation_graph(graph: BELGraph) -> nx.Graph:
     """Extract an undirected graph of only correlative relationships."""
-    result = Graph()
+    result = nx.Graph()
 
     for u, v, d in graph.edges(data=True):
         if d[RELATION] not in CORRELATIVE_RELATIONS:
@@ -141,7 +140,7 @@ def get_correlation_triangles(graph: BELGraph) -> SetOfNodeTriples:
     }
 
 
-def get_triangles(graph: DiGraph) -> SetOfNodeTriples:
+def get_triangles(graph: nx.DiGraph) -> SetOfNodeTriples:
     """Get a set of triples representing the 3-cycles from a directional graph.
 
     Each 3-cycle is returned once, with nodes in sorted order.
@@ -165,14 +164,23 @@ def get_separate_unstable_correlation_triples(graph: BELGraph) -> SetOfNodeTripl
 
 def _iterate_separate_unstable_correlation_triples(cg) -> Iterable[NodeTriple]:
     for a, b, c in get_correlation_triangles(cg):
-        if POSITIVE_CORRELATION in cg[a][b] and POSITIVE_CORRELATION in cg[b][c] and NEGATIVE_CORRELATION in \
-                cg[a][c]:
+        if (
+            POSITIVE_CORRELATION in cg[a][b]
+            and POSITIVE_CORRELATION in cg[b][c]
+            and NEGATIVE_CORRELATION in cg[a][c]
+        ):
             yield b, a, c
-        if POSITIVE_CORRELATION in cg[a][b] and NEGATIVE_CORRELATION in cg[b][c] and POSITIVE_CORRELATION in \
-                cg[a][c]:
+        if (
+            POSITIVE_CORRELATION in cg[a][b]
+            and NEGATIVE_CORRELATION in cg[b][c]
+            and POSITIVE_CORRELATION in cg[a][c]
+        ):
             yield a, b, c
-        if NEGATIVE_CORRELATION in cg[a][b] and POSITIVE_CORRELATION in cg[b][c] and POSITIVE_CORRELATION in \
-                cg[a][c]:
+        if (
+            NEGATIVE_CORRELATION in cg[a][b]
+            and POSITIVE_CORRELATION in cg[b][c]
+            and POSITIVE_CORRELATION in cg[a][c]
+        ):
             yield c, a, b
 
 
@@ -188,7 +196,7 @@ def _iterate_mutually_unstable_correlation_triples(cg) -> Iterable[NodeTriple]:
             yield a, b, c
 
 
-def jens_transformation_alpha(graph: BELGraph) -> DiGraph:
+def jens_transformation_alpha(graph: BELGraph) -> nx.DiGraph:
     """Apply Jens' transformation (Type 1) to the graph.
 
     1. Induce a sub-graph over causal + correlative edges
@@ -201,7 +209,7 @@ def jens_transformation_alpha(graph: BELGraph) -> DiGraph:
     The resulting graph can be used to search for 3-cycles, which now symbolize unstable triplets where ``A -> B``,
     ``A -| C`` and ``B positiveCorrelation C``.
     """
-    result = DiGraph()
+    result = nx.DiGraph()
 
     for u, v, d in graph.edges(data=True):
         relation = d[RELATION]
@@ -219,7 +227,7 @@ def jens_transformation_alpha(graph: BELGraph) -> DiGraph:
     return result
 
 
-def jens_transformation_beta(graph: BELGraph) -> DiGraph:
+def jens_transformation_beta(graph: BELGraph) -> nx.DiGraph:
     """Apply Jens' Transformation (Type 2) to the graph.
 
     1. Induce a sub-graph over causal and correlative relations
@@ -232,7 +240,7 @@ def jens_transformation_beta(graph: BELGraph) -> DiGraph:
     The resulting graph can be used to search for 3-cycles, which now symbolize stable triples where ``A -> B``,
     ``A -| C`` and ``B negativeCorrelation C``.
     """
-    result = DiGraph()
+    result = nx.DiGraph()
 
     for u, v, d in graph.edges(data=True):
         relation = d[RELATION]
@@ -296,13 +304,11 @@ def get_dampened_triplets(graph: BELGraph) -> SetOfNodeTriples:
 
 
 def _iterate_disregulated_triplets(graph: BELGraph, relation_set: Set[str]) -> Iterable[NodeTriple]:
-    result = DiGraph()
+    result = nx.DiGraph()
 
     for u, v, d in graph.edges(data=True):
         if d[RELATION] in relation_set:
             result.add_edge(u, v)
-
-    update_node_helper(graph, result)
 
     for a, b, c in get_triangles(result):
         if a == b == c:

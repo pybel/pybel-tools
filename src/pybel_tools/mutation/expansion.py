@@ -13,7 +13,7 @@ from pybel.constants import ANNOTATIONS
 from pybel.dsl import BaseEntity, CentralDogma, ComplexAbundance, CompositeAbundance, Reaction
 from pybel.struct.filters import and_edge_predicates, concatenate_node_predicates
 from pybel.struct.filters.edge_predicates import edge_has_annotation, is_causal_relation
-from pybel.struct.filters.node_predicates import keep_node_permissive
+from pybel.struct.filters.node_predicates import true_node_predicate
 from pybel.struct.filters.typing import EdgeIterator, EdgePredicates, NodePredicates
 from pybel.struct.pipeline import uni_in_place_transformation
 from pybel.typing import EdgeData
@@ -37,7 +37,7 @@ __all__ = [
     'expand_internal_causal',
 ]
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def get_peripheral_successor_edges(graph: BELGraph, subgraph: Collection[BaseEntity]) -> EdgeIterator:
@@ -99,11 +99,11 @@ def count_peripheral_predecessors(graph: BELGraph, subgraph: BELGraph) -> typing
 
 
 def get_subgraph_edges(
-        graph: BELGraph,
-        annotation: str,
-        value: str,
-        source_filter: Optional[NodePredicates] = None,
-        target_filter: Optional[NodePredicates] = None,
+    graph: BELGraph,
+    annotation: str,
+    value: str,
+    source_filter: Optional[NodePredicates] = None,
+    target_filter: Optional[NodePredicates] = None,
 ) -> Iterable[Tuple[BaseEntity, BaseEntity, str, EdgeData]]:
     """Get all edges from a given subgraph whose source and target nodes pass all of the given filters.
 
@@ -116,10 +116,10 @@ def get_subgraph_edges(
              node filters
     """
     if source_filter is None:
-        source_filter = keep_node_permissive
+        source_filter = true_node_predicate
 
     if target_filter is None:
-        target_filter = keep_node_permissive
+        target_filter = true_node_predicate
 
     for u, v, k, data in graph.edges(keys=True, data=True):
         if not edge_has_annotation(data, annotation):
@@ -129,10 +129,10 @@ def get_subgraph_edges(
 
 
 def get_subgraph_peripheral_nodes(
-        graph: BELGraph,
-        subgraph: Collection[BaseEntity],
-        node_predicates: Optional[NodePredicates] = None,
-        edge_predicates: Optional[EdgePredicates] = None,
+    graph: BELGraph,
+    subgraph: Collection[BaseEntity],
+    node_predicates: Optional[NodePredicates] = None,
+    edge_predicates: Optional[EdgePredicates] = None,
 ):
     """Get a summary dictionary of all peripheral nodes to a given sub-graph.
 
@@ -142,10 +142,10 @@ def get_subgraph_peripheral_nodes(
 
     For example, it might be useful to quantify the number of predecessors and successors:
 
-    >>> from pybel.struct.filters import exclude_pathology_filter
+    >>> from pybel.struct.filters.node_predicates import not_pathology
     >>> value = 'Blood vessel dilation subgraph'
     >>> sg = get_subgraph_by_annotation_value(graph, annotation='Subgraph', value=value)
-    >>> p = get_subgraph_peripheral_nodes(graph, sg, node_predicates=exclude_pathology_filter)
+    >>> p = get_subgraph_peripheral_nodes(graph, sg, node_predicates=not_pathology)
     >>> for node in sorted(p, key=lambda n: len(set(p[n]['successor']) | set(p[n]['predecessor'])), reverse=True):
     >>>     if 1 == len(p[value][node]['successor']) or 1 == len(p[value][node]['predecessor']):
     >>>         continue
@@ -174,11 +174,11 @@ def get_subgraph_peripheral_nodes(
 
 @uni_in_place_transformation
 def expand_periphery(
-        universe: BELGraph,
-        graph: BELGraph,
-        node_predicates: Optional[NodePredicates] = None,
-        edge_predicates: Optional[EdgePredicates] = None,
-        threshold: int = 2,
+    universe: BELGraph,
+    graph: BELGraph,
+    node_predicates: Optional[NodePredicates] = None,
+    edge_predicates: Optional[EdgePredicates] = None,
+    threshold: int = 2,
 ) -> None:
     """Iterate over all possible edges, peripheral to a given subgraph, that could be added from the given graph.
 
@@ -225,7 +225,7 @@ def enrich_complexes(graph: BELGraph) -> None:
         if not isinstance(u, ComplexAbundance):
             continue
         for v in u.members:
-            graph.add_has_component(u, v)
+            graph.add_part_of(v, u)
 
 
 @uni_in_place_transformation
@@ -235,7 +235,7 @@ def enrich_composites(graph: BELGraph) -> None:
         if not isinstance(u, CompositeAbundance):
             continue
         for v in u.members:
-            graph.add_has_component(u, v)
+            graph.add_part_of(v, u)
 
 
 @uni_in_place_transformation
@@ -297,16 +297,16 @@ def enrich_unqualified(graph: BELGraph) -> None:
 
 @uni_in_place_transformation
 def expand_internal(
-        universe: BELGraph,
-        graph: BELGraph,
+    universe: BELGraph,
+    graph: BELGraph,
 ) -> None:
-    """Expand on edges between entities in the sub-graph that pass the given filters.
+    """Expand on edges between entities in the sub-graph that pass the given filters, in place.
 
     :param universe: The full graph
     :param graph: A sub-graph to find the upstream information
     """
-    for u, v, key, data in _iterate_internal(universe, graph):
-        graph.add_edge(u, v, key=key, **data)
+    for u, v, key in iterate_internal(universe, graph):
+        graph.add_edge(u, v, key=key, **universe[u][v][key])
 
 
 @uni_in_place_transformation
@@ -324,13 +324,14 @@ def expand_internal_causal(universe: BELGraph, graph: BELGraph) -> None:
     >>> from pybel.struct.filters.edge_predicates import is_causal_relation
     >>> expand_internal(universe, graph, edge_predicates=is_causal_relation)
     """
-    for u, v, key in _iterate_internal(universe, graph):
+    for u, v, key in iterate_internal(universe, graph):
         data = universe.edges[u][v][key]
         if is_causal_relation(data):
             graph.add_edge(u, v, key=key, **data)
 
 
-def _iterate_internal(universe: BELGraph, graph: BELGraph) -> EdgeIterator:
+def iterate_internal(universe: BELGraph, graph: BELGraph) -> EdgeIterator:
+    """Iterate over edges that are in the universe but not the target graph."""
     for u, v in itt.product(graph, repeat=2):
         if graph.has_edge(u, v):
             continue

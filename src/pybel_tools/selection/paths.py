@@ -11,9 +11,9 @@ import networkx as nx
 from pybel import BELGraph, BaseEntity
 from pybel.constants import (
     ANALOGOUS_TO, ASSOCIATION, BIOMARKER_FOR, CAUSES_NO_CHANGE, DECREASES, DIRECTLY_DECREASES, DIRECTLY_INCREASES,
-    EQUIVALENT_TO, HAS_COMPONENT, HAS_MEMBER, HAS_PRODUCT, HAS_REACTANT, HAS_VARIANT, INCREASES, IS_A,
-    NEGATIVE_CORRELATION, POSITIVE_CORRELATION, PROGONSTIC_BIOMARKER_FOR, RATE_LIMITING_STEP_OF, REGULATES, RELATION,
-    SUBPROCESS_OF, TRANSCRIBED_TO, TRANSLATED_TO,
+    EQUIVALENT_TO, HAS_PRODUCT, HAS_REACTANT, HAS_VARIANT, INCREASES, IS_A, NEGATIVE_CORRELATION, PART_OF,
+    POSITIVE_CORRELATION, PROGONSTIC_BIOMARKER_FOR, RATE_LIMITING_STEP_OF, REGULATES, RELATION, SUBPROCESS_OF,
+    TRANSCRIBED_TO, TRANSLATED_TO,
 )
 from pybel.struct.mutation import get_nodes_in_all_shortest_paths
 from ..utils import pairwise
@@ -35,14 +35,13 @@ default_edge_ranking = {
     NEGATIVE_CORRELATION: 2,
     POSITIVE_CORRELATION: 2,
     ASSOCIATION: 1,
-    HAS_MEMBER: 0,
     HAS_PRODUCT: 0,
-    HAS_COMPONENT: 0,
     HAS_VARIANT: 0,
     HAS_REACTANT: 0,
     TRANSLATED_TO: 0,
     TRANSCRIBED_TO: 0,
     IS_A: 0,
+    PART_OF: 0,
     SUBPROCESS_OF: 0,
     ANALOGOUS_TO: 0,
     BIOMARKER_FOR: 0,
@@ -73,9 +72,9 @@ def rank_path(graph: BELGraph, path: List[BaseEntity], edge_ranking: Optional[Ma
 
 # TODO consider all shortest paths?
 def _get_shortest_path_between_subgraphs_helper(
-        graph: nx.Graph,
-        a: nx.Graph,
-        b: nx.Graph,
+    graph: nx.Graph,
+    a: nx.Graph,
+    b: nx.Graph,
 ) -> List[List[Any]]:
     """Calculate the shortest path(s) between disconnected sub-graphs ``a`` and ``b`` through ``graph``.
 

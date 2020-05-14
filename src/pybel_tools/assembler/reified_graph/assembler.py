@@ -11,10 +11,10 @@ import networkx as nx
 
 from pybel import BELGraph
 from pybel.constants import (
-    ACTIVITY, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, CAUSAL_RELATIONS, DEGRADATION, HAS_COMPONENT,
-    HAS_VARIANT, MODIFIER, OBJECT, REGULATES, TRANSCRIBED_TO, TRANSLATED_TO,
+    ACTIVITY, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, CAUSAL_RELATIONS, DEGRADATION, HAS_VARIANT,
+    MODIFIER, OBJECT, PART_OF, REGULATES, RELATION, TRANSCRIBED_TO, TRANSLATED_TO,
 )
-from pybel.dsl import BaseEntity, ComplexAbundance, fragment, gene, pmod, protein, rna
+from pybel.dsl import BaseEntity, CentralDogma, ComplexAbundance, ProteinModification, fragment, gene, protein, rna
 from pybel.typing import EdgeData
 
 __all__ = [
@@ -104,13 +104,13 @@ class PTMConverter(ReifiedConverter):
     @classmethod
     def predicate(cls, u: BaseEntity, v: BaseEntity, key: str, edge_data: EdgeData) -> bool:
         return (
-            "relation" in edge_data
-            and edge_data['relation'] in CAUSAL_RELATIONS
-            and "variants" in v
+            edge_data[RELATION] in CAUSAL_RELATIONS
+            and isinstance(v, CentralDogma)
+            and v.variants
             and any(
-                var_['identifier']['name'] in cls.synonyms
-                for var_ in v["variants"]
-                if isinstance(var_, pmod)
+                variant.entity.name in cls.synonyms
+                for variant in v.variants
+                if isinstance(variant, ProteinModification)
             )
         )
 
@@ -165,14 +165,13 @@ class ActivationConverter(ReifiedConverter):
 class ComplexConverter(ReifiedConverter):
     """Converts BEL statements of the form complex(A [, **B]])."""
 
-    target_relation = "hasComponent"
+    target_relation = "partOf"
 
     @classmethod
     def predicate(cls, u: BaseEntity, v: BaseEntity, key: str, edge_data: EdgeData) -> bool:
         return (
-            isinstance(u, ComplexAbundance)
-            and "relation" in edge_data
-            and edge_data['relation'] in HAS_COMPONENT
+            isinstance(v, ComplexAbundance)
+            and edge_data[RELATION] == PART_OF
         )
 
 

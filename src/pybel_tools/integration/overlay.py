@@ -4,18 +4,14 @@
 
 import logging
 from collections import defaultdict
-from typing import Any, Callable, List, Mapping, Optional
+from typing import Any, Callable, List, Mapping, Optional, Type
 
 import numpy as np
 import pandas as pd
 
 from pybel import BELGraph
-from pybel.constants import NAME
-from pybel.dsl import BaseEntity
-from pybel.struct.filters import filter_nodes
+from pybel.dsl import BaseConcept, BaseEntity
 from pybel.struct.pipeline import in_place_transformation
-from ..constants import WEIGHT
-from ..filters.node_filters import function_namespace_inclusion_builder
 
 __all__ = [
     'overlay_data',
@@ -23,15 +19,15 @@ __all__ = [
     'load_differential_gene_expression',
 ]
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 @in_place_transformation
 def overlay_data(
-        graph: BELGraph,
-        data: Mapping[BaseEntity, Any],
-        label: Optional[str] = None,
-        overwrite: bool = False,
+    graph: BELGraph,
+    data: Mapping[BaseEntity, Any],
+    label: Optional[str] = None,
+    overwrite: bool = False,
 ) -> None:
     """Overlay tabular data on the network.
 
@@ -41,15 +37,15 @@ def overlay_data(
     :param overwrite: Should old annotations be overwritten?
     """
     if label is None:
-        label = WEIGHT
+        label = 'weight'
 
     for node, value in data.items():
         if node not in graph:
-            log.debug('%s not in graph', node)
+            logger.debug('%s not in graph', node)
             continue
 
         if label in graph.nodes[node] and not overwrite:
-            log.debug('%s already on %s', label, node)
+            logger.debug('%s already on %s', label, node)
             continue
 
         graph.nodes[node][label] = value
@@ -57,13 +53,13 @@ def overlay_data(
 
 @in_place_transformation
 def overlay_type_data(
-        graph: BELGraph,
-        data: Mapping[str, float],
-        func: str,
-        namespace: str,
-        label: Optional[str] = None,
-        overwrite: bool = False,
-        impute: Optional[float] = None,
+    graph: BELGraph,
+    data: Mapping[str, float],
+    node_cls: Type[BaseConcept],
+    namespace: str,
+    label: Optional[str] = None,
+    overwrite: bool = False,
+    impute: Optional[float] = None,
 ) -> None:
     """Overlay tabular data on the network using the given namespace.
 
@@ -79,19 +75,22 @@ def overlay_type_data(
     :param overwrite: Should old annotations be overwritten?
     :param impute: The value to use for missing data
     """
+    namespace = namespace.lower()
+
     new_data = {
-        node: data.get(node[NAME], impute)
-        for node in filter_nodes(graph, function_namespace_inclusion_builder(func, namespace))
+        node: data.get(node.name, impute)
+        for node in graph
+        if isinstance(node, node_cls) and node.namespace.lower() == namespace
     }
 
     overlay_data(graph, new_data, label=label, overwrite=overwrite)
 
 
 def load_differential_gene_expression(
-        path: str,
-        gene_symbol_column: str = 'Gene.symbol',
-        logfc_column: str = 'logFC',
-        aggregator: Optional[Callable[[List[float]], float]] = None,
+    path: str,
+    gene_symbol_column: str = 'Gene.symbol',
+    logfc_column: str = 'logFC',
+    aggregator: Optional[Callable[[List[float]], float]] = None,
 ) -> Mapping[str, float]:
     """Load and pre-process a differential gene expression data.
 

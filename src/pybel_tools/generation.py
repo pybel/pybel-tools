@@ -27,7 +27,6 @@ from pybel.struct import data_missing_key_builder, get_nodes_by_function
 from pybel.struct.filters import filter_nodes
 from pybel.struct.mutation import expand_upstream_causal, get_upstream_causal_subgraph
 from pybel.struct.pipeline import in_place_transformation, transformation
-from .constants import WEIGHT
 from .mutation import collapse_consistent_edges, remove_inconsistent_edges
 
 __all__ = [
@@ -68,7 +67,7 @@ def get_unweighted_upstream_leaves(graph: BELGraph, key: Optional[str] = None) -
     :return: An iterable over leaves (nodes with an in-degree of 0) that don't have the given annotation
     """
     if key is None:
-        key = WEIGHT
+        key = 'weight'
 
     return filter_nodes(graph, [node_is_upstream_leaf, data_missing_key_builder(key)])
 
@@ -103,7 +102,7 @@ def get_unweighted_sources(graph: BELGraph, key: Optional[str] = None) -> Iterab
     :return: An iterator over BEL nodes that are unannotated and on the periphery of this subgraph
     """
     if key is None:
-        key = WEIGHT
+        key = 'weight'
 
     for node in graph:
         if is_unweighted_source(graph, node, key):

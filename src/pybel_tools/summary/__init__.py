@@ -14,3 +14,4 @@ from .node_properties import *  # noqa: F401,F403
 from .provenance import *  # noqa: F401,F403
 from .stability import *  # noqa: F401,F403
 from .subgraph_summary import *  # noqa: F401,F403
+from .visualization import *  # noqa: F401,F403

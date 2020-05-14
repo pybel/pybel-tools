@@ -52,7 +52,7 @@ def random_by_edges(graph: BELGraph, percentage: Optional[float] = None) -> BELG
     assert 0 < percentage <= 1
 
     number_edges = int(graph.number_of_edges() * percentage)
-    rv = graph.fresh_copy()
+    rv = BELGraph()
     rv.add_edges_from(random.sample(graph.edges(keys=True, data=True), number_edges))
     update_node_helper(graph, rv)
     return rv

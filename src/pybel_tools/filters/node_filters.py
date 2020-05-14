@@ -5,20 +5,15 @@
 from typing import Collection, Iterable, Mapping, Optional, Set, Union
 
 import pybel
-from pybel import BELGraph
-from pybel.constants import CAUSAL_RELATIONS, FUNCTION, HAS_VARIANT, LABEL, NAMESPACE, PATHOLOGY, RELATION
+from pybel import BELGraph, BaseAbundance
+from pybel.constants import CAUSAL_RELATIONS, HAS_VARIANT, RELATION
 from pybel.dsl import BaseEntity, Protein, ProteinModification
-from pybel.struct.filters import (
-    build_node_data_search, build_node_key_search, count_passed_node_filter, data_missing_key_builder,
-)
-from pybel.struct.filters.typing import NodePredicate, NodePredicates
+from pybel.struct.filters import build_node_data_search, build_node_key_search, data_missing_key_builder
+from pybel.struct.filters.typing import NodePredicate
 from pybel.typing import Strings
 from ..utils import group_as_sets
 
 __all__ = [
-    'summarize_node_filter',
-    'node_inclusion_filter_builder',
-    'node_exclusion_filter_builder',
     'function_inclusion_filter_builder',
     'function_exclusion_filter_builder',
     'function_namespace_inclusion_builder',
@@ -30,49 +25,6 @@ __all__ = [
     'variants_of',
     'get_variants_to_controllers',
 ]
-
-
-def summarize_node_filter(graph: BELGraph, node_filters: NodePredicates) -> None:
-    """Print a summary of the number of nodes passing a given set of filters.
-
-    :param graph: A BEL graph
-    :param node_filters: A node filter or list/tuple of node filters
-    """
-    passed = count_passed_node_filter(graph, node_filters)
-    print('{}/{} nodes passed'.format(passed, graph.number_of_nodes()))
-
-
-# Example filters
-
-def node_inclusion_filter_builder(nodes: Iterable[BaseEntity]) -> NodePredicate:
-    """Build a filter that only passes on nodes in the given list.
-
-    :param nodes: An iterable of BEL nodes
-    """
-    node_set = set(nodes)
-
-    def inclusion_filter(_: BELGraph, node: BaseEntity) -> bool:
-        """Pass only for a node that is in the enclosed node list.
-
-        :return: If the node is contained within the enclosed node list
-        """
-        return node in node_set
-
-    return inclusion_filter
-
-
-def node_exclusion_filter_builder(nodes: Iterable[BaseEntity]) -> NodePredicate:
-    """Build a filter that fails on nodes in the given list."""
-    node_set = set(nodes)
-
-    def exclusion_filter(_: BELGraph, node: BaseEntity) -> bool:
-        """Pass only for a node that isn't in the enclosed node list.
-
-        :return: If the node isn't contained within the enclosed node list
-        """
-        return node not in node_set
-
-    return exclusion_filter
 
 
 def _single_function_inclusion_filter_builder(func: str) -> NodePredicate:
@@ -124,7 +76,7 @@ def function_exclusion_filter_builder(func: Strings) -> NodePredicate:
 
             :return: If the node doesn't have the enclosed function
             """
-            return node[FUNCTION] != func
+            return node.function != func
 
         return function_exclusion_filter
 
@@ -136,7 +88,7 @@ def function_exclusion_filter_builder(func: Strings) -> NodePredicate:
 
             :return: If the node doesn't have the enclosed functions
             """
-            return node[FUNCTION] not in functions
+            return node.function not in functions
 
         return functions_exclusion_filter
 
@@ -150,20 +102,26 @@ def function_namespace_inclusion_builder(func: str, namespace: Strings) -> NodeP
     :param namespace: The namespace to search by
     """
     if isinstance(namespace, str):
+        namespace = namespace.lower()
+
         def function_namespaces_filter(_: BELGraph, node: BaseEntity) -> bool:
             """Pass only for nodes that have the enclosed function and enclosed namespace."""
-            if func != node[FUNCTION]:
-                return False
-            return NAMESPACE in node and node[NAMESPACE] == namespace
+            return (
+                node.function.lower() == func.lower()
+                and isinstance(node, BaseAbundance)
+                and node.namespace == namespace
+            )
 
     elif isinstance(namespace, Iterable):
-        namespaces = set(namespace)
+        namespaces = {n.lower() for n in namespace}
 
         def function_namespaces_filter(_: BELGraph, node: BaseEntity) -> bool:
             """Pass only for nodes that have the enclosed function and namespace in the enclose set."""
-            if func != node[FUNCTION]:
-                return False
-            return NAMESPACE in node and node[NAMESPACE] in namespaces
+            return (
+                node.function == func
+                and isinstance(node, BaseAbundance)
+                and node.namespace.lower() in namespaces
+            )
 
     else:
         raise ValueError('Invalid type for argument: {}'.format(namespace))
@@ -187,29 +145,11 @@ def data_contains_key_builder(key: str) -> NodePredicate:  # noqa: D202
     return data_contains_key
 
 
-#: Passes for nodes that have been annotated with a label
-node_has_label = data_contains_key_builder(LABEL)
-
-#: Fails for nodes that have been annotated with a label
-node_missing_label = data_missing_key_builder(LABEL)
-
-# Default Filters
-
-#: A filter that passes for nodes that are :data:`pybel.constants.PATHOLOGY`
-include_pathology_filter = function_inclusion_filter_builder(PATHOLOGY)
-
-#: A filter that fails for nodes that are :data:`pybel.constants.PATHOLOGY`
-exclude_pathology_filter = function_exclusion_filter_builder(PATHOLOGY)
-
-
-# TODO node filter that is false for abundances with no in-edges
-
-
 def namespace_inclusion_builder(namespace: str) -> NodePredicate:  # noqa: D202
     """Build a function that filters for nods that include a specific namespace."""
 
     def _has_namespace(_: BELGraph, node: BaseEntity) -> bool:
-        return node.get(NAMESPACE) == namespace
+        return isinstance(node, BaseAbundance) and node.namespace == namespace
 
     return _has_namespace
 
@@ -240,15 +180,15 @@ def _get_filtered_variants_of(
     modifications: Collection[str],
 ) -> Set[Protein]:
     return {
-        v
-        for u, v, key, data in graph.edges(keys=True, data=True)
+        target
+        for source, target, key, data in graph.edges(keys=True, data=True)
         if (
-            u == node and
-            data[RELATION] == HAS_VARIANT and
-            pybel.struct.has_protein_modification(v) and
-            any(
-                variant['identifier']['name'] in modifications
-                for variant in v.variants if 'identifier' in variant
+            source == node
+            and data[RELATION] == HAS_VARIANT
+            and pybel.struct.has_protein_modification(target)
+            and any(
+                variant.name in modifications
+                for variant in target.variants
                 if isinstance(variant, ProteinModification)
             )
         )

@@ -63,9 +63,9 @@ def run_epicom(graph: BELGraph, directory: str, annotation: str = 'Subgraph') ->
 
 
 def get_drug_scores(
-        graph: BELGraph,
-        dtis: Mapping[str, List[Gene]],
-        preprocess_graph: bool = True,
+    graph: BELGraph,
+    dtis: Mapping[str, List[Gene]],
+    preprocess_graph: bool = True,
 ) -> Iterable[Tuple[str, str, float]]:
     """Get drug scores for the given graph."""
     if preprocess_graph:

@@ -14,15 +14,15 @@ class TestMutationInference(unittest.TestCase):
     def test_infer_missing_two_way_edges(self):
         graph = BELGraph()
 
-        a_data = protein('HGNC', 'A')
-        b_data = protein('HGNC', 'B')
-        c_data = protein('HGNC', 'C')
-        d_data = protein('HGNC', 'D')
+        a = protein('HGNC', 'A')
+        b = protein('HGNC', 'B')
+        c = protein('HGNC', 'C')
+        d = protein('HGNC', 'D')
 
-        a = graph.add_node_from_data(a_data)
-        b = graph.add_node_from_data(b_data)
-        c = graph.add_node_from_data(c_data)
-        d = graph.add_node_from_data(d_data)
+        graph.add_node_from_data(a)
+        graph.add_node_from_data(b)
+        graph.add_node_from_data(c)
+        graph.add_node_from_data(d)
 
         graph.add_edge(a, b, **{RELATION: POSITIVE_CORRELATION})
         graph.add_edge(a, c, **{RELATION: POSITIVE_CORRELATION})

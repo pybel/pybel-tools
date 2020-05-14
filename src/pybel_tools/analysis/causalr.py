@@ -18,16 +18,14 @@ import networkx as nx
 
 from pybel import BELGraph, BaseEntity
 from pybel.constants import (
-    ANALOGOUS_TO, ASSOCIATION, BIOMARKER_FOR, CAUSES_NO_CHANGE, DECREASES, DIRECTLY_DECREASES,
-    DIRECTLY_INCREASES, EQUIVALENT_TO, HAS_COMPONENT, HAS_MEMBER, HAS_PRODUCT, HAS_REACTANT, HAS_VARIANT, INCREASES,
-    IS_A, NEGATIVE_CORRELATION, POSITIVE_CORRELATION, PROGONSTIC_BIOMARKER_FOR, RATE_LIMITING_STEP_OF, REGULATES,
-    RELATION, SUBPROCESS_OF, TRANSCRIBED_TO, TRANSLATED_TO,
+    ANALOGOUS_TO, ASSOCIATION, BIOMARKER_FOR, CAUSES_NO_CHANGE, DECREASES, DIRECTLY_DECREASES, DIRECTLY_INCREASES,
+    EQUIVALENT_TO, HAS_PRODUCT, HAS_REACTANT, HAS_VARIANT, INCREASES, IS_A, NEGATIVE_CORRELATION, PART_OF,
+    POSITIVE_CORRELATION, PROGONSTIC_BIOMARKER_FOR, RATE_LIMITING_STEP_OF, REGULATES, RELATION, SUBPROCESS_OF,
+    TRANSCRIBED_TO, TRANSLATED_TO,
 )
 from pybel.typing import EdgeData
 from ..summary.contradictions import pair_has_contradiction
 from ..utils import pairwise
-
-log = logging.getLogger(__name__)
 
 __all__ = [
     'rank_causalr_hypothesis',
@@ -35,6 +33,8 @@ __all__ = [
     'get_path_effect',
     'rank_edges',
 ]
+
+logger = logging.getLogger(__name__)
 
 causal_effect_dict = {
     INCREASES: 1,
@@ -56,14 +56,13 @@ default_edge_ranking = {
     NEGATIVE_CORRELATION: 2,
     POSITIVE_CORRELATION: 2,
     ASSOCIATION: 1,
-    HAS_MEMBER: 0,
     HAS_PRODUCT: 0,
-    HAS_COMPONENT: 0,
     HAS_VARIANT: 0,
     HAS_REACTANT: 0,
     TRANSLATED_TO: 0,
     TRANSCRIBED_TO: 0,
     IS_A: 0,
+    PART_OF: 0,
     SUBPROCESS_OF: 0,
     ANALOGOUS_TO: 0,
     BIOMARKER_FOR: 0,
@@ -187,10 +186,10 @@ def run_cna(graph: BELGraph, root: BaseEntity, targets, relationship_dict=None):
                 causal_effects.append((root, target, Effect.inhibition))
 
             else:
-                log.warning('Exception in set: {}.'.format(effects_in_path))
+                logger.warning('Exception in set: {}.'.format(effects_in_path))
 
         except nx.NetworkXNoPath:
-            log.warning('No shortest path between: {} and {}.'.format(root, target))
+            logger.warning('No shortest path between: {} and {}.'.format(root, target))
 
     return causal_effects
 

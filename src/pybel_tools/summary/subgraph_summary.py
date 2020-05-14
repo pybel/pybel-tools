@@ -34,8 +34,8 @@ def count_subgraph_sizes(graph: BELGraph, annotation: str = 'Subgraph') -> Count
 
 
 def calculate_subgraph_edge_overlap(
-        graph: BELGraph,
-        annotation: str = 'Subgraph',
+    graph: BELGraph,
+    annotation: str = 'Subgraph',
 ) -> Tuple[
     Mapping[str, EdgeSet],
     Mapping[str, Mapping[str, EdgeSet]],
@@ -72,8 +72,8 @@ def calculate_subgraph_edge_overlap(
 
 
 def summarize_subgraph_edge_overlap(
-        graph: BELGraph,
-        annotation: str = 'Subgraph',
+    graph: BELGraph,
+    annotation: str = 'Subgraph',
 ) -> Mapping[str, Mapping[str, float]]:
     """Return a similarity matrix between all subgraphs (or other given annotation).
 
@@ -86,9 +86,9 @@ def summarize_subgraph_edge_overlap(
 
 
 def summarize_subgraph_node_overlap(
-        graph: BELGraph,
-        node_predicates: Optional[NodePredicates] = None,
-        annotation: str = 'Subgraph',
+    graph: BELGraph,
+    node_predicates: Optional[NodePredicates] = None,
+    annotation: str = 'Subgraph',
 ):
     """Calculate the subgraph similarity tanimoto similarity in nodes passing the given filter.
 
@@ -103,9 +103,9 @@ def summarize_subgraph_node_overlap(
 
 
 def rank_subgraph_by_node_filter(
-        graph: BELGraph,
-        node_predicates: Union[NodePredicate, Iterable[NodePredicate]],
-        annotation: str = 'Subgraph',
+    graph: BELGraph,
+    node_predicates: Union[NodePredicate, Iterable[NodePredicate]],
+    annotation: str = 'Subgraph',
 ) -> List[Tuple[str, int]]:
     """Rank sub-graphs by which have the most nodes matching an given filter.
 

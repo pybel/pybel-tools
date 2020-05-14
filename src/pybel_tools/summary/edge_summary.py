@@ -89,10 +89,10 @@ def count_annotation_values(graph: BELGraph, annotation: str) -> Counter:
 
 
 def count_annotation_values_filtered(
-        graph: BELGraph,
-        annotation: str,
-        source_predicate: Optional[NodePredicate] = None,
-        target_predicate: Optional[NodePredicate] = None,
+    graph: BELGraph,
+    annotation: str,
+    source_predicate: Optional[NodePredicate] = None,
+    target_predicate: Optional[NodePredicate] = None,
 ) -> Counter:
     """Count in how many edges each annotation appears in a graph, but filter out source nodes and target nodes.
 

@@ -37,8 +37,8 @@ __all__ = [
 
 
 def get_causal_out_edges(
-        graph: BELGraph,
-        nbunch: Union[BaseEntity, Iterable[BaseEntity]],
+    graph: BELGraph,
+    nbunch: Union[BaseEntity, Iterable[BaseEntity]],
 ) -> Set[Tuple[BaseEntity, BaseEntity]]:
     """Get the out-edges to the given node that are causal.
 
@@ -52,8 +52,8 @@ def get_causal_out_edges(
 
 
 def get_causal_in_edges(
-        graph: BELGraph,
-        nbunch: Union[BaseEntity, Iterable[BaseEntity]],
+    graph: BELGraph,
+    nbunch: Union[BaseEntity, Iterable[BaseEntity]],
 ) -> Set[Tuple[BaseEntity, BaseEntity]]:
     """Get the in-edges to the given node that are causal.
 

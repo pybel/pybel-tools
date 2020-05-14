@@ -10,8 +10,8 @@ import networkx as nx
 from tqdm import tqdm
 
 from pybel import BELGraph
-from pybel.constants import EQUIVALENT_TO, GENE, HAS_VARIANT, NAME, NAMESPACE, ORTHOLOGOUS, PROTEIN, RELATION
-from pybel.dsl import BaseEntity, Gene, Protein
+from pybel.constants import EQUIVALENT_TO, GENE, HAS_VARIANT, ORTHOLOGOUS, PROTEIN, RELATION
+from pybel.dsl import BaseConcept, BaseEntity, CentralDogma, Gene, Protein
 from pybel.struct.filters import build_relation_predicate, filter_edges, has_polarity
 from pybel.struct.filters.typing import EdgePredicates
 from pybel.struct.mutation import collapse_nodes, collapse_pair, collapse_to_genes, get_subgraph_by_edge_filter
@@ -32,7 +32,7 @@ __all__ = [
     'collapse_nodes_with_same_names',
 ]
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 @in_place_transformation
@@ -84,10 +84,10 @@ def _collapse_edge_passing_predicates(graph: BELGraph, edge_predicates: EdgePred
 
 
 def _collapse_edge_by_namespace(
-        graph: BELGraph,
-        victim_namespaces: Strings,
-        survivor_namespaces: str,
-        relations: Strings,
+    graph: BELGraph,
+    victim_namespaces: Strings,
+    survivor_namespaces: str,
+    relations: Strings,
 ) -> None:
     """Collapse pairs of nodes with the given namespaces that have the given relationship.
 
@@ -214,35 +214,50 @@ def collapse_to_protein_interactions(graph: BELGraph) -> BELGraph:
 
 
 @in_place_transformation
-def collapse_nodes_with_same_names(graph: BELGraph, use_tqdm: bool = False) -> None:
+def collapse_nodes_with_same_names(graph: BELGraph, priority, use_tqdm: bool = False) -> None:
     """Collapse all nodes with the same name, merging namespaces by picking first alphabetical one."""
+    p = {namespace: i for i, namespace in enumerate(reversed(priority))}
+
     survivor_mapping = defaultdict(set)  # Collapse mapping dict
     victims = set()  # Things already mapped while iterating
 
-    it = itt.combinations(graph, r=2)
+    named_nodes = [node for node in graph if isinstance(node, BaseConcept)]
+
+    it = itt.combinations(named_nodes, r=2)
     if use_tqdm:
-        it = tqdm(use_tqdm, total=graph.number_of_nodes() * (graph.number_of_nodes() - 1) / 2)
+        it = tqdm(use_tqdm, total=len(named_nodes) * (len(named_nodes) - 1) / 2)
     for a, b in it:
-        if b in victims:
+        if not _can_map(a, b):
             continue
 
-        a_name, b_name = a.get(NAME), b.get(NAME)
-        if not a_name or not b_name or a_name.lower() != b_name.lower():
-            continue
+        a_priority = p.get(a.namespace)
+        b_priority = p.get(b.namespace)
 
-        if a.keys() != b.keys():  # not same version (might have variants)
-            continue
+        if a_priority is None and b_priority is None:
+            no_swap = a.namespace > b.namespace
+        else:
+            no_swap = a_priority > b_priority
 
-        # Ensure that the values in the keys are also the same
-        for k in set(a.keys()) - {NAME, NAMESPACE}:
-            if a[k] != b[k]:  # something different
-                continue
-
-        if a.namespace < b.namespace:
-            a, b = b, a
-
-        survivor_mapping[a].add(b)
-        # Keep track of things that has been already mapped
-        victims.add(b)
+        if no_swap:
+            survivor_mapping[a].add(b)
+            victims.add(b)
+        else:
+            survivor_mapping[b].add(a)
+            victims.add(a)
 
     collapse_nodes(graph, survivor_mapping)
+
+
+def _can_map(a: BaseConcept, b: BaseConcept) -> bool:
+    if a.function != b.function:
+        return False
+    if a.name.lower() != b.name.lower():
+        return False
+    if (
+        isinstance(a, CentralDogma)
+        and isinstance(b, CentralDogma)
+        and a.variants != b.variants
+    ):
+        return False
+
+    return True

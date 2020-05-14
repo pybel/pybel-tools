@@ -6,7 +6,7 @@ from typing import Dict, Iterable, List, Mapping, Tuple
 
 from pybel import BELGraph
 from pybel.constants import (
-    ACTIVITY, CAUSAL_RELATIONS, DEGRADATION, HAS_COMPONENT, LINE, MODIFIER, OBJECT, RELATION, SUBJECT, TRANSLOCATION,
+    ACTIVITY, CAUSAL_RELATIONS, DEGRADATION, LINE, MODIFIER, OBJECT, RELATION, SUBJECT, TRANSLOCATION,
 )
 from pybel.dsl import BaseEntity, ComplexAbundance, NamedComplexAbundance
 from pybel.struct.filters import edge_predicate, has_protein_modification, part_has_modifier
@@ -19,10 +19,10 @@ def self_edge_filter(_: BELGraph, source: BaseEntity, target: BaseEntity, __: st
 
 
 def has_protein_modification_increases_activity(
-        graph: BELGraph,
-        source: BaseEntity,
-        target: BaseEntity,
-        key: str,
+    graph: BELGraph,
+    source: BaseEntity,
+    target: BaseEntity,
+    key: str,
 ) -> bool:
     """Check if pmod of source causes activity of target."""
     edge_data = graph[source][target][key]
@@ -43,11 +43,7 @@ def has_translocation_increases_activity(edge_data: EdgeData) -> bool:
 
 def complex_has_member(graph: BELGraph, complex_node: ComplexAbundance, member_node: BaseEntity) -> bool:
     """Check if the given complex contains the member."""
-    return any(  # TODO can't you look in the members of the complex object (if it's enumerated)
-        v == member_node
-        for _, v, data in graph.out_edges(complex_node, data=True)
-        if data[RELATION] == HAS_COMPONENT
-    )
+    return member_node in complex_node.members
 
 
 def complex_increases_activity(graph: BELGraph, u: BaseEntity, v: BaseEntity, key: str) -> bool:
@@ -66,9 +62,9 @@ def has_same_subject_object(graph: BELGraph, u: BaseEntity, v: BaseEntity, key: 
 
 
 def get_related_causal_out_edges(
-        graph: BELGraph,
-        node: BaseEntity,
-        edge_data: EdgeData,
+    graph: BELGraph,
+    node: BaseEntity,
+    edge_data: EdgeData,
 ) -> Iterable[Tuple[BaseEntity, Dict, str]]:
     """Get downstream nodes whose activity is modulated by the given node."""
     for _, v, data in graph.out_edges(node, data=True):
@@ -77,9 +73,9 @@ def get_related_causal_out_edges(
 
 
 def get_related_ish_causal_out_edges(
-        graph: BELGraph,
-        node: BaseEntity,
-        modifier: str,
+    graph: BELGraph,
+    node: BaseEntity,
+    modifier: str,
 ) -> Iterable[Tuple[BaseEntity, Dict, str]]:
     """Get targets and relations to the given node that are modified."""
     for _, v, data in graph.out_edges(node, data=True):

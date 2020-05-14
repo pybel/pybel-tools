@@ -36,9 +36,9 @@ def search_node_names(graph: BELGraph, query: Strings) -> Iterable[BaseEntity]:
 
 
 def search_node_namespace_names(
-        graph: BELGraph,
-        query: Strings,
-        namespace: Strings,
+    graph: BELGraph,
+    query: Strings,
+    namespace: Strings,
 ) -> Iterable[BaseEntity]:
     """Search for nodes with the given namespace(s) and whose names containing a given string(s).
 

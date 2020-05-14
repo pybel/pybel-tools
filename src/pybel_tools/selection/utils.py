@@ -12,9 +12,9 @@ __all__ = [
 
 
 def get_leaves_by_type(
-        graph: BELGraph,
-        func: Optional[str] = None,
-        prune_threshold: int = 1,
+    graph: BELGraph,
+    func: Optional[str] = None,
+    prune_threshold: int = 1,
 ) -> Iterable[BaseEntity]:
     """Iterate over all nodes in graph (in-place) with only a connection to one node.
 
