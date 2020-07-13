@@ -20,7 +20,7 @@ def get_leaves_by_type(
 
     Useful for gene and RNA. Allows for optional filter by function type.
 
-    :param pybel.BELGraph graph: A BEL graph
+    :param graph: A BEL graph
     :param func: If set, filters by the node's function from :mod:`pybel.constants` like
      :data:`pybel.constants.GENE`, :data:`pybel.constants.RNA`,  :data:`pybel.constants.PROTEIN`, or
      :data:`pybel.constants.BIOPROCESS`

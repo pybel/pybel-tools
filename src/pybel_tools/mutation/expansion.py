@@ -2,12 +2,14 @@
 
 """Deletion functions to supplement :mod:`pybel.struct.mutation.expansion`."""
 
-import itertools as itt
+import warnings
+from collections import Counter, defaultdict
+
 import logging
 import typing
-from collections import Counter, defaultdict
 from typing import Collection, Iterable, Optional, Tuple
 
+import pybel.struct.mutation.expansion.neighborhood
 from pybel import BELGraph
 from pybel.constants import ANNOTATIONS
 from pybel.dsl import BaseEntity, CentralDogma, ComplexAbundance, CompositeAbundance, Reaction
@@ -17,6 +19,7 @@ from pybel.struct.filters.node_predicates import true_node_predicate
 from pybel.struct.filters.typing import EdgeIterator, EdgePredicates, NodePredicates
 from pybel.struct.pipeline import uni_in_place_transformation
 from pybel.typing import EdgeData
+from pybel.struct import expand_internal
 
 __all__ = [
     'get_peripheral_successor_edges',
@@ -33,7 +36,6 @@ __all__ = [
     'enrich_reactions',
     'enrich_variants',
     'enrich_unqualified',
-    'expand_internal',
     'expand_internal_causal',
 ]
 
@@ -296,20 +298,6 @@ def enrich_unqualified(graph: BELGraph) -> None:
 
 
 @uni_in_place_transformation
-def expand_internal(
-    universe: BELGraph,
-    graph: BELGraph,
-) -> None:
-    """Expand on edges between entities in the sub-graph that pass the given filters, in place.
-
-    :param universe: The full graph
-    :param graph: A sub-graph to find the upstream information
-    """
-    for u, v, key in iterate_internal(universe, graph):
-        graph.add_edge(u, v, key=key, **universe[u][v][key])
-
-
-@uni_in_place_transformation
 def expand_internal_causal(universe: BELGraph, graph: BELGraph) -> None:
     """Add causal edges between entities in the sub-graph.
 
@@ -320,22 +308,10 @@ def expand_internal_causal(universe: BELGraph, graph: BELGraph) -> None:
 
     Equivalent to:
 
-    >>> from pybel_tools.mutation import expand_internal
-    >>> from pybel.struct.filters.edge_predicates import is_causal_relation
+    >>> from pybel.struct import expand_internal, is_causal_relation
     >>> expand_internal(universe, graph, edge_predicates=is_causal_relation)
     """
-    for u, v, key in iterate_internal(universe, graph):
+    for u, v, key in pybel.struct.mutation.expansion.neighborhood.iterate_internal(universe, graph):
         data = universe.edges[u][v][key]
         if is_causal_relation(data):
             graph.add_edge(u, v, key=key, **data)
-
-
-def iterate_internal(universe: BELGraph, graph: BELGraph) -> EdgeIterator:
-    """Iterate over edges that are in the universe but not the target graph."""
-    for u, v in itt.product(graph, repeat=2):
-        if graph.has_edge(u, v):
-            continue
-        if not universe.has_edge(u, v):
-            continue
-        for key in universe[u][v]:
-            yield u, v, key

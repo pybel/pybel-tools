@@ -10,15 +10,12 @@ from datetime import datetime
 from typing import Iterable, List, Mapping, Optional, Set, Tuple, Union
 
 from pybel import BELGraph
-from pybel.constants import (
-    ANNOTATIONS, CITATION, CITATION_AUTHORS, CITATION_DATE, CITATION_DB, CITATION_IDENTIFIER, EVIDENCE,
-)
+from pybel.constants import ANNOTATIONS, CITATION, CITATION_AUTHORS, CITATION_DATE, NAMESPACE, IDENTIFIER, EVIDENCE
 from pybel.dsl import BaseEntity
-from pybel.struct.filters import filter_edges
-from pybel.struct.filters.edge_predicates import edge_has_annotation
+from pybel.struct import build_pmid_inclusion_filter, edge_has_annotation, filter_edges
 from pybel.struct.summary import iterate_pubmed_identifiers
 from pybel.typing import Strings
-from ..filters import build_edge_data_filter, build_pmid_inclusion_filter
+from ..filters import build_edge_data_filter
 from ..utils import count_defaultdict, count_dict_values, group_as_lists, group_as_sets
 
 __all__ = [
@@ -50,7 +47,7 @@ def _generate_citation_dict(graph: BELGraph) -> Mapping[str, Mapping[Tuple[BaseE
     for u, v, data in graph.edges(data=True):
         if CITATION not in data:
             continue
-        results[data[CITATION][CITATION_DB]][u, v].add(data[CITATION][CITATION_IDENTIFIER].strip())
+        results[data[CITATION].namespace][u, v].add(data[CITATION].identifier.strip())
 
     return dict(results)
 
@@ -104,7 +101,7 @@ def count_citations(graph: BELGraph, **annotations) -> Counter:
     citations = defaultdict(set)
     for u, v, _, d in filter_edges(graph, annotation_dict_filter):
         if CITATION in d:
-            citations[u, v].add((d[CITATION][CITATION_DB], d[CITATION][CITATION_IDENTIFIER].strip()))
+            citations[u, v].add((d[CITATION].namespace, d[CITATION].identifier))
 
     return Counter(itt.chain.from_iterable(citations.values()))
 
@@ -123,7 +120,7 @@ def count_citations_by_annotation(graph: BELGraph, annotation: str) -> Mapping[s
 
         k = data[ANNOTATIONS][annotation]
 
-        citations[k][u, v].add((data[CITATION][CITATION_DB], data[CITATION][CITATION_IDENTIFIER].strip()))
+        citations[k][u, v].add((data[CITATION].namespace, data[CITATION].identifier))
 
     return {
         k: Counter(itt.chain.from_iterable(v.values()))
@@ -133,7 +130,7 @@ def count_citations_by_annotation(graph: BELGraph, annotation: str) -> Mapping[s
 
 def count_authors(graph: BELGraph) -> typing.Counter[str]:
     """Count the number of edges in which each author appears."""
-    return Counter(graph._iterate_authors())
+    return graph.count.authors()
 
 
 def count_author_publications(graph: BELGraph) -> typing.Counter[str]:
@@ -149,7 +146,7 @@ def _iter_author_publiations(graph: BELGraph) -> Iterable[Tuple[str, Tuple[str, 
         for author in data[CITATION][CITATION_AUTHORS]:
             yield (
                 author,
-                (data[CITATION][CITATION_DB], data[CITATION][CITATION_IDENTIFIER])
+                (data[CITATION].namespace, data[CITATION].identifier)
             )
 
 
@@ -232,8 +229,8 @@ def count_citation_years(graph: BELGraph) -> typing.Counter[int]:
             continue
         else:
             result[dt.year].add((
-                data[CITATION][CITATION_DB],
-                data[CITATION][CITATION_IDENTIFIER],
+                data[CITATION].namespace,
+                data[CITATION].identifier,
             ))
 
     return count_dict_values(result)

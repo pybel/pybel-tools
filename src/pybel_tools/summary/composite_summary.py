@@ -14,16 +14,13 @@ from pybel import BELGraph, BaseAbundance, BaseEntity
 from pybel.constants import IDENTIFIER, NAME
 from pybel.struct.graph import WarningTuple
 from pybel.struct.summary import (
-    count_error_types, count_functions, count_namespaces, count_relations, count_variants, get_naked_names,
-    get_syntax_errors, get_top_hubs, get_top_pathologies, get_unused_annotations, get_unused_list_annotation_values,
-    get_unused_namespaces,
+    count_error_types, get_naked_names, get_syntax_errors, get_top_hubs, get_top_pathologies, get_unused_annotations,
+    get_unused_list_annotation_values, get_unused_namespaces,
 )
 from .error_summary import (
-    get_most_common_errors, get_namespaces_with_incorrect_names, get_undefined_annotations,
-    get_undefined_namespaces,
+    get_most_common_errors, get_namespaces_with_incorrect_names, get_undefined_annotations, get_undefined_namespaces,
 )
-from .node_properties import count_modifications
-from .provenance import count_authors, count_confidences, get_citation_years
+from .provenance import count_confidences, get_citation_years
 from .stability import (
     get_chaotic_pairs, get_contradiction_summary, get_dampened_pairs, get_decrease_mismatch_triplets,
     get_increase_mismatch_triplets, get_jens_unstable, get_mutually_unstable_correlation_triples, get_regulatory_pairs,
@@ -59,7 +56,7 @@ class BELGraphSummary:
     unused_list_annotation_values: Mapping[str, Set[str]]
     naked_names: Set[str]
     error_count: Counter[str]
-    error_groups: List[Tuple[str, str]]
+    error_groups: List[Tuple[str, int]]
     syntax_errors: List[WarningTuple]
 
     # Node counters
@@ -88,12 +85,12 @@ class BELGraphSummary:
         """Create a summary of the graph."""
         return BELGraphSummary(
             # Attribute counters
-            function_count=count_functions(graph),
-            modifications_count=count_modifications(graph),
-            relation_count=count_relations(graph),
-            authors_count=count_authors(graph),
-            variants_count=count_variants(graph),
-            namespaces_count=count_namespaces(graph),
+            function_count=graph.count.functions(),
+            modifications_count=graph.count.modifications(),
+            relation_count=graph.count.relations(),
+            authors_count=graph.count.authors(),
+            variants_count=graph.count.variants(),
+            namespaces_count=graph.count.namespaces(),
             # Errors
             undefined_namespaces=get_undefined_namespaces(graph),
             undefined_annotations=get_undefined_annotations(graph),
@@ -102,7 +99,7 @@ class BELGraphSummary:
             unused_annotations=get_unused_annotations(graph),
             unused_list_annotation_values=get_unused_list_annotation_values(graph),
             naked_names=get_naked_names(graph),
-            error_count=count_error_types(graph),
+            error_count=graph.count.error_types(),
             error_groups=get_most_common_errors(graph),
             syntax_errors=get_syntax_errors(graph),
             # Node pairs

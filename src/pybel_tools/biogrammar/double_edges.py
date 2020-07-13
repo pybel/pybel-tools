@@ -6,7 +6,7 @@ from typing import Dict, Iterable, List, Mapping, Tuple
 
 from pybel import BELGraph
 from pybel.constants import (
-    ACTIVITY, CAUSAL_RELATIONS, DEGRADATION, LINE, MODIFIER, OBJECT, RELATION, SUBJECT, TRANSLOCATION,
+    ACTIVITY, CAUSAL_RELATIONS, DEGRADATION, LINE, MODIFIER, SOURCE, RELATION, TARGET, TRANSLOCATION,
 )
 from pybel.dsl import BaseEntity, ComplexAbundance, NamedComplexAbundance
 from pybel.struct.filters import edge_predicate, has_protein_modification, part_has_modifier
@@ -26,19 +26,19 @@ def has_protein_modification_increases_activity(
 ) -> bool:
     """Check if pmod of source causes activity of target."""
     edge_data = graph[source][target][key]
-    return has_protein_modification(graph, source) and part_has_modifier(edge_data, OBJECT, ACTIVITY)
+    return has_protein_modification(graph, source) and part_has_modifier(edge_data, TARGET, ACTIVITY)
 
 
 @edge_predicate
 def has_degradation_increases_activity(edge_data: EdgeData) -> bool:
     """Check if the degradation of source causes activity of target."""
-    return part_has_modifier(edge_data, SUBJECT, DEGRADATION) and part_has_modifier(edge_data, OBJECT, ACTIVITY)
+    return part_has_modifier(edge_data, SOURCE, DEGRADATION) and part_has_modifier(edge_data, TARGET, ACTIVITY)
 
 
 @edge_predicate
 def has_translocation_increases_activity(edge_data: EdgeData) -> bool:
     """Check if the translocation of source causes activity of target."""
-    return part_has_modifier(edge_data, SUBJECT, TRANSLOCATION) and part_has_modifier(edge_data, OBJECT, ACTIVITY)
+    return part_has_modifier(edge_data, SOURCE, TRANSLOCATION) and part_has_modifier(edge_data, TARGET, ACTIVITY)
 
 
 def complex_has_member(graph: BELGraph, complex_node: ComplexAbundance, member_node: BaseEntity) -> bool:
@@ -51,14 +51,14 @@ def complex_increases_activity(graph: BELGraph, u: BaseEntity, v: BaseEntity, ke
     return (
         isinstance(u, (ComplexAbundance, NamedComplexAbundance)) and
         complex_has_member(graph, u, v) and
-        part_has_modifier(graph[u][v][key], OBJECT, ACTIVITY)
+        part_has_modifier(graph[u][v][key], TARGET, ACTIVITY)
     )
 
 
 def has_same_subject_object(graph: BELGraph, u: BaseEntity, v: BaseEntity, key: str) -> bool:
     """Check if the edge has the same subject and object modifiers."""
     data = graph[u][v][key]
-    return u == v and data.get(SUBJECT) == data.get(OBJECT)
+    return u == v and data.get(SOURCE) == data.get(TARGET)
 
 
 def get_related_causal_out_edges(
@@ -68,7 +68,7 @@ def get_related_causal_out_edges(
 ) -> Iterable[Tuple[BaseEntity, Dict, str]]:
     """Get downstream nodes whose activity is modulated by the given node."""
     for _, v, data in graph.out_edges(node, data=True):
-        if data[RELATION] in CAUSAL_RELATIONS and data.get(SUBJECT) == edge_data:
+        if data[RELATION] in CAUSAL_RELATIONS and data.get(SOURCE) == edge_data:
             yield v, data, graph.edge_to_bel(node, v, data)
 
 
@@ -79,7 +79,7 @@ def get_related_ish_causal_out_edges(
 ) -> Iterable[Tuple[BaseEntity, Dict, str]]:
     """Get targets and relations to the given node that are modified."""
     for _, v, data in graph.out_edges(node, data=True):
-        if data[RELATION] in CAUSAL_RELATIONS and data.get(SUBJECT, {}).get(MODIFIER) == modifier:
+        if data[RELATION] in CAUSAL_RELATIONS and data.get(SOURCE, {}).get(MODIFIER) == modifier:
             yield v, data, graph.edge_to_bel(node, v, data)
 
 

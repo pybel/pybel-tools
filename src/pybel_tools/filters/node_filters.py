@@ -2,14 +2,19 @@
 
 """Node filters to supplement :mod:`pybel.struct.filters.node_filters`."""
 
+import warnings
+
 from typing import Collection, Iterable, Mapping, Optional, Set, Union
 
 import pybel
+import pybel.struct.filters
 from pybel import BELGraph, BaseAbundance
 from pybel.constants import CAUSAL_RELATIONS, HAS_VARIANT, RELATION
 from pybel.dsl import BaseEntity, Protein, ProteinModification
-from pybel.struct.filters import build_node_data_search, build_node_key_search, data_missing_key_builder
-from pybel.struct.filters.typing import NodePredicate
+from pybel.struct.filters import (
+    NodePredicate, build_node_data_search, build_node_key_search,
+    concatenate_node_predicates, data_missing_key_builder,
+)
 from pybel.typing import Strings
 from ..utils import group_as_sets
 
@@ -27,42 +32,13 @@ __all__ = [
 ]
 
 
-def _single_function_inclusion_filter_builder(func: str) -> NodePredicate:
-    def function_inclusion_filter(_: BELGraph, node: BaseEntity) -> bool:
-        """Pass only for a node that has the enclosed function.
-
-        :return: If the node doesn't have the enclosed function
-        """
-        return node.function == func
-
-    return function_inclusion_filter
-
-
-def _collection_function_inclusion_builder(funcs: Iterable[str]) -> NodePredicate:
-    funcs = set(funcs)
-
-    def functions_inclusion_filter(_: BELGraph, node: BaseEntity) -> bool:
-        """Pass only for a node that is one of the enclosed functions.
-
-        :return: If the node doesn't have the enclosed functions
-        """
-        return node.function in funcs
-
-    return functions_inclusion_filter
-
-
 def function_inclusion_filter_builder(func: Strings) -> NodePredicate:
     """Build a filter that only passes on nodes of the given function(s).
 
     :param func: A BEL Function or list/set/tuple of BEL functions
     """
-    if isinstance(func, str):
-        return _single_function_inclusion_filter_builder(func)
-
-    elif isinstance(func, Iterable):
-        return _collection_function_inclusion_builder(func)
-
-    raise ValueError(f'Invalid type for argument: {func}')
+    warnings.warn('use pybel.struct.function_inclusion_filter_builder', DeprecationWarning)
+    return pybel.struct.filters.function_inclusion_filter_builder(func)
 
 
 def function_exclusion_filter_builder(func: Strings) -> NodePredicate:
@@ -70,63 +46,25 @@ def function_exclusion_filter_builder(func: Strings) -> NodePredicate:
 
     :param func: A BEL Function or list/set/tuple of BEL functions
     """
-    if isinstance(func, str):
-        def function_exclusion_filter(_: BELGraph, node: BaseEntity) -> bool:
-            """Pass only for a node that doesn't have the enclosed function.
-
-            :return: If the node doesn't have the enclosed function
-            """
-            return node.function != func
-
-        return function_exclusion_filter
-
-    elif isinstance(func, Iterable):
-        functions = set(func)
-
-        def functions_exclusion_filter(_: BELGraph, node: BaseEntity) -> bool:
-            """Pass only for a node that doesn't have the enclosed functions.
-
-            :return: If the node doesn't have the enclosed functions
-            """
-            return node.function not in functions
-
-        return functions_exclusion_filter
-
-    raise ValueError('Invalid type for argument: {}'.format(func))
+    warnings.warn('use pybel.struct.function_exclusion_filter_builder', DeprecationWarning)
+    return pybel.struct.filters.function_exclusion_filter_builder(func)
 
 
-def function_namespace_inclusion_builder(func: str, namespace: Strings) -> NodePredicate:
+def function_namespace_inclusion_builder(func: Strings, namespace: Strings) -> NodePredicate:
     """Build a filter function for matching the given BEL function with the given namespace or namespaces.
 
     :param func: A BEL function
     :param namespace: The namespace to search by
     """
-    if isinstance(namespace, str):
-        namespace = namespace.lower()
+    return concatenate_node_predicates([
+        pybel.struct.filters.function_inclusion_filter_builder(func),
+        pybel.struct.filters.namespace_inclusion_builder(namespace),
+    ])
 
-        def function_namespaces_filter(_: BELGraph, node: BaseEntity) -> bool:
-            """Pass only for nodes that have the enclosed function and enclosed namespace."""
-            return (
-                node.function.lower() == func.lower()
-                and isinstance(node, BaseAbundance)
-                and node.namespace == namespace
-            )
-
-    elif isinstance(namespace, Iterable):
-        namespaces = {n.lower() for n in namespace}
-
-        def function_namespaces_filter(_: BELGraph, node: BaseEntity) -> bool:
-            """Pass only for nodes that have the enclosed function and namespace in the enclose set."""
-            return (
-                node.function == func
-                and isinstance(node, BaseAbundance)
-                and node.namespace.lower() in namespaces
-            )
-
-    else:
-        raise ValueError('Invalid type for argument: {}'.format(namespace))
-
-    return function_namespaces_filter
+def namespace_inclusion_builder(namespace: str) -> NodePredicate:  # noqa: D202
+    """Build a function that filters for nods that include a specific namespace."""
+    warnings.warn('use pybel.struct.namespace_inclusion_builder', DeprecationWarning)
+    return pybel.struct.filters.namespace_inclusion_builder(namespace)
 
 
 def data_contains_key_builder(key: str) -> NodePredicate:  # noqa: D202
@@ -145,13 +83,7 @@ def data_contains_key_builder(key: str) -> NodePredicate:  # noqa: D202
     return data_contains_key
 
 
-def namespace_inclusion_builder(namespace: str) -> NodePredicate:  # noqa: D202
-    """Build a function that filters for nods that include a specific namespace."""
 
-    def _has_namespace(_: BELGraph, node: BaseEntity) -> bool:
-        return isinstance(node, BaseAbundance) and node.namespace == namespace
-
-    return _has_namespace
 
 
 def variants_of(
@@ -187,10 +119,10 @@ def _get_filtered_variants_of(
             and data[RELATION] == HAS_VARIANT
             and pybel.struct.has_protein_modification(target)
             and any(
-                variant.name in modifications
-                for variant in target.variants
-                if isinstance(variant, ProteinModification)
-            )
+            variant.name in modifications
+            for variant in target.variants
+            if isinstance(variant, ProteinModification)
+        )
         )
     }
 

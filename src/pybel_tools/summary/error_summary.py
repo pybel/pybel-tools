@@ -7,7 +7,7 @@ from typing import Counter, List, Mapping, Optional, Set, Tuple
 
 from pybel import BELGraph
 from pybel.constants import ANNOTATIONS
-from pybel.parser.exc import (
+from pybel.exceptions import (
     MissingNamespaceNameWarning, MissingNamespaceRegexWarning, UndefinedAnnotationWarning, UndefinedNamespaceWarning,
 )
 from pybel.struct.filters.edge_predicates import edge_has_annotation

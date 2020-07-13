@@ -3,18 +3,16 @@
 """This module contains functions that calculate properties of nodes."""
 
 from collections import Counter, defaultdict
-from typing import Any, Iterable, List, Mapping, Optional, Set, Tuple, Union
 
 import networkx as nx
+from typing import Iterable, List, Mapping, Optional, Set, Tuple, Union
 
 from pybel import BELGraph
 from pybel.constants import CITATION
 from pybel.dsl import BaseEntity
-from pybel.struct.filters import get_nodes
 from pybel.struct.filters.edge_predicates import is_causal_relation
-from pybel.struct.filters.node_predicates import (
-    has_activity, is_causal_central, is_causal_sink, is_causal_source, is_degraded, is_translocated,
-)
+from pybel.struct.filters.node_predicates import is_causal_central, is_causal_sink, is_causal_source
+from pybel.struct.summary.node_summary import count_modifications, get_activities, get_degradations, get_translocated
 
 __all__ = [
     'is_causal_relation',
@@ -103,21 +101,6 @@ def get_causal_sink_nodes(graph: BELGraph, func) -> Set[BaseEntity]:
     }
 
 
-def get_degradations(graph: BELGraph) -> Set[BaseEntity]:
-    """Get all nodes that are degraded."""
-    return get_nodes(graph, is_degraded)
-
-
-def get_activities(graph: BELGraph) -> Set[BaseEntity]:
-    """Get all nodes that have molecular activities."""
-    return get_nodes(graph, has_activity)
-
-
-def get_translocated(graph: BELGraph) -> Set[BaseEntity]:
-    """Get all nodes that are translocated."""
-    return get_nodes(graph, is_translocated)
-
-
 def count_top_degrees(graph: BELGraph, number: Optional[int] = 30) -> Mapping[BaseEntity, int]:
     """Get the nodes with the top degrees."""
     dd = graph.degree()
@@ -130,24 +113,6 @@ def count_top_centrality(graph: BELGraph, number: Optional[int] = 30) -> Mapping
     dd = nx.betweenness_centrality(graph)
     dc = Counter(dd)
     return dict(dc.most_common(number))
-
-
-def count_modifications(graph: BELGraph) -> Mapping[str, int]:
-    """Get a modifications count dictionary."""
-    return remove_falsy_values({
-        'Translocations': len(get_translocated(graph)),
-        'Degradations': len(get_degradations(graph)),
-        'Molecular Activities': len(get_activities(graph)),
-    })
-
-
-def remove_falsy_values(counter: Mapping[Any, int]) -> Mapping[Any, int]:
-    """Remove all values that are zero."""
-    return {
-        label: count
-        for label, count in counter.items()
-        if count
-    }
 
 
 def get_node_citations(graph: BELGraph, node: BaseEntity) -> Mapping[BaseEntity, List[Mapping]]:

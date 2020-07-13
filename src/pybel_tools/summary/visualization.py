@@ -7,11 +7,11 @@ printing summary information, and exporting summarized graphs
 """
 
 import logging
-
+import matplotlib.pyplot as plt
 import pandas as pd
+import seaborn as sns
 
 from pybel import BELGraph
-from pybel.struct.summary import count_functions, count_relations
 
 __all__ = [
     'plot_summary_axes',
@@ -45,20 +45,28 @@ def plot_summary_axes(graph: BELGraph, lax, rax, logx: bool = True):
     >>> plt.tight_layout()
     >>> plt.show()
     """
-    ntc = count_functions(graph)
-    etc = count_relations(graph)
+    function_counter = graph.count.functions()
+    relation_counter = graph.count.relations()
 
-    df = pd.DataFrame.from_dict(dict(ntc), orient='index')
-    df_ec = pd.DataFrame.from_dict(dict(etc), orient='index')
+    function_df = pd.DataFrame.from_dict(dict(function_counter), orient='index').reset_index()
+    function_df.columns = ['Function', 'Count']
+    function_df.sort_values('Count', ascending=False, inplace=True)
+    relation_df = pd.DataFrame.from_dict(dict(relation_counter), orient='index').reset_index()
+    relation_df.columns = ['Relation', 'Count']
+    relation_df.sort_values('Count', ascending=False, inplace=True)
 
-    df.sort_values(0, ascending=True).plot(kind='barh', logx=logx, ax=lax)
+    sns.barplot(x='Count', y='Function', data=function_df, ax=lax, orient='h')
     lax.set_title('Number of nodes: {}'.format(graph.number_of_nodes()))
 
-    df_ec.sort_values(0, ascending=True).plot(kind='barh', logx=logx, ax=rax)
+    sns.barplot(x='Count', y='Relation', data=relation_df, ax=rax, orient='h')
     rax.set_title('Number of edges: {}'.format(graph.number_of_edges()))
 
+    if logx:
+        lax.set_xscale('log')
+        rax.set_xscale('log')
 
-def plot_summary(graph: BELGraph, plt, logx: bool = True, **kwargs):
+
+def plot_summary(graph: BELGraph, logx: bool = True, **kwargs):
     """Plot your graph summary statistics.
 
     This function is a thin wrapper around :func:`plot_summary_axis`. It
@@ -72,7 +80,6 @@ def plot_summary(graph: BELGraph, plt, logx: bool = True, **kwargs):
     1. Count of nodes, grouped by function type
     2. Count of edges, grouped by relation type
 
-    :param plt: Give :code:`matplotlib.pyplot` to this parameter
     :param kwargs: keyword arguments to give to :func:`plt.subplots`
 
     Example usage:
@@ -81,14 +88,12 @@ def plot_summary(graph: BELGraph, plt, logx: bool = True, **kwargs):
     >>> from pybel import from_pickle
     >>> from pybel_tools.summary import plot_summary
     >>> graph = from_pickle('~/dev/bms/aetionomy/parkinsons.gpickle')
-    >>> plot_summary(graph, plt, figsize=(10, 4))
+    >>> plot_summary(graph, figsize=(10, 4))
     >>> plt.show()
     """
-    fig, axes = plt.subplots(1, 2, **kwargs)
-    lax = axes[0]
-    rax = axes[1]
+    fig, (lax, rax) = plt.subplots(1, 2, **kwargs)
 
     plot_summary_axes(graph, lax, rax, logx=logx)
     plt.tight_layout()
 
-    return fig, axes
+    return fig, (lax, rax)

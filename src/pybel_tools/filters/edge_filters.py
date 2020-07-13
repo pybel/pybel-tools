@@ -2,15 +2,17 @@
 
 """Edge filters to supplement :mod:`pybel.struct.filters.edge_filters`."""
 
+import warnings
+
 from typing import Iterable, Mapping, Set
 
 from pybel import BELGraph
-from pybel.constants import CITATION, CITATION_AUTHORS, CITATION_IDENTIFIER, NAMESPACE
+from pybel.constants import NAMESPACE
 from pybel.dsl import BaseEntity
 from pybel.struct.filters import (
     build_annotation_dict_all_filter, build_annotation_dict_any_filter, count_passed_edge_filter,
 )
-from pybel.struct.filters.edge_predicates import edge_predicate, has_authors, has_pathology_causal, has_pubmed
+from pybel.struct.filters.edge_predicates import edge_predicate, has_pathology_causal
 from pybel.struct.filters.typing import EdgePredicate, EdgePredicates
 from pybel.typing import EdgeData, Strings
 from pybel.utils import subdict_matches
@@ -60,31 +62,9 @@ def build_pmid_inclusion_filter(pmids: Strings) -> EdgePredicate:
 
     :param pmids: A PubMed identifier or list of PubMed identifiers to filter for
     """
-    if isinstance(pmids, str):
-        @edge_predicate
-        def pmid_inclusion_filter(data: EdgeData) -> bool:
-            """Pass only for edges with PubMed citations matching the contained PubMed identifier.
-
-            :return: If the edge has a PubMed citation with the contained PubMed identifier
-            """
-            return has_pubmed(data) and data[CITATION][CITATION_IDENTIFIER] == pmids
-
-    elif isinstance(pmids, Iterable):
-        pmids = set(pmids)
-
-        @edge_predicate
-        def pmid_inclusion_filter(data: EdgeData) -> bool:
-            """Pass for edges with PubMed citations matching one of the contained PubMed identifiers.
-
-            :param data: The edge data dictionary
-            :return: If the edge has a PubMed citation with one of the contained PubMed identifiers
-            """
-            return has_pubmed(data) and data[CITATION][CITATION_IDENTIFIER] in pmids
-
-    else:
-        raise TypeError
-
-    return pmid_inclusion_filter
+    warnings.warn('use pybel.struct.build_pmid_inclusion_filter', DeprecationWarning)
+    import pybel.struct
+    return pybel.struct.build_pmid_inclusion_filter(pmids)
 
 
 def build_pmid_exclusion_filter(pmids: Strings) -> EdgePredicate:
@@ -92,30 +72,9 @@ def build_pmid_exclusion_filter(pmids: Strings) -> EdgePredicate:
 
     :param pmids: A PubMed identifier or list of PubMed identifiers to filter against
     """
-    if isinstance(pmids, str):
-        @edge_predicate
-        def pmid_exclusion_filter(data: EdgeData) -> bool:
-            """Fail for edges with PubMed citations matching the contained PubMed identifier.
-
-            :return: If the edge has a PubMed citation with the contained PubMed identifier
-            """
-            return has_pubmed(data) and data[CITATION][CITATION_IDENTIFIER] != pmids
-
-    elif isinstance(pmids, Iterable):
-        pmids = set(pmids)
-
-        @edge_predicate
-        def pmid_exclusion_filter(data: EdgeData) -> bool:
-            """Pass for edges with PubMed citations matching one of the contained PubMed identifiers.
-
-            :return: If the edge has a PubMed citation with one of the contained PubMed identifiers
-            """
-            return has_pubmed(data) and data[CITATION][CITATION_IDENTIFIER] not in pmids
-
-    else:
-        raise TypeError
-
-    return pmid_exclusion_filter
+    warnings.warn('use pybel.struct.build_pmid_exclusion_filter', DeprecationWarning)
+    import pybel.struct
+    return pybel.struct.build_pmid_exclusion_filter(pmids)
 
 
 def build_author_inclusion_filter(authors: Strings) -> EdgePredicate:
@@ -123,33 +82,9 @@ def build_author_inclusion_filter(authors: Strings) -> EdgePredicate:
 
     :param authors: The author or list of authors to filter by
     """
-    if isinstance(authors, str):
-        @edge_predicate
-        def author_filter(data: EdgeData) -> bool:
-            """Pass only for edges with citations with an author that matches the contained author.
-
-            :return: If the edge has a citation with an author that matches the the contained author
-            """
-            return has_authors(data) and authors in data[CITATION][CITATION_AUTHORS]
-
-    elif isinstance(authors, Iterable):
-        authors = set(authors)
-
-        @edge_predicate
-        def author_filter(data: EdgeData) -> bool:
-            """Pass only for edges with citations with an author that matches one or more of the contained authors.
-
-            :return: If the edge has a citation with an author that matches the the contained author
-            """
-            return has_authors(data) and any(
-                author in data[CITATION][CITATION_AUTHORS]
-                for author in authors
-            )
-
-    else:
-        raise TypeError
-
-    return author_filter
+    warnings.warn('use pybel.struct.build_author_inclusion_filter', DeprecationWarning)
+    import pybel.struct
+    return pybel.struct.build_author_inclusion_filter(authors)
 
 
 def node_has_namespace(node: BaseEntity, namespace: str) -> bool:

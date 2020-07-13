@@ -7,7 +7,6 @@ from typing import Optional
 
 from pybel import BELGraph
 from pybel.struct.pipeline import transformation
-from pybel.struct.utils import update_node_helper
 
 __all__ = [
     'random_by_nodes',
@@ -34,9 +33,6 @@ def random_by_nodes(graph: BELGraph, percentage: Optional[float] = None) -> BELG
     subnodes = random.sample(nodes, n)
 
     result = graph.subgraph(subnodes)
-
-    update_node_helper(graph, result)
-
     return result
 
 
@@ -54,7 +50,6 @@ def random_by_edges(graph: BELGraph, percentage: Optional[float] = None) -> BELG
     number_edges = int(graph.number_of_edges() * percentage)
     rv = BELGraph()
     rv.add_edges_from(random.sample(graph.edges(keys=True, data=True), number_edges))
-    update_node_helper(graph, rv)
     return rv
 
 
