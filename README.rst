@@ -48,9 +48,9 @@ Links
 
 .. _PyPI: https://pypi.python.org/pypi/pybel_tools
 
-.. |build| image:: https://travis-ci.org/pybel/pybel-tools.svg?branch=develop
-    :target: https://travis-ci.org/pybel/pybel-tools
-    :alt: Development Build Status
+.. |build| image:: https://github.com/pybel/pybel-tools/workflows/Tests/badge.svg
+    :target: https://github.com/pybel/pybel-tools/actions
+    :alt: Build Status
 
 .. |coverage| image:: https://codecov.io/gh/pybel/pybel-tools/coverage.svg?branch=develop
     :target: https://codecov.io/gh/pybel/pybel-tools?branch=develop
@@ -61,13 +61,16 @@ Links
     :alt: Development Documentation Status
 
 .. |python_versions| image:: https://img.shields.io/pypi/pyversions/pybel-tools.svg
+    :target: https://pypi.org/project/pybel-tools
     :alt: Stable Supported Python Versions
 
 .. |pypi_version| image:: https://img.shields.io/pypi/v/pybel-tools.svg
+    :target: https://pypi.org/project/pybel-tools
     :alt: Current version on PyPI
 
 .. |pypi_license| image:: https://img.shields.io/pypi/l/pybel-tools.svg
-    :alt: Apache 2.0 License
+    :target: https://github.com/pybel/pybel-tools/blob/develop/LICENSE
+    :alt: MIT License
 
 .. |zenodo| image:: https://zenodo.org/badge/70473008.svg
     :target: https://zenodo.org/badge/latestdoi/70473008
