@@ -8,5 +8,4 @@ from .deletion import *  # noqa: F401,F403
 from .expansion import *  # noqa: F401,F403
 from .highlight import *  # noqa: F401,F403
 from .inference import *  # noqa: F401,F403
-from .metadata import *  # noqa: F401,F403
 from .random import *  # noqa: F401,F403
