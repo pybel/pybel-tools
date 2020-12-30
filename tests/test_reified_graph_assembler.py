@@ -137,14 +137,12 @@ class TestAssembleReifiedGraph(unittest.TestCase):
 
     def test_convert_activates(self):
         """Test the conversion of a bel statement like p(x) -> act(p(y))."""
-
         bel_graph = BELGraph()
-        bel_graph.add_directly_increases(
+        bel_graph.add_directly_activates(
             cdk5,
             casp8,
             evidence=n(),
             citation=n(),
-            object_modifier=activity('ma')
         )
 
         expected_reified_graph = self.help_make_simple_expected_graph(

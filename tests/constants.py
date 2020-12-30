@@ -49,6 +49,7 @@ def make_graph_1() -> BELGraph:
         contact='charles.hoyt@scai.fraunhofer.de',
     )
 
+    graph.annotation_list['Annotation'] = {'foo'}
     graph.add_node_from_data(protein_a)
     graph.add_node_from_data(protein_b)
     graph.add_node_from_data(gene_c)
@@ -90,6 +91,7 @@ def make_graph_2() -> BELGraph:
         authors='Daniel Domingo-Fernández and Charles Tapley Hoyt',
         contact='charles.hoyt@scai.fraunhofer.de',
     )
+    graph.annotation_list['Annotation'] = {'foo'}
 
     graph.add_node_from_data(gene_f)
     graph.add_node_from_data(protein_e)

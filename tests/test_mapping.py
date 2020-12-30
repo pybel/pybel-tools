@@ -7,8 +7,8 @@ from pybel.dsl import ComplexAbundance, Fragment, Protein
 from pybel.dsl.namespaces import hgnc
 from pybel_tools.selection.group_nodes import get_mapped_nodes
 
-ccl2 = hgnc('CCL2')
-ccr2 = hgnc('CCR2')
+ccl2 = hgnc(name='CCL2')
+ccr2 = hgnc(name='CCR2')
 ccl2_mgi = Protein('MGI', 'Ccl2')
 ccl2_ccr2_complex = ComplexAbundance([ccl2, ccr2])
 chemokine_family = Protein('FPLX', 'chemokine protein family')
