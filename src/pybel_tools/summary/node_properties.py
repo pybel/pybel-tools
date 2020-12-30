@@ -3,9 +3,9 @@
 """This module contains functions that calculate properties of nodes."""
 
 from collections import Counter, defaultdict
+from typing import Iterable, List, Mapping, Optional, Set, Tuple, Union
 
 import networkx as nx
-from typing import Iterable, List, Mapping, Optional, Set, Tuple, Union
 
 from pybel import BELGraph
 from pybel.constants import CITATION

@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Iterable, List, Mapping, Optional, Set, Tuple, Union
 
 from pybel import BELGraph
-from pybel.constants import ANNOTATIONS, CITATION, CITATION_AUTHORS, CITATION_DATE, NAMESPACE, IDENTIFIER, EVIDENCE
+from pybel.constants import ANNOTATIONS, CITATION, CITATION_AUTHORS, CITATION_DATE, EVIDENCE
 from pybel.dsl import BaseEntity
 from pybel.struct import build_pmid_inclusion_filter, edge_has_annotation, filter_edges
 from pybel.struct.summary import iterate_pubmed_identifiers
@@ -209,7 +209,7 @@ def get_evidences_by_pmid(graph: BELGraph, pmids: Strings) -> Mapping[str, Set[s
     :return: A dictionary of {pmid: set of all evidence strings}
     """
     return group_as_sets(
-        (data[CITATION][CITATION_IDENTIFIER], data[EVIDENCE])
+        (data[CITATION].identifier, data[EVIDENCE])
         for _, _, _, data in filter_edges(graph, build_pmid_inclusion_filter(pmids))
     )
 

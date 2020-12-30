@@ -3,7 +3,6 @@
 """Edge filters to supplement :mod:`pybel.struct.filters.edge_filters`."""
 
 import warnings
-
 from typing import Iterable, Mapping, Set
 
 from pybel import BELGraph

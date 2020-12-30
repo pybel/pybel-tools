@@ -3,12 +3,11 @@
 """Node filters to supplement :mod:`pybel.struct.filters.node_filters`."""
 
 import warnings
-
-from typing import Collection, Iterable, Mapping, Optional, Set, Union
+from typing import Collection, Mapping, Optional, Set, Union
 
 import pybel
 import pybel.struct.filters
-from pybel import BELGraph, BaseAbundance
+from pybel import BELGraph
 from pybel.constants import CAUSAL_RELATIONS, HAS_VARIANT, RELATION
 from pybel.dsl import BaseEntity, Protein, ProteinModification
 from pybel.struct.filters import (
@@ -61,6 +60,7 @@ def function_namespace_inclusion_builder(func: Strings, namespace: Strings) -> N
         pybel.struct.filters.namespace_inclusion_builder(namespace),
     ])
 
+
 def namespace_inclusion_builder(namespace: str) -> NodePredicate:  # noqa: D202
     """Build a function that filters for nods that include a specific namespace."""
     warnings.warn('use pybel.struct.namespace_inclusion_builder', DeprecationWarning)
@@ -81,9 +81,6 @@ def data_contains_key_builder(key: str) -> NodePredicate:  # noqa: D202
         return key in node
 
     return data_contains_key
-
-
-
 
 
 def variants_of(
@@ -119,10 +116,10 @@ def _get_filtered_variants_of(
             and data[RELATION] == HAS_VARIANT
             and pybel.struct.has_protein_modification(target)
             and any(
-            variant.name in modifications
-            for variant in target.variants
-            if isinstance(variant, ProteinModification)
-        )
+                variant.name in modifications
+                for variant in target.variants
+                if isinstance(variant, ProteinModification)
+            )
         )
     }
 

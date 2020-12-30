@@ -2,11 +2,9 @@
 
 """Deletion functions to supplement :mod:`pybel.struct.mutation.expansion`."""
 
-import warnings
-from collections import Counter, defaultdict
-
 import logging
 import typing
+from collections import Counter, defaultdict
 from typing import Collection, Iterable, Optional, Tuple
 
 import pybel.struct.mutation.expansion.neighborhood
@@ -19,7 +17,6 @@ from pybel.struct.filters.node_predicates import true_node_predicate
 from pybel.struct.filters.typing import EdgeIterator, EdgePredicates, NodePredicates
 from pybel.struct.pipeline import uni_in_place_transformation
 from pybel.typing import EdgeData
-from pybel.struct import expand_internal
 
 __all__ = [
     'get_peripheral_successor_edges',

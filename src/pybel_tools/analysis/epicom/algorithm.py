@@ -92,7 +92,7 @@ def get_drug_scores(
         yield drug, subgraph_name, score
 
 
-def _get_drug_target_interactions(manager: Optional['bio2bel_drugbank.manager'] = None) -> Mapping[str, List[str]]:
+def _get_drug_target_interactions(manager=None) -> Mapping[str, List[str]]:
     """Get a mapping from drugs to their list of gene."""
     if manager is None:
         import bio2bel_drugbank

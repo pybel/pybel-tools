@@ -14,7 +14,7 @@ from pybel import BELGraph, BaseAbundance, BaseEntity
 from pybel.constants import IDENTIFIER, NAME
 from pybel.struct.graph import WarningTuple
 from pybel.struct.summary import (
-    count_error_types, get_naked_names, get_syntax_errors, get_top_hubs, get_top_pathologies, get_unused_annotations,
+    get_naked_names, get_syntax_errors, get_top_hubs, get_top_pathologies, get_unused_annotations,
     get_unused_list_annotation_values, get_unused_namespaces,
 )
 from .error_summary import (

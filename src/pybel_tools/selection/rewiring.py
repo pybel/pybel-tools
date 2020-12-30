@@ -6,8 +6,7 @@ Random permutations are useful in statistical testing over aggregate statistics.
 """
 
 import random
-
-from typing import Optional
+from typing import Optional, cast
 
 from pybel import BELGraph, BaseEntity
 from pybel.constants import RELATION
@@ -25,7 +24,7 @@ def is_edge_consistent(graph: BELGraph, u: BaseEntity, v: BaseEntity) -> bool:
     if not graph.has_edge(u, v):
         raise ValueError('{} does not contain an edge ({}, {})'.format(graph, u, v))
 
-    return 0 == len(set(d[RELATION] for d in graph.edge[u][v].values()))
+    return 0 == len(set(d[RELATION] for d in graph.edges[u][v].values()))
 
 
 def all_edges_consistent(graph: BELGraph) -> bool:
@@ -56,7 +55,7 @@ def rewire_targets(graph: BELGraph, rewiring_probability: Optional[float] = None
     if rewiring_probability is None:
         rewiring_probability = 0.2
 
-    result = graph.copy()
+    result = cast(BELGraph, graph.copy())
     nodes = result.nodes()
 
     for u, v in result.edges():

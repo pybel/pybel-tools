@@ -6,7 +6,7 @@ from typing import Dict, Iterable, List, Mapping, Tuple
 
 from pybel import BELGraph
 from pybel.constants import (
-    ACTIVITY, CAUSAL_RELATIONS, DEGRADATION, LINE, MODIFIER, SOURCE, RELATION, TARGET, TRANSLOCATION,
+    ACTIVITY, CAUSAL_RELATIONS, DEGRADATION, LINE, MODIFIER, RELATION, SOURCE, TARGET, TRANSLOCATION,
 )
 from pybel.dsl import BaseEntity, ComplexAbundance, NamedComplexAbundance
 from pybel.struct.filters import edge_predicate, has_protein_modification, part_has_modifier

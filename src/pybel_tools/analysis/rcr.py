@@ -21,11 +21,11 @@ __all__ = [
 ]
 
 
-def _point_probability(k, n, l, p=0.5):
+def _point_probability(k, n, l, p: float = 0.5):  # noqa:E741
     return binom(n - l, k) * p ** k * (1 - p) ** (n - k - l)
 
 
-def _concordance(k, n, m, l, p=0.5):
+def _concordance(k: int, n: int, m: int, l, p: float = 0.5):  # noqa:E741
     return sum(
         _point_probability(j, n, l, p)
         for j in range(k, min(n - 1, m))
