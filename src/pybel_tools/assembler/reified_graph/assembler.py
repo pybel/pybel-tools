@@ -3,17 +3,15 @@
 """Utilities to assemble a BEL graph as bipartite graph of nodes and reified edges."""
 
 import logging
+import warnings
 from abc import ABC, abstractmethod
 from itertools import starmap
 from typing import Optional, Tuple
 
 import networkx as nx
 
+import pybel.constants as pbc
 from pybel import BELGraph
-from pybel.constants import (
-    ACTIVITY, CAUSAL_DECREASE_RELATIONS, CAUSAL_INCREASE_RELATIONS, CAUSAL_RELATIONS, DEGRADATION, HAS_VARIANT,
-    MODIFIER, OBJECT, PART_OF, REGULATES, RELATION, TRANSCRIBED_TO, TRANSLATED_TO,
-)
 from pybel.dsl import BaseEntity, CentralDogma, ComplexAbundance, ProteinModification, fragment, gene, protein, rna
 from pybel.typing import EdgeData
 
@@ -68,12 +66,12 @@ class ReifiedConverter(ABC):
     @staticmethod
     def is_causal_increase(edge_data: EdgeData) -> bool:
         """Check if the relation is ``->``, ``=>``, or ``reg``."""
-        return "relation" in edge_data and edge_data['relation'] in CAUSAL_INCREASE_RELATIONS | {REGULATES}
+        return pbc.RELATION in edge_data and edge_data[pbc.RELATION] in pbc.CAUSAL_INCREASE_RELATIONS | {pbc.REGULATES}
 
     @staticmethod
     def is_causal_decrease(edge_data: EdgeData) -> bool:
         """Check if the relation is ``-|``, ``=|``, or ``reg``."""
-        return "relation" in edge_data and edge_data['relation'] in CAUSAL_DECREASE_RELATIONS | {REGULATES}
+        return pbc.RELATION in edge_data and edge_data[pbc.RELATION] in pbc.CAUSAL_DECREASE_RELATIONS | {pbc.REGULATES}
 
     @classmethod
     def convert(
@@ -104,7 +102,7 @@ class PTMConverter(ReifiedConverter):
     @classmethod
     def predicate(cls, u: BaseEntity, v: BaseEntity, key: str, edge_data: EdgeData) -> bool:
         return (
-            edge_data[RELATION] in CAUSAL_RELATIONS
+            edge_data[pbc.RELATION] in pbc.CAUSAL_RELATIONS
             and isinstance(v, CentralDogma)
             and v.variants
             and any(
@@ -126,7 +124,7 @@ class AbundanceConverter(ReifiedConverter):
 
     @classmethod
     def predicate(cls, u: BaseEntity, v: BaseEntity, key: str, edge_data: EdgeData) -> bool:
-        return "relation" in edge_data and edge_data['relation'] in CAUSAL_RELATIONS
+        return pbc.RELATION in edge_data and edge_data[pbc.RELATION] in pbc.CAUSAL_RELATIONS
 
 
 class AcetylationConverter(PTMConverter):
@@ -155,10 +153,10 @@ class ActivationConverter(ReifiedConverter):
     @classmethod
     def predicate(cls, u: BaseEntity, v: BaseEntity, key: str, edge_data: EdgeData) -> bool:
         return (
-            "relation" in edge_data
-            and edge_data['relation'] in CAUSAL_INCREASE_RELATIONS
-            and edge_data.get(OBJECT)
-            and edge_data.get(OBJECT).get(MODIFIER) == ACTIVITY
+            pbc.RELATION in edge_data
+            and edge_data[pbc.RELATION] in pbc.CAUSAL_INCREASE_RELATIONS
+            and edge_data.get(pbc.TARGET_MODIFIER)
+            and edge_data.get(pbc.TARGET_MODIFIER).get(pbc.MODIFIER) == pbc.ACTIVITY
         )
 
 
@@ -171,7 +169,7 @@ class ComplexConverter(ReifiedConverter):
     def predicate(cls, u: BaseEntity, v: BaseEntity, key: str, edge_data: EdgeData) -> bool:
         return (
             isinstance(v, ComplexAbundance)
-            and edge_data[RELATION] == PART_OF
+            and edge_data[pbc.RELATION] == pbc.PART_OF
         )
 
 
@@ -183,10 +181,10 @@ class DegradationConverter(ReifiedConverter):
     @classmethod
     def predicate(cls, u: BaseEntity, v: BaseEntity, key: str, edge_data: EdgeData) -> bool:
         return (
-            "relation" in edge_data
-            and edge_data['relation'] in CAUSAL_INCREASE_RELATIONS
-            and edge_data.get(OBJECT)
-            and edge_data.get(OBJECT).get(MODIFIER) == DEGRADATION
+            pbc.RELATION in edge_data
+            and edge_data[pbc.RELATION] in pbc.CAUSAL_INCREASE_RELATIONS
+            and edge_data.get(pbc.TARGET_MODIFIER)
+            and edge_data.get(pbc.TARGET_MODIFIER).get(pbc.MODIFIER) == pbc.DEGRADATION
         )
 
 
@@ -212,7 +210,7 @@ class HasVariantConverter(ReifiedConverter):
 
     @classmethod
     def predicate(cls, u: BaseEntity, v: BaseEntity, key: str, edge_data: EdgeData) -> bool:
-        return "relation" in edge_data and edge_data['relation'] == HAS_VARIANT
+        return pbc.RELATION in edge_data and edge_data[pbc.RELATION] == pbc.HAS_VARIANT
 
     @classmethod
     def convert(
@@ -233,12 +231,12 @@ class FragmentationConverter(ReifiedConverter):
     @classmethod
     def predicate(cls, u: BaseEntity, v: BaseEntity, key: str, edge_data: EdgeData) -> bool:
         return (
-            "relation" in edge_data
-            and edge_data['relation'] in CAUSAL_RELATIONS
-            and "variants" in v
+            pbc.RELATION in edge_data
+            and edge_data[pbc.RELATION] in pbc.CAUSAL_RELATIONS
+            and pbc.VARIANTS in v
             and any(
                 isinstance(var_, fragment)
-                for var_ in v["variants"]
+                for var_ in v[pbc.VARIANTS]
             )
         )
 
@@ -321,8 +319,8 @@ class PromotesTranslationConverter(ReifiedConverter):
     @classmethod
     def predicate(cls, u: BaseEntity, v: BaseEntity, key: str, edge_data: EdgeData) -> bool:
         return (
-            "relation" in edge_data
-            and edge_data['relation'] in CAUSAL_RELATIONS
+            pbc.RELATION in edge_data
+            and edge_data[pbc.RELATION] in pbc.CAUSAL_RELATIONS
             and isinstance(v, rna)
         )
 
@@ -352,8 +350,8 @@ class TranscriptionConverter(ReifiedConverter):
     @classmethod
     def predicate(cls, u: BaseEntity, v: BaseEntity, key: str, edge_data: EdgeData) -> bool:
         return (
-            "relation" in edge_data
-            and edge_data['relation'] in TRANSCRIBED_TO
+            pbc.RELATION in edge_data
+            and edge_data[pbc.RELATION] in pbc.TRANSCRIBED_TO
             and isinstance(u, gene)
             and isinstance(v, rna)
         )
@@ -367,8 +365,8 @@ class TranslationConverter(ReifiedConverter):
     @classmethod
     def predicate(cls, u: BaseEntity, v: BaseEntity, key: str, edge_data: EdgeData) -> bool:
         return (
-            "relation" in edge_data
-            and edge_data['relation'] in TRANSLATED_TO
+            pbc.RELATION in edge_data
+            and edge_data[pbc.RELATION] in pbc.TRANSLATED_TO
             and isinstance(u, rna)
             and isinstance(v, protein)
         )
@@ -428,6 +426,10 @@ def reify_edge(
 
 def reify_bel_graph(bel_graph: BELGraph) -> nx.DiGraph:
     """Generate a new graph with reified edges."""
+    warnings.warn(
+        'reify_bel_graph does not pass unit tests. Probably does not work.'
+        'Use with caution or email author Mauricio de ')
+
     reified_graph = nx.DiGraph()
 
     reified_edges = starmap(reify_edge, bel_graph.edges(keys=True, data=True))
